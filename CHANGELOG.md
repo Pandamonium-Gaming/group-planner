@@ -156,6 +156,11 @@
   * Updated `src/app/auth/callback/page.tsx` to use shared `getSession()` helper before Discord ID sync
   * Added `onAuthStateChange` helper in `src/lib/auth.ts` to centralize Supabase auth subscription handling
 
+* **PR-06 high-impact hooks decoupling slice**
+  * Updated `src/hooks/useGroupData.ts` to resolve current user via v2 session endpoint and v1 `getSession()` helper instead of direct `supabase.auth.getUser`
+  * Updated `src/hooks/useBuilds.ts` to centralize identity resolution through API/session helper flow for fetch/create/copy/like/comment actions
+  * Updated hook tests in `src/hooks/__tests__/useGroupData.test.ts` and `src/hooks/__tests__/useBuilds.test.ts` to align with session-based identity mocks
+
 * **Auth.js session-mode env hardening for Vercel deployments**
   * Updated `src/auth.ts` to normalize `AUTH_SESSION_STRATEGY` values (trim + lowercase), so values like `JWT` or `jwt` with trailing whitespace no longer silently fall back to database mode
   * Removed implicit fallback from `AUTH_DATABASE_URL` to `DATABASE_URL`, preventing unrelated platform-level `DATABASE_URL` values from unexpectedly enabling the Postgres adapter

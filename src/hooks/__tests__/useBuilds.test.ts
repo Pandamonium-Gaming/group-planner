@@ -10,8 +10,8 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'user-1' } },
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { user: { id: 'user-1' } } },
         error: null,
       }),
     },
@@ -293,13 +293,13 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
 
     it('throws error if not authenticated', async () => {
       // Restore and set up auth failure
-      supabase.auth.getUser
+      supabase.auth.getSession
         .mockResolvedValueOnce({
-          data: { user: null },
+          data: { session: null },
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { user: null },
+          data: { session: null },
           error: null,
         });
 

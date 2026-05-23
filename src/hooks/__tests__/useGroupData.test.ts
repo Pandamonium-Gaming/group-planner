@@ -33,8 +33,8 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'user-1' } },
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { user: { id: 'user-1' } } },
         error: null,
       }),
     },

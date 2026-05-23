@@ -8,6 +8,7 @@ import { GroupRole } from '@/lib/permissions';
 import { syncSubscriberShips, updateSubscriberTier } from '@/lib/subscriberShips';
 import { handleAsyncError } from '@/lib/errorHandling';
 import { getClientAuthStack } from '@/lib/authStack';
+import { getSession as getAuthSession } from '@/lib/auth';
 
 // Character data for creating/updating
 export interface CharacterData {
@@ -52,11 +53,6 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
   const [error, setError] = useState<string | null>(null);
 
   const resolveCurrentUserId = useCallback(async (): Promise<string | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      return user.id;
-    }
-
     if (getClientAuthStack() === 'v2') {
       try {
         const response = await fetch('/api/auth/session', {
@@ -80,6 +76,15 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       } catch (err) {
         console.error('[useGroupData] Failed to resolve user from v2 session:', err);
       }
+
+      return null;
+    }
+
+    try {
+      const session = await getAuthSession();
+      return session?.user?.id ?? null;
+    } catch (err) {
+      console.error('[useGroupData] Failed to resolve user from v1 session:', err);
     }
 
     return null;
