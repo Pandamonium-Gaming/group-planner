@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import { getClientAuthStack } from '@/lib/authStack';
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
 import { 
   UserProfile, 
   getUserProfile, 
+  getSession as getAuthSession,
+  onAuthStateChange,
   signInWithDiscord, 
   signOut as authSignOut,
   updateDisplayName as authUpdateDisplayName
@@ -135,7 +136,7 @@ export function useAuth(): UseAuthReturn {
     }
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    getAuthSession().then((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -145,7 +146,7 @@ export function useAuth(): UseAuthReturn {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { subscription } = onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);

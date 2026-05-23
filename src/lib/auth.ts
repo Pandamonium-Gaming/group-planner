@@ -18,6 +18,7 @@ export async function updateClanIconUrl(groupId: string, url: string) {
 }
 import { supabase } from './supabase';
 import { getURL } from './url';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
 
@@ -71,6 +72,16 @@ export async function getSession() {
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
   return session;
+}
+
+/**
+ * Subscribe to auth state changes.
+ */
+export function onAuthStateChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void | Promise<void>
+) {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  return { subscription };
 }
 
 /**

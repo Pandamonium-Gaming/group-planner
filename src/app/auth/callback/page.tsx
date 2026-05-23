@@ -2,9 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { getClientAuthStack } from '@/lib/authStack';
-import { syncDiscordIdToMembers } from '@/lib/auth';
+import { getSession, syncDiscordIdToMembers } from '@/lib/auth';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
@@ -19,9 +18,10 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
+      let session = null;
+      try {
+        session = await getSession();
+      } catch (error) {
         console.error('Auth callback error:', error);
         router.push('/?error=auth_failed');
         return;

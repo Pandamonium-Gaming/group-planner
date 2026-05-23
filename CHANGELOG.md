@@ -151,6 +151,11 @@
   * Replaced remaining hardcoded filter option text in `src/components/characters/CharacterFilters.tsx` with translated text
   * Resolved `no-img-element` and literal-string lint findings in `src/app/page.tsx` and `src/app/events/page.tsx` by using localized labels and `next/image`
 
+* **PR-06 auth/session client decoupling slice**
+  * Updated `src/hooks/useAuth.ts` to use shared auth helpers (`getSession`, `onAuthStateChange`) instead of direct `supabase.auth.*` calls
+  * Updated `src/app/auth/callback/page.tsx` to use shared `getSession()` helper before Discord ID sync
+  * Added `onAuthStateChange` helper in `src/lib/auth.ts` to centralize Supabase auth subscription handling
+
 * **Auth.js session-mode env hardening for Vercel deployments**
   * Updated `src/auth.ts` to normalize `AUTH_SESSION_STRATEGY` values (trim + lowercase), so values like `JWT` or `jwt` with trailing whitespace no longer silently fall back to database mode
   * Removed implicit fallback from `AUTH_DATABASE_URL` to `DATABASE_URL`, preventing unrelated platform-level `DATABASE_URL` values from unexpectedly enabling the Postgres adapter
