@@ -145,7 +145,7 @@ const userGames = await getUserGames(userId);
 // Returns: ['aoc', 'starcitizen']
 ```
 
-#### Get user's clans for a specific game
+#### Get user's groups for a specific game
 
 ```typescript
 import { getUserClansForGame } from '@/lib/gameTracking';
@@ -228,7 +228,7 @@ export function GameFeatureSection() {
 
 * Use `getGame()` for accessing config
 * Use type-safe `GameId` type
-* Store game with clans in DB
+* Store game with groups in DB
 * Use feature flags instead of hardcoding
 * Keep game-specific code in `src/games/[game]/`
 
@@ -243,7 +243,7 @@ export function GameFeatureSection() {
 
 ## Database Queries
 
-### Get all clans for a game
+### Get all groups for a game
 
 ```sql
 SELECT * FROM clans WHERE game = 'aoc';
@@ -255,7 +255,7 @@ SELECT * FROM clans WHERE game = 'aoc';
 SELECT game FROM user_games WHERE user_id = 'user-id';
 ```
 
-### Create clan for specific game
+### Create group for specific game
 
 ```typescript
 const { data } = await supabase
@@ -268,7 +268,7 @@ const { data } = await supabase
   });
 ```
 
-### Filter clans by game
+### Filter groups by game
 
 ```typescript
 const { data: clans } = await supabase
@@ -297,7 +297,7 @@ const { data: clans } = await supabase
 * Check game entry in `game_types` table
 * Verify `GameId` type includes new game
 
-### Clan creation failing
+### Group creation failing
 
 * Ensure game is selected (`useGame().selectedGame` is not null)
 * Check database migration was applied

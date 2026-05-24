@@ -33,12 +33,12 @@ The application has been successfully scaffolded to support multiple games (Ashe
 * **`gameTracking.ts`** - User-game relationship management
   * `addUserGame()` - Track user's participation in a game
   * `getUserGames()` - Get all games user is in
-  * `getUserClansForGame()` - Get user's clans filtered by game
+  * `getUserClansForGame()` - Get user's groups filtered by game
 
 * **`gameValidation.ts`** - Game context validation
-  * `validateClanGame()` - Ensure clan belongs to correct game
-  * `getClanGame()` - Get game a clan belongs to
-  * `initializeClanWithGame()` - Setup new clan with game
+  * `validateClanGame()` - Ensure group belongs to the correct game
+  * `getClanGame()` - Get the game a group belongs to
+  * `initializeClanWithGame()` - Set up a new group with game
 
 ### 3. **React Contexts** (`src/contexts/`)
 
@@ -75,7 +75,7 @@ The application has been successfully scaffolded to support multiple games (Ashe
 * **`layout.tsx`** - Added `GameProvider` wrapper
 * **`page.tsx`** - Updated landing page
   * Shows `GameSelector` for authenticated users
-  * Hides clan lists and features until game is selected
+  * Hides group lists and features until game is selected
   * Imports `GameSwitcher` component for header
 
 ### 7. **Documentation** (`docs/`)
@@ -118,7 +118,7 @@ The application has been successfully scaffolded to support multiple games (Ashe
 
 ## Next Steps (Optional)
 
-1. **Route Structure** - Implement `src/app/[game]/[clan]` dynamic routes for game-specific clan pages
+1. **Route Structure** - Implement `src/app/[game]/[clan]` dynamic routes for game-specific group pages
 2. **Game-Specific Components** - Create component variants per game (e.g., `ProfessionSelector` vs `ShipSelector`)
 3. **Localization** - Add game-specific translation files
 4. **API Routes** - Create `src/app/api/[game]/...` for game-specific endpoints
@@ -158,7 +158,7 @@ src/
 ├── components/
 │   ├── GameSelector.tsx
 │   ├── GameSwitcher.tsx
-│   └── ClanSettings.tsx          # ← Now manages per-game Discord webhooks/roles
+│   └── ClanSettings.tsx          # ← Now manages per-game Discord webhooks/roles for groups
 │
 └── app/
     ├── layout.tsx (updated)
@@ -230,9 +230,10 @@ No component changes needed when adding a new game!
 4. You should see the GameSelector
 5. Choose a game and verify:
    * Game is stored in `user_games` table
-   * Clan form appears
-   * GameSwitcher shows in header
-   * Switching games works smoothly
+
+* Group form appears
+* GameSwitcher shows in header
+* Switching games works smoothly
 
 ## Files Modified
 
