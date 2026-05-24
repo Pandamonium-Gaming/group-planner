@@ -75,16 +75,16 @@
     "signedInAs": "Ingelogd als"
   },
   "clan": {
-    "create": "Clan aanmaken",
-    "createNew": "Nieuwe clan aanmaken",
-    "createDescription": "De clan {{name}} bestaat nog niet. Wil je deze aanmaken?",
+    "create": "Groep aanmaken",
+    "createNew": "Nieuwe groep aanmaken",
+    "createDescription": "De groep {{name}} bestaat nog niet. Wil je deze aanmaken?",
     "createGroupPrompt": "\"{{name}}\" aanmaken?",
     "createGroupDescription": "Deze groep bestaat nog niet. Wil je deze aanmaken?",
-    "youWillBeAdmin": "Je wordt de beheerder van de clan ",
+    "youWillBeAdmin": "Je wordt de beheerder van de groep ",
     "applyToJoin": "Aanmelden om lid te worden",
     "applicationPending": "In afwachting van goedkeuring",
     "pendingApproval": "Je aanmelding om lid te worden van {{name}} wordt beoordeeld door een beheerder of officier.",
-    "accessAfterApproval": "Je krijgt toegang tot clan gegevens zodra je bent goedgekeurd.",
+    "accessAfterApproval": "Je krijgt toegang tot groep gegevens zodra je bent goedgekeurd.",
     "charactersCount": "{{count}} personages",
     "noCharacters": "Nog geen personages. Voeg hierboven je eerste groep personage toe!",
     "noCharactersFound": "Geen personages gevonden.",
@@ -97,10 +97,10 @@
     "loginRequired": "Login vereist",
     "signInToAccess": "Log in met Discord om toegang te krijgen tot {{name}}",
     "connectionError": "Verbindingsfout",
-    "connectionErrorMessage": "Kan geen verbinding maken met de clan service. Dit kan komen door een trage verbinding of serverprobleem.",
-    "joinClan": "Lid worden van clan",
+    "connectionErrorMessage": "Kan geen verbinding maken met de groep service. Dit kan komen door een trage verbinding of serverprobleem.",
+    "joinClan": "Lid worden van groep",
     "applyDescription": "Meld je aan om lid te worden van {{name}}. Een beheerder zal je aanmelding beoordelen.",
-    "errorLoading": "Fout bij laden van clan",
+    "errorLoading": "Fout bij laden van groep",
     "creator": "oprichter"
   },
   "group": {
@@ -269,7 +269,7 @@
     "gameSettingsTitle": "Spelinstellingen",
     "profile": "Profiel",
     "displayName": "Weergavenaam",
-    "displayNameHint": "Dit is hoe je naam verschijnt voor andere clanleden.",
+    "displayNameHint": "Dit is hoe je naam verschijnt voor andere groepsleden.",
     "timezone": "Tijdzone",
     "yourTimezone": "Jouw tijdzone",
     "autoDetect": "Automatisch detecteren",
@@ -285,12 +285,12 @@
     "master": "Master",
     "missing": "Missing",
     "professionHealth": "Profession Health",
-    "clanReadiness": "Clan Readiness",
+    "clanReadiness": "Groep Readiness",
     "anyCoverage": "Any Coverage",
     "tierBalance": "Tier Balance (Master+)",
     "professionsWithoutMaster": "professions without Master",
     "recommendations": "Recommendations",
-    "wellBalanced": "Clan is well-balanced!",
+    "wellBalanced": "Groep is well-balanced!",
     "supplyChainIssues": "Supply Chain Issues",
     "missingSuppliers": "Missing suppliers",
     "fullySupplied": "Fully supplied",
@@ -333,8 +333,8 @@
     "pinned": "Vastgepind"
   },
   "publicPage": {
-    "clanNotFound": "Clan niet gevonden",
-    "clanNotFoundDesc": "Deze clan bestaat niet of is niet openbaar.",
+    "clanNotFound": "Groep niet gevonden",
+    "clanNotFoundDesc": "Deze groep bestaat niet of is niet openbaar.",
     "goHome": "Ga naar Home",
     "ashesOfCreationGuild": "Ashes of Creation Groep",
     "memberLogin": "Leden login",
@@ -446,16 +446,16 @@
   "home": {
     "title": "Multi-Game Groep Planner",
     "subtitle": "Beheer je groep in elke game - Ashes of Creation, Star Citizen en meer",
-    "enterClanPlaceholder": "Voer je clan naam in...",
-    "loggedInHint": "Je kunt deze clan aanmaken of lid worden",
-    "notLoggedInHint": "Log in met Discord om clans aan te maken of lid te worden",
-    "yourClans": "Jouw clans",
+    "enterClanPlaceholder": "Voer je groep naam in...",
+    "loggedInHint": "Je kunt deze groep aanmaken of lid worden",
+    "notLoggedInHint": "Log in met Discord om groepen aan te maken of lid te worden",
+    "yourClans": "Jouw groepen",
     "publicEventsLink": "Openbare evenementen",
     "publicGroupsTitle": "Openbare groepen",
     "openRecruitmentStatus": "Open werving",
     "viewGroupStatus": "Bekijk groep",
     "noPublicGroups": "Nog geen openbare groepen.",
-    "noClans": "Je bent nog geen lid van een clan. Voer hierboven een clan naam in om te beginnen!",
+    "noClans": "Je bent nog geen lid van een groep. Voer hierboven een groep naam in om te beginnen!",
     "featureMemberTitle": "Leden beheer",
     "featureMemberDesc": "Volg leden, rollen en rechten binnen je organisatie",
     "featureSyncTitle": "Real-time synchronisatie",
@@ -541,7 +541,7 @@
     },
     "createEvent": "Evenement aanmaken",
     "noUpcoming": "Geen komende belegeringen",
-    "noUpcomingDesc": "Maak een belegering evenement aan om je clan te organiseren."
+    "noUpcomingDesc": "Maak een belegering evenement aan om je groep te organiseren."
   },
   "loot": {
     "title": "Buit & DKP",
@@ -1104,3 +1104,4 @@
     }
   }
 }
+

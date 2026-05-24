@@ -75,16 +75,16 @@
     "signedInAs": "Signed in as"
   },
   "clan": {
-    "create": "Create Clan",
-    "createNew": "Create New Clan",
-    "createDescription": "The clan {{name}} doesn't exist yet. Would you like to create it?",
+    "create": "Create Group",
+    "createNew": "Create New Group",
+    "createDescription": "The group {{name}} doesn't exist yet. Would you like to create it?",
     "createGroupPrompt": "Create \"{{name}}\"?",
     "createGroupDescription": "This group doesn't exist yet. Would you like to create it?",
-    "youWillBeAdmin": "You will become the clan Admin",
+    "youWillBeAdmin": "You will become the group Admin",
     "applyToJoin": "Apply to Join",
     "applicationPending": "Application Pending",
     "pendingApproval": "Your application to join {{name}} is pending review by an admin or officer.",
-    "accessAfterApproval": "You'll be able to access clan data once approved.",
+    "accessAfterApproval": "You'll be able to access group data once approved.",
     "charactersCount": "{{count}} characters",
     "noCharacters": "No characters yet. Add your first group character above!",
     "noCharactersFound": "No characters found.",
@@ -97,10 +97,10 @@
     "loginRequired": "Login Required",
     "signInToAccess": "Sign in with Discord to access {{name}}",
     "connectionError": "Connection Error",
-    "connectionErrorMessage": "Unable to connect to the clan service. This might be due to a slow connection or server issue.",
-    "joinClan": "Join Clan",
+    "connectionErrorMessage": "Unable to connect to the group service. This might be due to a slow connection or server issue.",
+    "joinClan": "Join Group",
     "applyDescription": "Apply to join {{name}}. An admin will review your application.",
-    "errorLoading": "Error Loading Clan",
+    "errorLoading": "Error Loading Group",
     "creator": "creator"
   },
   "group": {
@@ -269,7 +269,7 @@
     "gameSettingsTitle": "Game Settings",
     "profile": "Profile",
     "displayName": "Display Name",
-    "displayNameHint": "This is how your name appears to other clan members.",
+    "displayNameHint": "This is how your name appears to other group members.",
     "timezone": "Timezone",
     "yourTimezone": "Your Timezone",
     "autoDetect": "Auto-detect",
@@ -285,12 +285,12 @@
     "master": "Master",
     "missing": "Missing",
     "professionHealth": "Profession Health",
-    "clanReadiness": "Clan Readiness",
+    "clanReadiness": "Group Readiness",
     "anyCoverage": "Any Coverage",
     "tierBalance": "Tier Balance (Master+)",
     "professionsWithoutMaster": "professions without Master",
     "recommendations": "Recommendations",
-    "wellBalanced": "Clan is well-balanced!",
+    "wellBalanced": "Group is well-balanced!",
     "supplyChainIssues": "Supply Chain Issues",
     "missingSuppliers": "Missing suppliers",
     "fullySupplied": "Fully supplied",
@@ -333,8 +333,8 @@
     "pinned": "Pinned"
   },
   "publicPage": {
-    "clanNotFound": "Clan Not Found",
-    "clanNotFoundDesc": "This clan doesn't exist or isn't public.",
+    "clanNotFound": "Group Not Found",
+    "clanNotFoundDesc": "This group doesn't exist or isn't public.",
     "goHome": "Go Home",
     "ashesOfCreationGuild": "Ashes of Creation Group",
     "memberLogin": "Member Login",
@@ -446,16 +446,16 @@
   "home": {
     "title": "Multi-Game Group Planner",
     "subtitle": "Manage your group across any game - Ashes of Creation, Star Citizen, and more",
-    "enterClanPlaceholder": "Enter your clan name...",
-    "loggedInHint": "You'll be able to create or join this clan",
-    "notLoggedInHint": "Login with Discord to create or join clans",
-    "yourClans": "Your Clans",
+    "enterClanPlaceholder": "Enter your group name...",
+    "loggedInHint": "You'll be able to create or join this group",
+    "notLoggedInHint": "Login with Discord to create or join groups",
+    "yourClans": "Your Groups",
     "publicEventsLink": "Public Events",
     "publicGroupsTitle": "Public Groups",
     "openRecruitmentStatus": "Open Recruitment",
     "viewGroupStatus": "View Group",
     "noPublicGroups": "No public groups yet.",
-    "noClans": "You haven't joined any clans yet. Enter a clan name above to get started!",
+    "noClans": "You haven't joined any groups yet. Enter a group name above to get started!",
     "featureMemberTitle": "Member Tracking",
     "featureMemberDesc": "Track members, roles, and permissions across your organization",
     "featureSyncTitle": "Real-time Sync",
@@ -541,7 +541,7 @@
     },
     "createEvent": "Create Event",
     "noUpcoming": "No Upcoming Sieges",
-    "noUpcomingDesc": "Create a siege event to organise your clan."
+    "noUpcomingDesc": "Create a siege event to organise your group."
   },
   "loot": {
     "title": "Loot & DKP",
@@ -1104,3 +1104,4 @@
     }
   }
 }
+

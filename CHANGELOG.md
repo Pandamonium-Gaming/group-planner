@@ -111,6 +111,7 @@
 
 * **Branding copy pass: Guild/Clan -> Group (safe text-only)**
   * Updated user-facing UI copy in `src/app/layout.tsx`, `src/components/landing/LandingHero.tsx`, `src/components/settings/GroupDiscordSettings.tsx`, `src/hooks/useGroupMembership.ts`, `src/components/characters/CharacterForm.tsx`, `src/app/[group]/[game]/settings/page.tsx`, and `src/lib/discord.ts`
+  * Updated user-facing locale values in `public/locales/en-GB.json`, `public/locales/es.json`, and `public/locales/nl.json` (keys preserved)
   * Updated user-facing wording in docs (`docs/DEPLOYMENT.md`, `docs/MULTI_GAME_QUICK_START.md`, `docs/MULTI_GAME_SETUP.md`) without renaming API routes, database identifiers, or translation key namespaces
 
 * **Phase 1 PR-01 auth seam scaffolding (non-breaking)**
