@@ -104,6 +104,15 @@
 
 ### Changed
 
+* **Node.js baseline upgraded to 24**
+  * Updated Docker build/runtime stages in `Dockerfile` from `node:22-bookworm-slim` to `node:24-bookworm-slim`
+  * Updated GitHub Actions workflows (`ci.yml`, `copilot-compliance.yml`, `update-subscriber-ships.yml`, `version-check.yml`) to run on Node 24
+  * Added `engines.node: >=24.0.0` to `package.json` and updated the Node badge in `README.md`
+
+* **Branding copy pass: Guild/Clan -> Group (safe text-only)**
+  * Updated user-facing UI copy in `src/app/layout.tsx`, `src/components/landing/LandingHero.tsx`, `src/components/settings/GroupDiscordSettings.tsx`, `src/hooks/useGroupMembership.ts`, `src/components/characters/CharacterForm.tsx`, `src/app/[group]/[game]/settings/page.tsx`, and `src/lib/discord.ts`
+  * Updated user-facing wording in docs (`docs/DEPLOYMENT.md`, `docs/MULTI_GAME_QUICK_START.md`, `docs/MULTI_GAME_SETUP.md`) without renaming API routes, database identifiers, or translation key namespaces
+
 * **Phase 1 PR-01 auth seam scaffolding (non-breaking)**
   * Added `AUTH_STACK`/`NEXT_PUBLIC_AUTH_STACK` migration flags in `.env.example` (default `v1`)
   * Added runtime auth-stack selector helpers in `src/lib/authStack.ts`

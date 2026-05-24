@@ -32,7 +32,6 @@ function Import-EnvFile {
 Write-Host "Loading prod environment..." -ForegroundColor Cyan
 Import-EnvFile ".env.local.prod"
 
-$prodRef = [Environment]::GetEnvironmentVariable("SUPABASE_PROJECT_REF", "Process")
 $prodDbUrl = [Environment]::GetEnvironmentVariable("DATABASE_URL", "Process")
 
 $dumpDir = Split-Path $DumpFile -Parent
@@ -58,7 +57,6 @@ pg_dump $prodDbUrl --data-only | Out-File -FilePath $DumpFile -Encoding utf8
 Write-Host "Loading dev environment..." -ForegroundColor Cyan
 Import-EnvFile ".env.local.dev"
 
-$devRef = [Environment]::GetEnvironmentVariable("SUPABASE_PROJECT_REF", "Process")
 $devDbUrl = [Environment]::GetEnvironmentVariable("DATABASE_URL", "Process")
 
 if ($ResetDev) {

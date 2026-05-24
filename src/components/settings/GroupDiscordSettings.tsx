@@ -125,17 +125,17 @@ export function GroupDiscordSettings({
     <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Webhook className="w-5 h-5 text-purple-400" />
-        <h3 className="text-lg font-semibold text-white">Guild-Wide Discord Integration</h3>
+        <h3 className="text-lg font-semibold text-white">Group-Wide Discord Integration</h3>
       </div>
 
       <p className="text-sm text-slate-400">
-        Configure guild-wide Discord webhooks for cross-game notifications and member welcomes.
+        Configure group-wide Discord webhooks for cross-game notifications and member welcomes.
       </p>
 
       {/* Main Webhook URL */}
       <div>
         <label htmlFor="guild-webhook-url" className="block text-sm font-medium text-slate-300 mb-2">
-          {t('discord.webhookUrl')} (Guild-Wide)
+          {t('discord.webhookUrl')} (Group-Wide)
         </label>
         <input
           id="guild-webhook-url"
@@ -155,7 +155,7 @@ export function GroupDiscordSettings({
           </p>
         )}
         <p className="text-xs text-slate-500 mt-1">
-          Used for guild-wide announcements and as a fallback for game-specific notifications.
+          Used for group-wide announcements and as a fallback for game-specific notifications.
         </p>
       </div>
 

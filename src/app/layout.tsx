@@ -22,7 +22,7 @@ const cinzel = Cinzel({
 
 export const metadata: Metadata = {
   title: "Group Planner",
-  description: "Manage your guild, coordinate your team, and track everything across multiple games",
+  description: "Manage your group, coordinate your team, and track everything across multiple games",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

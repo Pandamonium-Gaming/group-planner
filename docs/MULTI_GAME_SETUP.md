@@ -100,7 +100,7 @@ The application has been successfully scaffolded to support multiple games (Ashe
    ↓
 5. GameContext.selectedGame is set
    ↓
-6. Landing page shows clan management for selected game
+6. Landing page shows group management for selected game
    ↓
 7. GameSwitcher appears in header for quick switching
 ```
@@ -113,7 +113,7 @@ The application has been successfully scaffolded to support multiple games (Ashe
 ✅ **Game-specific configurations and data**
 ✅ **Database tracking of user-game relationships**
 ✅ **Game switching without logout**
-✅ **Clan-to-game association**
+✅ **Group-to-game association**
 ✅ **Feature flags per game**
 
 ## Next Steps (Optional)

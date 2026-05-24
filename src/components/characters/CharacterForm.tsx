@@ -434,7 +434,7 @@ export function CharacterForm({
 
           {!isAoC && ranksEnabled && gameRanks.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Guild Rank</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Group Rank</label>
               <select
                 value={formData.rank || ''}
                 onChange={(e) => setFormData({ ...formData, rank: e.target.value || null })}

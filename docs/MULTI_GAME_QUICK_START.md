@@ -9,12 +9,12 @@
 3. Your choice is saved - you won't need to select again
 4. Use the **Game Switcher** (top-right) to switch between games
 
-### Creating a Clan
+### Creating a Group
 
 1. Make sure you've selected your game
-2. Use the "Create Clan" form
-3. The clan will automatically be tagged with your selected game
-4. Only users in that game can join your clan
+2. Use the "Create Group" form
+3. The group will automatically be tagged with your selected game
+4. Only users in that game can join your group
 
 ***
 

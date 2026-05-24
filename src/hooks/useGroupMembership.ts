@@ -185,11 +185,11 @@ export function useGroupMembership(groupId: string | null, userId: string | null
         '✅ Set your main character in the planner',
         '✅ Fill out your professions and skills',
         '✅ Join upcoming events and RSVP',
-        '✅ Read the guild rules and code of conduct',
+        '✅ Read the group rules and code of conduct',
         '✅ Introduce yourself in Discord',
       ];
       return {
-        title: '🎉 Welcome to the Guild!',
+        title: '🎉 Welcome to the Group!',
         description: `Welcome <@${discordUsername}>! We're excited to have you join us. Here's how to get started:`,
         color: 0x22c55e, // green
         fields: [

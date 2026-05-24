@@ -63,7 +63,7 @@ export default function SettingsPage() {
           className="inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          View Guild-wide Settings
+          View Group-wide Settings
         </Link>
       </div>
 

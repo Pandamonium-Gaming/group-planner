@@ -58,5 +58,6 @@
         "PASS": true,
         "docker compose": true
     },
-    "codeQL.githubDatabase.download": "never"
+    "codeQL.githubDatabase.download": "never",
+    "npmSafetyGuard.enablePhantomCheck": false
 }

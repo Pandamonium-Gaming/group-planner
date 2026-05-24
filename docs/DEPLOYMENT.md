@@ -127,8 +127,8 @@ After initial setup:
 1. Open your Vercel URL
 2. Click **Login with Discord**
 3. Authorize the app
-4. Enter a clan name (e.g., "my-group")
-5. You should become the Admin of the new clan
+4. Enter a group name (e.g., "my-group")
+5. You should become the Admin of the new group
 6. Try logging in with another Discord account to test the apply/accept flow
 
 ***
@@ -136,17 +136,17 @@ After initial setup:
 ## Authentication Flow
 
 ```text
-User visits /my-clan
+User visits /my-group
        ↓
 Not logged in? → Redirect to /login → Discord OAuth
        ↓
-Logged in, clan doesn't exist? → Offer to create (become Admin)
+Logged in, group doesn't exist? → Offer to create (become Admin)
        ↓
 Logged in, not a member? → Apply to join (pending state)
        ↓
 Pending member? → Wait for Admin/Officer approval
        ↓
-Approved member → Full access to clan dashboard
+Approved member → Full access to group dashboard
 ```
 
 ***

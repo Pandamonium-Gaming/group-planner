@@ -13,13 +13,13 @@ export function LandingHero() {
       {/* Badge */}
       <div className="inline-flex items-center gap-2 mb-8 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-full animate-fade-in-up">
         <Sparkles className="w-4 h-4 text-indigo-400" />
-        <span className="text-indigo-300 font-medium text-sm">Multi-Game Guild Platform</span>
+        <span className="text-indigo-300 font-medium text-sm">Multi-Game Group Platform</span>
       </div>
       
       {/* Main heading */}
       <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight animate-fade-in-up animation-delay-100">
         <span className="text-gradient">
-          Organize Your Guild
+          Organize Your Group
         </span>
         <br />
         <span className="text-slate-200">Across Any Game</span>
@@ -32,7 +32,7 @@ export function LandingHero() {
 
       {/* Feature grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12 max-w-3xl mx-auto animate-fade-in-up animation-delay-300">
-        <FeaturePill icon={<Users className="w-4 h-4" />} label="Guild Management" />
+        <FeaturePill icon={<Users className="w-4 h-4" />} label="Group Management" />
         <FeaturePill icon={<Zap className="w-4 h-4" />} label="Real-time Sync" />
         <FeaturePill icon={<Globe className="w-4 h-4" />} label="Multi-Game" />
         <FeaturePill icon={<Shield className="w-4 h-4" />} label="Role System" />

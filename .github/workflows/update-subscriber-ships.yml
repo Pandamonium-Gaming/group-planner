@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Enable Corepack and activate Yarn
         run: |
@@ -115,7 +115,7 @@ jobs:
             const monthName = now.toLocaleString('en-US', { month: 'long' });
             const year = now.getFullYear();
             
-            const body = '## Automated Fetch Failed\n\nThe automated subscriber ships fetcher encountered an error. Please manually check and update:\n\n### Steps\n1. Visit https://robertsspaceindustries.com/comm-link/transmission/\n2. Look for the "' + monthName + ' ' + year + ' Subscriber Promotions" post\n3. Extract ships and flair information\n4. Update src/games/starcitizen/config/subscriber-ships.ts with:\n   - centurion: Ships for base tier subscribers\n   - imperator: Ships for premium tier subscribers\n   - flair: Monthly cosmetic items\n   - notes: Insurance duration info\n5. Create a PR with the changes\n\n### Reference\n- Subscriber Promotions Feed: https://robertsspaceindustries.com/en/comm-link/rss\n- Configuration File: https://github.com/Pandamonium-Gaming/guild-planner/blob/develop/src/games/starcitizen/config/subscriber-ships.ts\n- Update Guide: https://github.com/Pandamonium-Gaming/guild-planner/blob/develop/docs/STAR_CITIZEN_SUBSCRIBER_UPDATES.md\n\nThis issue was created because automated fetching failed. See GitHub Actions logs for details.';
+            const body = '## Automated Fetch Failed\n\nThe automated subscriber ships fetcher encountered an error. Please manually check and update:\n\n### Steps\n1. Visit https://robertsspaceindustries.com/comm-link/transmission/\n2. Look for the "' + monthName + ' ' + year + ' Subscriber Promotions" post\n3. Extract ships and flair information\n4. Update src/games/starcitizen/config/subscriber-ships.ts with:\n   - centurion: Ships for base tier subscribers\n   - imperator: Ships for premium tier subscribers\n   - flair: Monthly cosmetic items\n   - notes: Insurance duration info\n5. Create a PR with the changes\n\n### Reference\n- Subscriber Promotions Feed: https://robertsspaceindustries.com/en/comm-link/rss\n- Configuration File: https://github.com/Pandamonium-Gaming/group-planner/blob/develop/src/games/starcitizen/config/subscriber-ships.ts\n- Update Guide: https://github.com/Pandamonium-Gaming/group-planner/blob/develop/docs/STAR_CITIZEN_SUBSCRIBER_UPDATES.md\n\nThis issue was created because automated fetching failed. See GitHub Actions logs for details.';
             
             await github.rest.issues.create({
               owner: context.repo.owner,

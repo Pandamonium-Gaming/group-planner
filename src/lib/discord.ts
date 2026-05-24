@@ -111,7 +111,7 @@ export async function testDiscordWebhook(
   return sendDiscordWebhook(webhookUrl, {
     embeds: [{
       title: '✅ Webhook Connected!',
-      description: 'Your Discord webhook is working correctly. You will receive notifications for events and announcements from your guild.',
+      description: 'Your Discord webhook is working correctly. You will receive notifications for events and announcements from your group.',
       color: COLORS.green,
       footer: {
         text: 'Group Planner',
