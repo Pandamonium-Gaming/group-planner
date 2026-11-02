@@ -11,5 +11,6 @@
   "009_add_wow_forever_faction.sql",
   "010_add_wow_forever_profession_ranks.sql",
   "011_add_character_transfer.sql",
-  "012_add_wow_forever_event_types.sql"
+  "012_add_wow_forever_event_types.sql",
+  "013_add_discord_webhook_logs.sql"
 ]

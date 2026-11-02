@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Event, EventWithRsvps, EventRsvp, RsvpStatus, EventRole, Announcement, isEventTypeAllowedForGame } from '@/lib/events';
-import { notifyNewEvent, notifyAnnouncement } from '@/lib/discord';
+import { postEventNotification, postAnnouncementNotification } from '@/lib/webhookClient';
+import { useToast } from '@/contexts/ToastContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { roleHasPermission } from '@/lib/permissions';
 import { getClientAuthStack } from '@/lib/authStack';
 
@@ -28,7 +30,9 @@ interface UseEventsReturn {
   refresh: () => Promise<void>;
 }
 
-export function useEvents(groupId: string | null, userId: string | null, gameSlug?: string, clanSlug?: string): UseEventsReturn {
+export function useEvents(groupId: string | null, userId: string | null, gameSlug?: string, _clanSlug?: string): UseEventsReturn {
+  const { showToast } = useToast();
+  const { t } = useLanguage();
   const [events, setEvents] = useState<EventWithRsvps[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,6 +300,7 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
       }
 
       const payload = (await response.json()) as { event?: Event };
+      if (sendDiscordNotification && payload.event) await notifySaved(payload.event.id);
       await fetchData();
       return payload.event || null;
     }
@@ -311,33 +316,20 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
       throw createError;
     }
 
-    // Send Discord notification only if enabled
-    if (sendDiscordNotification) {
-      try {
-        const { data: clanData } = await supabase
-          .from('groups')
-          .select('name, slug, group_webhook_url, notify_on_events, discord_announcement_role_id')
-          .eq('id', event.group_id)
-          .single();
-
-        if (clanData?.group_webhook_url && clanData.notify_on_events !== false) {
-          await notifyNewEvent(
-            clanData.group_webhook_url, 
-            data, 
-            clanData.name, 
-            clanSlug || clanData.slug,
-            clanData.discord_announcement_role_id
-          );
-        } else {
-        }
-      } catch (err) {
-        console.error('Discord notification failed:', err);
-        // Don't throw - notification failure shouldn't break event creation
-      }
-    }
+    if (sendDiscordNotification) await notifySaved(data.id);
 
     await fetchEvents();
     return data;
+  };
+
+  const notifySaved = async (id: string, announcement = false) => {
+    try {
+      const result = await (announcement ? postAnnouncementNotification(id, gameSlug || 'aoc') : postEventNotification(id));
+      if (result.skipped) showToast('info', t('webhooks.skippedNotice'));
+    } catch (error) {
+      console.error('Discord notification failed after saving:', error);
+      showToast('warning', t('webhooks.savedWarning'), 10000);
+    }
   };
 
   // Update event
@@ -678,6 +670,8 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
         throw new Error(message);
       }
 
+      const payload = await response.json() as { announcement: Announcement };
+      if (sendDiscordNotification) await notifySaved(payload.announcement.id, true);
       await fetchData();
       return;
     }
@@ -693,29 +687,7 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
       throw createError;
     }
 
-    // Send Discord notification only if enabled
-    if (sendDiscordNotification) {
-      try {
-        const { data: clanData } = await supabase
-          .from('groups')
-          .select('name, slug, group_webhook_url, notify_on_announcements, discord_announcement_role_id')
-          .eq('id', announcement.group_id)
-          .single();
-
-        if (clanData?.group_webhook_url && clanData.notify_on_announcements !== false) {
-          await notifyAnnouncement(
-            clanData.group_webhook_url, 
-            data, 
-            clanData.name,
-            clanSlug || clanData.slug,
-            clanData.discord_announcement_role_id
-          );
-        }
-      } catch (err) {
-        console.error('Discord notification failed:', err);
-        // Don't throw - notification failure shouldn't break announcement creation
-      }
-    }
+    if (sendDiscordNotification) await notifySaved(data.id, true);
 
     await fetchAnnouncements();
   };

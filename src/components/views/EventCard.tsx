@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, Check, HelpCircle, X, ChevronDown, ChevronUp, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { postEventNotification } from '@/lib/webhookClient';
 import { CharacterWithProfessions } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AnonymousGuestForm } from '@/components/forms/AnonymousGuestForm';
@@ -57,6 +58,7 @@ export function EventCard({
   const [adminTargetUserId, setAdminTargetUserId] = useState<string | null>(null);
   const [isRsvpLoading, setIsRsvpLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reposting, setReposting] = useState(false);
   const { showToast } = useToast();
   const { t } = useLanguage();
   const { hasPermission } = usePermissions(groupId);
@@ -163,9 +165,9 @@ export function EventCard({
         className="p-4 cursor-pointer hover:bg-slate-800/30 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           {/* Event type icon and title */}
-          <div className="flex items-start gap-3 min-w-0">
+          <div className="flex items-start gap-3 min-w-0 w-full sm:w-auto">
             <div 
               className="p-2 rounded-lg text-xl shrink-0"
               style={{ backgroundColor: eventType.color + '20' }}
@@ -204,7 +206,30 @@ export function EventCard({
           </div>
 
           {/* Right side: RSVP counts and expand */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto sm:shrink-0">
+            {!isPublicView && !event.is_cancelled && hasPermission('events_create') &&
+              (event.created_by === userId || hasPermission('events_edit_any')) && (
+              <button
+                type="button"
+                disabled={reposting}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setReposting(true);
+                  try {
+                    const result = await postEventNotification(event.id, true);
+                    showToast(result.skipped ? 'info' : 'success', t(result.skipped ? 'webhooks.skippedNotice' : 'webhooks.reposted'));
+                  } catch (error) {
+                    console.error('Discord repost failed:', error);
+                    showToast('error', t('webhooks.repostFailed'), 10000);
+                  } finally {
+                    setReposting(false);
+                  }
+                }}
+                className="px-2 py-1 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded disabled:opacity-50 cursor-pointer"
+              >
+                {t(reposting ? 'webhooks.sending' : 'webhooks.repost')}
+              </button>
+            )}
             {/* Copy link button */}
             <button
               onClick={(e) => {

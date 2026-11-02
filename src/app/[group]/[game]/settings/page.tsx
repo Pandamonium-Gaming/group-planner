@@ -65,6 +65,11 @@ export default function SettingsPage() {
           <ArrowLeft className="w-4 h-4" />
           View Group-wide Settings
         </Link>
+        {membership.role === 'admin' && (
+          <Link href={`/${groupSlug}/settings/webhook-logs`} className="block mt-3 text-sm text-purple-400 hover:text-purple-300">
+            {t('webhooks.logs')}
+          </Link>
+        )}
       </div>
 
       {/* Rank Management - Only for games with member ranks (Star Citizen) */}

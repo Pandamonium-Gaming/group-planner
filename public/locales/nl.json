@@ -1,4 +1,36 @@
 {
+  "webhooks": {
+    "repost": "Opnieuw plaatsen op Discord",
+    "sending": "Verzenden...",
+    "reposted": "Evenement opnieuw op Discord geplaatst.",
+    "repostFailed": "Opnieuw plaatsen op Discord mislukt. Controleer de logs en het kanaal voordat je het opnieuw probeert.",
+    "savedWarning": "Opgeslagen, maar de Discord-melding is mislukt. Maak geen tweede exemplaar. Controleer de logs en Discord voordat je opnieuw plaatst.",
+    "skippedNotice": "Discord-melding overgeslagen omdat meldingen uitgeschakeld zijn of het evenement geannuleerd is.",
+    "logs": "Discord-webhooklogs",
+    "logDescription": "Verzendgeschiedenis voor alle spellen, alleen voor beheerders. Alleen pogingen sinds het inschakelen van logging zijn beschikbaar. In behandeling betekent dat het resultaat onbekend is; controleer Discord voordat je het opnieuw probeert. Webhook-URL's en berichtinhoud worden nooit opgeslagen.",
+    "refresh": "Vernieuwen",
+    "loadFailed": "Webhooklogs kunnen niet worden geladen. Beheerderstoegang en de databasemigratie voor webhooklogs zijn vereist.",
+    "empty": "Geen webhookpogingen vastgelegd.",
+    "groupWide": "Hele groep",
+    "viewSubject": "Evenement of aankondiging bekijken",
+    "pagination": "Pagina's met webhooklogs",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "kinds": {
+      "event": "Nieuw evenement",
+      "repost": "Opnieuw geplaatst evenement",
+      "announcement": "Aankondiging",
+      "reminder": "Evenementherinnering",
+      "test": "Webhooktest",
+      "welcome": "Welkom voor lid"
+    },
+    "statuses": {
+      "pending": "In behandeling / onbekend",
+      "sent": "Verzonden",
+      "failed": "Mislukt",
+      "skipped": "Overgeslagen"
+    }
+  },
   "characterTransfer": {
     "title": "Gegevensoverdracht voor beheerders",
     "description": "Exporteer het huidige spel van de groep naar een JSON-bestand en importeer het in de doelomgeving. Geen directe databasesynchronisatie.",

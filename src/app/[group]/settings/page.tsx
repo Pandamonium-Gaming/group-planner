@@ -175,6 +175,9 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
               />
               
               {/* Links to game-specific Discord settings */}
+              <Link href={`/${groupSlug}/settings/webhook-logs`} className="inline-flex px-4 py-2 bg-slate-800 text-purple-400 rounded-lg">
+                {t('webhooks.logs')}
+              </Link>
               <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
                 <p className="text-sm text-slate-300 mb-3">
                   {t('discord.gameSettingsHint')}

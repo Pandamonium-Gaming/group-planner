@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added event reposts to Discord and administrator-only, paginated webhook logs for events, announcements, tests, reminders and member welcomes. Migration 013 stores delivery metadata only, never webhook credentials or message payloads.
 * Added WoW-specific Dungeon, Levelling, World PvP, Battleground PvP and Arena PvP event choices while preserving other games and historical events.
 * Added administrator-only JSON character export/import for the current group and game, with preview, explicit confirmation, Discord owner matching and atomic updates.
 * Added WoW multi-select class/profession filters and visible owner display names on character and profession views.
@@ -43,6 +44,11 @@
 * Integrated main's subscriber ship fixes into develop and prepared the 0.3.0 release.
 
 ### Fixed
+
+* Enforced saved-event authorization for every event notification path and honoured group permission overrides for Discord delivery and reposts.
+
+* Fixed missing WoW and v2 event notifications by using authenticated server-side game webhook and role fallbacks. Notification failures now warn without treating saved events or announcements as unsaved.
+* Kept Discord announcement links and webhook log references in the game from which they were posted.
 
 * Prevented shared API session checks from invoking Auth.js on the legacy Supabase authentication stack, including group permission requests.
 

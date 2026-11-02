@@ -1,4 +1,36 @@
 {
+  "webhooks": {
+    "repost": "Repost to Discord",
+    "sending": "Sending...",
+    "reposted": "Event reposted to Discord.",
+    "repostFailed": "Discord repost failed. Check webhook logs and the channel before retrying.",
+    "savedWarning": "Saved successfully, but the Discord notification failed. Do not create another copy. Check webhook logs and Discord before reposting.",
+    "skippedNotice": "Discord notification skipped because notifications are disabled or the event is cancelled.",
+    "logs": "Discord webhook logs",
+    "logDescription": "Administrator-only delivery history across all games. Only attempts made after logging was enabled are available. Pending means the final delivery status is unknown; check Discord before retrying. Webhook URLs and message payloads are never stored.",
+    "refresh": "Refresh",
+    "loadFailed": "Unable to load webhook logs. Administrator access and the webhook logs database migration are required.",
+    "empty": "No webhook attempts recorded.",
+    "groupWide": "Group-wide",
+    "viewSubject": "View event or announcement",
+    "pagination": "Webhook log pages",
+    "previous": "Previous",
+    "next": "Next",
+    "kinds": {
+      "event": "New event",
+      "repost": "Event repost",
+      "announcement": "Announcement",
+      "reminder": "Event reminder",
+      "test": "Webhook test",
+      "welcome": "Member welcome"
+    },
+    "statuses": {
+      "pending": "Pending / unknown",
+      "sent": "Sent",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    }
+  },
   "characterTransfer": {
     "title": "Administrator data transfer",
     "description": "Export this group's current game to a JSON file, then import the file in the destination environment. No direct database sync.",
