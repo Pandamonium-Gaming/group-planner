@@ -16,6 +16,7 @@ export function ClanTabNav({ canManage, initialTab = 'characters', gameSlug = 'a
   const getActiveTabFromPath = (): Tab => {
       if (!pathname) return initialTab;
     if (pathname.includes('/characters')) return 'characters';
+    if (pathname.includes('/professions')) return 'professions';
     if (pathname.includes('/events')) return 'events';
     if (pathname.includes('/parties')) return 'parties';
     if (pathname.includes('/matrix')) return 'matrix';
@@ -42,4 +43,3 @@ export function ClanTabNav({ canManage, initialTab = 'characters', gameSlug = 'a
     />
   );
 }
-

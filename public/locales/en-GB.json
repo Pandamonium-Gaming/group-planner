@@ -1,4 +1,26 @@
 {
+  "professionOverview": {
+    "title": "Professions",
+    "description": "Find your group's crafters and gatherers at a glance.",
+    "filter": "Characters",
+    "all": "All characters",
+    "main": "Mains only",
+    "alt": "Alts only",
+    "mainLabel": "Main",
+    "altLabel": "Alt",
+    "covered": "{covered} / {total} professions covered",
+    "contributors": "{count} contributing characters",
+    "noCoverage": "No characters with this profession in the current filter.",
+    "unsupported": "This game does not track professions.",
+    "faction": "Faction",
+    "selectFaction": "Select Alliance or Horde",
+    "factionRequired": "Choose a faction for your Skyborne character.",
+    "blacksmithing": "Blacksmithing",
+    "enchanting": "Enchanting",
+    "engineering": "Engineering",
+    "skinning": "Skinning",
+    "lumberMilling": "Lumber Milling"
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",

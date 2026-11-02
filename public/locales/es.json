@@ -1,4 +1,26 @@
 {
+  "professionOverview": {
+    "title": "Profesiones",
+    "description": "Encuentra de un vistazo a los artesanos y recolectores de tu grupo.",
+    "filter": "Personajes",
+    "all": "Todos los personajes",
+    "main": "Solo principales",
+    "alt": "Solo secundarios",
+    "mainLabel": "Principal",
+    "altLabel": "Secundario",
+    "covered": "{covered} / {total} profesiones cubiertas",
+    "contributors": "{count} personajes colaboradores",
+    "noCoverage": "No hay personajes con esta profesión en el filtro actual.",
+    "unsupported": "Este juego no registra profesiones.",
+    "faction": "Facción",
+    "selectFaction": "Selecciona Alianza u Horda",
+    "factionRequired": "Elige una facción para tu personaje Skyborne.",
+    "blacksmithing": "Herrería",
+    "enchanting": "Encantamiento",
+    "engineering": "Ingeniería",
+    "skinning": "Desuello",
+    "lumberMilling": "Aserrado de madera"
+  },
   "common": {
     "loading": "Cargando...",
     "save": "Guardar",

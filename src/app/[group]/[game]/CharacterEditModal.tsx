@@ -29,6 +29,7 @@ export function CharacterEditModal({ editingCharacter, onSubmit, onCancel, gameS
         ror_faction: editingCharacter.ror_faction || null,
         ror_class: editingCharacter.ror_class || null,
         wow_race: editingCharacter.wow_race || null,
+        wow_faction: editingCharacter.wow_faction || null,
         wow_class: editingCharacter.wow_class || null,
         wow_main_spec: editingCharacter.wow_main_spec || null,
         wow_secondary_spec: editingCharacter.wow_secondary_spec || null,

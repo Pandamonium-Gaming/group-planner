@@ -84,6 +84,7 @@ export const WOW_FOREVER_PROFESSIONS = [
 
 export type WowForeverRace = (typeof WOW_FOREVER_RACES)[number];
 export type WowForeverClass = (typeof WOW_FOREVER_CLASSES)[number]['id'];
+export type WowForeverFaction = 'Alliance' | 'Horde';
 
 export function getWowForeverClass(classId: string) {
   return WOW_FOREVER_CLASSES.find((wowClass) => wowClass.id === classId);
@@ -108,6 +109,16 @@ export function getWowForeverRaceFaction(race: string, classId: string): 'Allian
   return null;
 }
 
+export function getWowForeverFaction(race: string, classId: string, selectedFaction?: string | null): WowForeverFaction | null {
+  const wowClass = getWowForeverClass(classId);
+  if (!wowClass || !(wowClass.races as readonly string[]).includes(race)) return null;
+  const restriction = getWowForeverRaceFaction(race, classId);
+  if (restriction) return restriction;
+  if (['Human', 'Dwarf', 'Night Elf', 'Gnome'].includes(race)) return 'Alliance';
+  if (['Orc', 'Undead', 'Tauren', 'Troll'].includes(race)) return 'Horde';
+  return selectedFaction === 'Alliance' || selectedFaction === 'Horde' ? selectedFaction : null;
+}
+
 export function isValidWowForeverSelection(selection: {
   race?: string | null;
   classId?: string | null;
@@ -115,6 +126,7 @@ export function isValidWowForeverSelection(selection: {
   secondarySpec?: string | null;
   profession1?: string | null;
   profession2?: string | null;
+  faction?: string | null;
 }): boolean {
   const wowClass = getWowForeverClass(selection.classId || '');
   if (
@@ -128,6 +140,10 @@ export function isValidWowForeverSelection(selection: {
   }
 
   const specs = wowClass.specs as readonly string[];
+  if (selection.faction != null && (
+    !['Alliance', 'Horde'].includes(selection.faction) ||
+    getWowForeverFaction(selection.race, wowClass.id, selection.faction) !== selection.faction
+  )) return false;
   if (
     (selection.secondarySpec &&
       (!specs.includes(selection.secondarySpec) || selection.secondarySpec === selection.mainSpec)) ||

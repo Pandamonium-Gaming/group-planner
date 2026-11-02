@@ -4,6 +4,9 @@
 
 ### Added
 
+* Added profession coverage cards for Ashes of Creation and WoW Forever, with main/alt filters and character lists.
+* Added app-styled WoW class and faction icons and a saved faction choice for unrestricted Skyborne classes.
+
 * Added WoW Forever game support with race/class compatibility, Skyborne Mage/Shaman faction restrictions, class specializations, two profession fields, main/alt roster display, and Characters, Events, Parties, Alliances, and Manage tabs.
 
 * **PR-06A BC-safe runtime decoupling slice**

@@ -13,7 +13,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getGameConfig } from '@/config';
 import { Clan } from '@/lib/types';
 import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRankSettings';
-import { getWowForeverClass, getWowForeverRaceFaction } from '@/games/wowforever/config';
+import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
+import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -92,7 +93,7 @@ export function CharacterCard({
   const rorRole = rorClass ? ROR_ROLE_CONFIG[rorClass.role] : null;
   const wowClass = character.wow_class ? getWowForeverClass(character.wow_class) : null;
   const wowFaction = character.wow_race && character.wow_class
-    ? getWowForeverRaceFaction(character.wow_race, character.wow_class)
+    ? getWowForeverFaction(character.wow_race, character.wow_class, character.wow_faction)
     : null;
 
   const handleSave = async () => {
@@ -238,6 +239,8 @@ export function CharacterCard({
                 {gameSlug === 'wowforever' && (
                   <div className="mt-0.5 text-sm">
                     <div className="flex items-center gap-2">
+                      {wowClass && <WowClassIcon classId={wowClass.id} />}
+                      {wowFaction && <WowFactionIcon faction={wowFaction} />}
                       {character.wow_race && <span className="text-slate-400">{character.wow_race}</span>}
                       {character.wow_race && wowClass && <span className="text-slate-600">•</span>}
                       {wowClass && <span className="text-slate-300">{wowClass.name}</span>}

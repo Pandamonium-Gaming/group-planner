@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import type { GroupRole } from '@/lib/permissions';
 import { getCurrentMonthKey, getSubscriberShips } from '@/games/starcitizen/config/subscriber-ships';
 import { removeSubscriberShips, syncSubscriberShips, updateSubscriberTier, type SubscriberTier } from '@/lib/subscriberShips';
-import { isValidWowForeverSelection } from '@/games/wowforever/config';
+import { getWowForeverFaction, isValidWowForeverSelection } from '@/games/wowforever/config';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -140,7 +140,7 @@ function buildMemberPayload(data: Record<string, unknown>, effectiveGame: string
   }
 
   if (effectiveGame === 'wowforever') {
-    ['wow_race', 'wow_class', 'wow_main_spec', 'wow_secondary_spec', 'wow_profession_1', 'wow_profession_2'].forEach((field) => {
+    ['wow_race', 'wow_faction', 'wow_class', 'wow_main_spec', 'wow_secondary_spec', 'wow_profession_1', 'wow_profession_2'].forEach((field) => {
       if (Object.prototype.hasOwnProperty.call(data, field)) {
         payload[field] = data[field] ?? null;
       }
@@ -401,10 +401,15 @@ export async function POST(request: NextRequest) {
     if (payload.action === 'create_character') {
       const effectiveGame = payload.game_slug || 'aoc';
       const characterData = payload.character || {};
+      if (effectiveGame === 'wowforever' && characterData.wow_race === 'Skyborne' &&
+        !getWowForeverFaction('Skyborne', String(characterData.wow_class || ''), String(characterData.wow_faction || ''))) {
+        return NextResponse.json({ error: 'A faction is required for Skyborne characters' }, { status: 400 });
+      }
       if (
         effectiveGame === 'wowforever' &&
         !isValidWowForeverSelection({
           race: characterData.wow_race as string | null | undefined,
+          faction: characterData.wow_faction as string | null | undefined,
           classId: characterData.wow_class as string | null | undefined,
           mainSpec: characterData.wow_main_spec as string | null | undefined,
           secondarySpec: characterData.wow_secondary_spec as string | null | undefined,
@@ -468,7 +473,7 @@ export async function POST(request: NextRequest) {
     if (payload.action === 'update_character' || payload.action === 'delete_character' || payload.action === 'set_profession_rank' || payload.action === 'sync_subscriber_tier') {
       const { data: targetCharacter, error: targetCharacterError } = await supabaseAdmin
         .from('members')
-        .select('id, group_id, user_id, game_slug, wow_race, wow_class, wow_main_spec, wow_secondary_spec, wow_profession_1, wow_profession_2')
+        .select('id, group_id, user_id, game_slug, wow_race, wow_faction, wow_class, wow_main_spec, wow_secondary_spec, wow_profession_1, wow_profession_2')
         .eq('id', payload.character_id)
         .eq('group_id', payload.group_id)
         .maybeSingle();
@@ -617,6 +622,7 @@ export async function POST(request: NextRequest) {
         const mergedCharacter = { ...targetCharacter, ...changes };
         if (!isValidWowForeverSelection({
           race: mergedCharacter.wow_race as string | null | undefined,
+          faction: mergedCharacter.wow_faction as string | null | undefined,
           classId: mergedCharacter.wow_class as string | null | undefined,
           mainSpec: mergedCharacter.wow_main_spec as string | null | undefined,
           secondarySpec: mergedCharacter.wow_secondary_spec as string | null | undefined,

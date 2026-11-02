@@ -114,6 +114,7 @@ export interface Character {
   ror_faction?: string | null;
   ror_class?: string | null;
   wow_race?: string | null;
+  wow_faction?: 'Alliance' | 'Horde' | null;
   wow_class?: string | null;
   wow_main_spec?: string | null;
   wow_secondary_spec?: string | null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { X, Sword, Star, RefreshCw } from 'lucide-react';
 import { Race, Archetype } from '@/lib/types';
 import { 
@@ -27,11 +27,13 @@ import {
   getWowForeverClass,
   getWowForeverClassesForRace,
   getWowForeverRaceFaction,
+  getWowForeverFaction,
   isValidWowForeverSelection,
   WOW_FOREVER_CLASSES,
   WOW_FOREVER_PROFESSIONS,
   WOW_FOREVER_RACES,
 } from '@/games/wowforever/config';
+import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 
 export interface CharacterFormData {
   name: string;
@@ -45,6 +47,7 @@ export interface CharacterFormData {
   ror_faction?: string | null;
   ror_class?: string | null;
   wow_race?: string | null;
+  wow_faction?: 'Alliance' | 'Horde' | null;
   wow_class?: string | null;
   wow_main_spec?: string | null;
   wow_secondary_spec?: string | null;
@@ -96,6 +99,7 @@ export function CharacterForm({
     ror_faction: (initialData as any)?.ror_faction || null,
     ror_class: (initialData as any)?.ror_class || null,
     wow_race: initialData?.wow_race || null,
+    wow_faction: getWowForeverFaction(initialData?.wow_race || '', initialData?.wow_class || '', initialData?.wow_faction),
     wow_class: initialData?.wow_class || null,
     wow_main_spec: initialData?.wow_main_spec || null,
     wow_secondary_spec: initialData?.wow_secondary_spec || null,
@@ -148,6 +152,7 @@ export function CharacterForm({
 
       if (!isValidWowForeverSelection({
         race: formData.wow_race,
+        faction: formData.wow_faction,
         classId: formData.wow_class,
         mainSpec: formData.wow_main_spec,
         secondarySpec: formData.wow_secondary_spec,
@@ -155,6 +160,10 @@ export function CharacterForm({
         profession2: formData.wow_profession_2,
       })) {
         setError(t('wowForever.invalidCombinationError'));
+        return;
+      }
+      if (formData.wow_race === 'Skyborne' && !formData.wow_faction) {
+        setError(t('professionOverview.factionRequired'));
         return;
       }
     }
@@ -491,6 +500,7 @@ export function CharacterForm({
                   onChange={(e) => setFormData({
                     ...formData,
                     wow_race: e.target.value || null,
+                    wow_faction: null,
                     wow_class: null,
                     wow_main_spec: null,
                     wow_secondary_spec: null,
@@ -514,6 +524,7 @@ export function CharacterForm({
                   onChange={(e) => setFormData({
                     ...formData,
                     wow_class: e.target.value || null,
+                    wow_faction: getWowForeverFaction(formData.wow_race || '', e.target.value, formData.wow_faction),
                     wow_main_spec: null,
                     wow_secondary_spec: null,
                   })}
@@ -543,13 +554,35 @@ export function CharacterForm({
 
                 const specs = wowClass.specs as readonly string[];
                 const faction = formData.wow_race
-                  ? getWowForeverRaceFaction(formData.wow_race, wowClass.id)
+                  ? getWowForeverFaction(formData.wow_race, wowClass.id, formData.wow_faction)
                   : null;
                 return (
                   <>
-                    {faction && (
+                    <div className="flex items-center gap-2">
+                      <WowClassIcon classId={wowClass.id} />
+                      <span className="text-sm text-slate-300">{wowClass.name}</span>
+                      {faction && <><WowFactionIcon faction={faction} /><span className="text-sm text-slate-300">{faction}</span></>}
+                    </div>
+                    {formData.wow_race === 'Skyborne' && !getWowForeverRaceFaction(formData.wow_race, wowClass.id) && (
+                      <div>
+                        <label htmlFor="wow-faction" className="mb-2 block text-sm font-medium text-slate-300">
+                          {t('professionOverview.faction')} *
+                        </label>
+                        <select id="wow-faction" value={formData.wow_faction || ''}
+                          onChange={event => setFormData({
+                            ...formData,
+                            wow_faction: event.target.value === 'Alliance' || event.target.value === 'Horde' ? event.target.value : null,
+                          })}
+                          className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                          <option value="">{t('professionOverview.selectFaction')}</option>
+                          <option value="Alliance">Alliance</option>
+                          <option value="Horde">Horde</option>
+                        </select>
+                      </div>
+                    )}
+                    {formData.wow_race && getWowForeverRaceFaction(formData.wow_race, wowClass.id) && (
                       <p className="text-sm text-slate-400">
-                        {t('wowForever.factionRestriction', { faction })}
+                        {t('wowForever.factionRestriction', { faction: faction || '' })}
                       </p>
                     )}
                     <div>

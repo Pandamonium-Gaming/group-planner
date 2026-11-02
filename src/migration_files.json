@@ -7,5 +7,6 @@
   "005_discord_id_schema_and_population.sql",
   "006_discord_id_rls_policies.sql",
   "007_game_rank_settings.sql",
-  "008_add_wow_forever_support.sql"
+  "008_add_wow_forever_support.sql",
+  "009_add_wow_forever_faction.sql"
 ]

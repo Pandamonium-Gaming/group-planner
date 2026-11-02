@@ -1,6 +1,7 @@
 import {
   isValidWowForeverSelection,
   getWowForeverRaceFaction,
+  getWowForeverFaction,
   getWowForeverClassesForRace,
   WOW_FOREVER_CLASSES,
   WOW_FOREVER_PROFESSIONS,
@@ -8,6 +9,22 @@ import {
 } from '../index';
 
 describe('WoW Forever configuration', () => {
+  it('resolves racial factions and respects Skyborne choices and restrictions', () => {
+    expect(getWowForeverFaction('Human', 'mage')).toBe('Alliance');
+    expect(getWowForeverFaction('Orc', 'warrior')).toBe('Horde');
+    expect(getWowForeverFaction('Skyborne', 'warrior', 'Horde')).toBe('Horde');
+    expect(getWowForeverFaction('Skyborne', 'warrior', 'Alliance')).toBe('Alliance');
+    expect(getWowForeverFaction('Skyborne', 'warrior')).toBeNull();
+    expect(getWowForeverFaction('Skyborne', 'mage', 'Horde')).toBe('Alliance');
+    expect(getWowForeverFaction('Skyborne', 'shaman', 'Alliance')).toBe('Horde');
+    const valid = { race: 'Skyborne', classId: 'mage', mainSpec: 'Fire' };
+    expect(isValidWowForeverSelection({ ...valid, faction: 'Horde' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, faction: 'Alliance' })).toBe(true);
+    expect(isValidWowForeverSelection({ ...valid, faction: 'Invalid' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, faction: '' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, faction: null })).toBe(true);
+    expect(isValidWowForeverSelection(valid)).toBe(true);
+  });
   it('defines three specs for each supported class', () => {
     expect(WOW_FOREVER_CLASSES).toHaveLength(9);
     expect(WOW_FOREVER_CLASSES.every((wowClass) => wowClass.specs.length === 3)).toBe(true);

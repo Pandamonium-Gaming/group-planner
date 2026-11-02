@@ -1,5 +1,19 @@
 # Multi-Game Architecture
 
+## Profession Coverage and WoW Factions
+
+The Professions tab (`/[group]/[game]/professions`) shows read-only coverage
+cards for Ashes of Creation and WoW Forever. Counts represent distinct characters
+per profession, not accounts; main/alt filters apply to cards and summary counts.
+Ashes uses its existing profession ranks, while WoW uses both profession slots.
+
+WoW faction and class badges use original app-styled symbols, not official game
+artwork. Standard races resolve to their faction automatically. Skyborne Mage
+is Alliance-only and Shaman is Horde-only; other Skyborne classes choose their
+faction in the character form. Apply migration `009_add_wow_forever_faction.sql`
+before deploying. Legacy Skyborne characters can retain an unknown faction until
+edited; no faction is guessed for them.
+
 This document describes the architecture for supporting multiple games in the Group Planner application.
 
 ## Overview

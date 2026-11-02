@@ -24,6 +24,7 @@ export interface CharacterData {
   ror_faction?: string | null;
   ror_class?: string | null;
   wow_race?: string | null;
+  wow_faction?: 'Alliance' | 'Horde' | null;
   wow_class?: string | null;
   wow_main_spec?: string | null;
   wow_secondary_spec?: string | null;
@@ -432,6 +433,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     if (effectiveGame === 'wowforever') {
       [
         'wow_race',
+        'wow_faction',
         'wow_class',
         'wow_main_spec',
         'wow_secondary_spec',

@@ -1,4 +1,26 @@
 {
+  "professionOverview": {
+    "title": "Beroepen",
+    "description": "Vind de ambachtslieden en verzamelaars van je groep in één oogopslag.",
+    "filter": "Personages",
+    "all": "Alle personages",
+    "main": "Alleen hoofdpersonages",
+    "alt": "Alleen alternatieve personages",
+    "mainLabel": "Hoofd",
+    "altLabel": "Alt",
+    "covered": "{covered} / {total} beroepen gedekt",
+    "contributors": "{count} bijdragende personages",
+    "noCoverage": "Geen personages met dit beroep in het huidige filter.",
+    "unsupported": "Dit spel houdt geen beroepen bij.",
+    "faction": "Factie",
+    "selectFaction": "Kies Alliance of Horde",
+    "factionRequired": "Kies een factie voor je Skyborne-personage.",
+    "blacksmithing": "Smeden",
+    "enchanting": "Betoveren",
+    "engineering": "Techniek",
+    "skinning": "Villen",
+    "lumberMilling": "Hout zagen"
+  },
   "common": {
     "loading": "Laden...",
     "save": "Opslaan",
