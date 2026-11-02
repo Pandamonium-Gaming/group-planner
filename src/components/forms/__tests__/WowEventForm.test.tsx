@@ -5,6 +5,19 @@ import { EventForm } from '../EventForm';
 jest.mock('@/contexts/LanguageContext', () => ({ useLanguage: () => ({ t: (key: string) => key }) }));
 const initial = { title: 'Dungeon night', starts_at: '2026-11-04T19:00:00Z' };
 
+it('portals the dialog outside page stacking contexts and keeps actions outside the scrolling fields', () => {
+  const { container } = render(<div style={{ transform: 'translateZ(0)' }}>
+    <EventForm groupId="group" userId="user" gameSlug="wowforever"
+      onSubmit={jest.fn()} onCancel={jest.fn()} />
+  </div>);
+  const dialog = screen.getByRole('dialog', { name: 'Create Event' });
+  expect(container).not.toContainElement(dialog);
+  expect(dialog.parentElement?.parentElement).toBe(document.body);
+  const actions = screen.getByRole('button', { name: 'Create Event' }).parentElement!;
+  expect(actions.previousElementSibling).toHaveClass('overflow-y-auto', 'min-h-0');
+  expect(actions).toHaveClass('shrink-0');
+});
+
 it('offers only WoW types and submits the selected new type', async () => {
   const submit = jest.fn().mockResolvedValue(undefined);
   render(<EventForm groupId="group" userId="user" gameSlug="wowforever"

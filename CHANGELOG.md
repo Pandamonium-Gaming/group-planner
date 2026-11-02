@@ -44,6 +44,8 @@
 
 ### Fixed
 
+* Fixed event forms being obscured by bottom navigation or extending beyond the viewport; fields now scroll independently of the header and action buttons.
+
 * Fixed profession summary counts and faction restrictions showing untranslated interpolation placeholders.
 * Fixed long WoW filter labels overflowing their panels at narrower screen widths.
 * Added a localized hover tooltip and accessible label to the main-character star.
