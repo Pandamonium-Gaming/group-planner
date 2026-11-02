@@ -1023,6 +1023,10 @@
       "name": "Storten in groep bank",
       "description": "Items storten in de groep bank"
     },
+    "guild_bank_manage": {
+      "name": "Groepsbank beheren",
+      "description": "Volledig beheer van de groepsbank, inclusief instellingen"
+    },
     "guild_bank_view_history": {
       "name": "Bank geschiedenis bekijken",
       "description": "Bank transactiegeschiedenis bekijken"

@@ -1017,6 +1017,10 @@
       "name": "Depositar en el Banco del Grupo",
       "description": "Depositar artículos en el banco del grupo"
     },
+    "guild_bank_manage": {
+      "name": "Administrar Banco del Grupo",
+      "description": "Administrar todas las funciones del banco del grupo, incluida la configuración"
+    },
     "guild_bank_view_history": {
       "name": "Ver Historial del Banco",
       "description": "Ver el historial de transacciones del banco"

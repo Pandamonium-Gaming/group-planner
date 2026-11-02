@@ -1023,6 +1023,10 @@
       "name": "Deposit to Group Bank",
       "description": "Deposit items to the group bank"
     },
+    "guild_bank_manage": {
+      "name": "Manage Group Bank",
+      "description": "Full management of the group bank, including settings"
+    },
     "guild_bank_view_history": {
       "name": "View Bank History",
       "description": "View bank transaction history"

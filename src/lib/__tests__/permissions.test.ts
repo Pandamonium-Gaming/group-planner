@@ -16,8 +16,22 @@ import {
   canManageRole,
   ROLE_CONFIG,
 } from '../permissions';
+import enGB from '../../../public/locales/en-GB.json';
+import es from '../../../public/locales/es.json';
+import nl from '../../../public/locales/nl.json';
 
 describe('Permission System', () => {
+  it.each([['en-GB', enGB], ['es', es], ['nl', nl]] as const)(
+    'has a translated name and description for every permission in %s',
+    (_language, translations) => {
+      const labels: Record<string, { name: string; description: string }> = translations.permissions;
+      for (const permission of Object.values(PERMISSIONS)) {
+        expect(labels[permission.id]?.name).toEqual(expect.stringMatching(/\S/));
+        expect(labels[permission.id]?.description).toEqual(expect.stringMatching(/\S/));
+      }
+    }
+  );
+
   describe('PERMISSIONS constant', () => {
     it('should have all permissions defined with required fields', () => {
       const permissionKeys = Object.keys(PERMISSIONS);
@@ -326,7 +340,6 @@ describe('Permission System', () => {
     });
   });
 });
-
 
 
 
