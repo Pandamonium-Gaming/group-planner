@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Fixed Discord login callbacks being rejected when Discord includes its OAuth issuer.
+
 * Made Vercel use the declared Yarn version and immutable dependency installation,
   preventing deployment dependency drift from local and CI builds.
 
