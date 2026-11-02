@@ -140,33 +140,33 @@ export function CharacterFiltersBar({
 
       {/* Expanded filters */}
       {isExpanded && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-800">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${gameSlug === 'wowforever' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-3 pt-3 border-t border-slate-800`}>
           {gameSlug === 'wowforever' && (
             <>
-              <fieldset className="rounded-lg border border-slate-700 p-3">
+              <fieldset className="min-w-0 rounded-lg border border-slate-700 p-3">
                 <legend className="px-1 text-xs text-slate-400">{t('wowForever.class')}</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {WOW_FOREVER_CLASSES.map(wowClass => (
-                    <label key={wowClass.id} className="flex items-center gap-2 text-sm text-slate-300">
-                      <input type="checkbox" checked={(filters.wowClasses || []).includes(wowClass.id)}
+                    <label key={wowClass.id} className="flex min-w-0 items-start gap-2 text-sm text-slate-300">
+                      <input type="checkbox" className="mt-1 shrink-0" checked={(filters.wowClasses || []).includes(wowClass.id)}
                         onChange={event => onChange({ ...filters, wowClasses: event.target.checked
                           ? [...(filters.wowClasses || []), wowClass.id]
                           : (filters.wowClasses || []).filter(id => id !== wowClass.id) })} />
-                      {wowClass.name}
+                      <span className="min-w-0 break-words">{wowClass.name}</span>
                     </label>
                   ))}
                 </div>
               </fieldset>
-              <fieldset className="rounded-lg border border-slate-700 p-3">
+              <fieldset className="min-w-0 rounded-lg border border-slate-700 p-3">
                 <legend className="px-1 text-xs text-slate-400">{t('professionOverview.title')}</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {WOW_FOREVER_PROFESSIONS.map(profession => (
-                    <label key={profession} className="flex items-center gap-2 text-sm text-slate-300">
-                      <input type="checkbox" checked={(filters.wowProfessions || []).includes(profession)}
+                    <label key={profession} className="flex min-w-0 items-start gap-2 text-sm text-slate-300">
+                      <input type="checkbox" className="mt-1 shrink-0" checked={(filters.wowProfessions || []).includes(profession)}
                         onChange={event => onChange({ ...filters, wowProfessions: event.target.checked
                           ? [...(filters.wowProfessions || []), profession]
                           : (filters.wowProfessions || []).filter(name => name !== profession) })} />
-                      {t(getProfessionLabelKey(profession))}
+                      <span className="min-w-0 break-words">{t(getProfessionLabelKey(profession))}</span>
                     </label>
                   ))}
                 </div>

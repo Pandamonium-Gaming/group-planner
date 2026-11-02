@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
 import { roleHasPermission, type GroupRole } from '@/lib/permissions';
+import { isEventTypeAllowedForGame } from '@/lib/events';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -200,6 +201,10 @@ export async function POST(request: NextRequest) {
       if (!roleHasPermission(role, 'events_create')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
+      const gameSlug = typeof payload.event.game_slug === 'string' ? payload.event.game_slug : 'aoc';
+      if (!isEventTypeAllowedForGame(payload.event.event_type, gameSlug)) {
+        return NextResponse.json({ error: 'Invalid event type for this game' }, { status: 400 });
+      }
 
       const { data, error } = await supabaseAdmin
         .from('events')
@@ -218,7 +223,7 @@ export async function POST(request: NextRequest) {
       const eventId = payload.id;
       const { data: eventRow, error: eventError } = await supabaseAdmin
         .from('events')
-        .select('id, group_id, created_by')
+        .select('id, group_id, created_by, game_slug, event_type')
         .eq('id', eventId)
         .eq('group_id', groupId)
         .maybeSingle();
@@ -238,6 +243,14 @@ export async function POST(request: NextRequest) {
       if (payload.action === 'update_event') {
         if (!canEdit) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        const gameSlug = eventRow.game_slug || 'aoc';
+        if (payload.updates.game_slug !== undefined && payload.updates.game_slug !== gameSlug) {
+          return NextResponse.json({ error: 'Cannot change an event game' }, { status: 400 });
+        }
+        if (payload.updates.event_type !== undefined &&
+          !isEventTypeAllowedForGame(payload.updates.event_type, gameSlug, eventRow.event_type)) {
+          return NextResponse.json({ error: 'Invalid event type for this game' }, { status: 400 });
         }
 
         const { error } = await supabaseAdmin

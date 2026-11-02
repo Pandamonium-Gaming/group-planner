@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "jest.config.ts",
+    "jest.setup.ts",
+    "scripts/fetch-loaner-matrix.ts",
+    "scripts/fetch-manufacturer-logos.js",
+    "scripts/download-manufacturer-logos.js"
+  ]
+}

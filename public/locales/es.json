@@ -189,6 +189,19 @@
     "linkToMain": "Vincular al Personaje Principal"
   },
   "wowForever": {
+    "invalidEventType": "Elige un tipo de evento disponible para este juego.",
+    "legacyEventType": "Este evento usa un tipo antiguo. Se conserva a menos que elijas otro tipo.",
+    "eventTypes": {
+      "raid": "Banda",
+      "dungeon": "Mazmorra",
+      "gathering": "Recolección",
+      "social": "Social",
+      "leveling": "Subir de nivel",
+      "world_pvp": "JcJ en el mundo",
+      "battleground_pvp": "JcJ en campos de batalla",
+      "arena_pvp": "JcJ en arenas",
+      "other": "Otro"
+    },
     "firstProfessionRank": "Rango de la 1.ª profesión",
     "secondProfessionRank": "Rango de la 2.ª profesión",
     "rankNotRecorded": "Sin registrar",

@@ -36,6 +36,14 @@ and authenticated direct calls; the API separately requires group-admin access.
 Run `supabase/tests/character_transfer.sql` against development to exercise the
 transaction with synthetic data; its outer transaction always rolls back.
 
+WoW event choices are Raid, Dungeon, Gathering, Social, Levelling, World PvP,
+Battleground PvP, Arena PvP and Other. Farming choices are not offered for new
+WoW events. Historical farming events retain their type when edited without
+choosing a replacement; historical WoW Siege events display as Dungeon.
+Other games keep their existing choices. Apply
+`012_add_wow_forever_event_types.sql` before deploying; it adds enum values
+without rewriting existing events.
+
 WoW faction and class badges use original app-styled symbols, not official game
 artwork. Standard races resolve to their faction automatically. Skyborne Mage
 is Alliance-only and Shaman is Horde-only; other Skyborne classes choose their

@@ -2,6 +2,12 @@
 
 This project uses **Jest** and **React Testing Library** for unit and component testing.
 
+Production builds use `tsconfig.build.json`, extending the strict shared
+TypeScript settings while excluding test files and Jest setup. Jest compiles
+test files with `ts-jest`; application build success does not replace running
+the tests. TypeScript stays on version 6 for test tooling compatibility, and
+ESLint stays on version 9 until the Next.js lint plugins support version 10.
+
 ## Running Tests
 
 ```powershell

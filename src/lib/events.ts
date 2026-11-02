@@ -2,7 +2,7 @@
 // Event Types and Helpers
 // =====================================================
 
-export type EventType = 'raid' | 'siege' | 'gathering' | 'social' | 'farming_glint' | 'farming_materials' | 'farming_gear' | 'farming_other' | 'other' | 'missions' | 'salvaging' | 'pirating' | 'bounty_hunting';
+export type EventType = 'raid' | 'siege' | 'gathering' | 'social' | 'farming_glint' | 'farming_materials' | 'farming_gear' | 'farming_other' | 'other' | 'missions' | 'salvaging' | 'pirating' | 'bounty_hunting' | 'dungeon' | 'leveling' | 'world_pvp' | 'battleground_pvp' | 'arena_pvp';
 export type RsvpStatus = 'attending' | 'maybe' | 'declined';
 
 // Event type display config
@@ -12,6 +12,11 @@ export const EVENT_TYPES: Record<EventType, {
   color: string;
   description: string;
 }> = {
+  dungeon: { name: 'Dungeon', icon: '🏰', color: '#f97316', description: 'Group dungeon run' },
+  leveling: { name: 'Leveling', icon: '📈', color: '#22c55e', description: 'Questing and character leveling' },
+  world_pvp: { name: 'World PvP', icon: '⚔️', color: '#ef4444', description: 'Open-world player versus player combat' },
+  battleground_pvp: { name: 'Battleground PvP', icon: '🚩', color: '#3b82f6', description: 'Organized battleground matches' },
+  arena_pvp: { name: 'Arena PvP', icon: '🛡️', color: '#a855f7', description: 'Arena team matches' },
   raid: { 
     name: 'Raid', 
     icon: '⚔️', 
@@ -122,6 +127,7 @@ export const EVENT_ROLES: Record<EventRole, {
 // Database types
 export interface Event {
   id: string;
+  game_slug?: string;
   group_id: string;
   created_by: string | null;
   title: string;
@@ -343,6 +349,19 @@ export function utcToLocal(isoDate: string): string {
  * Get event types for a specific game
  */
 export function getEventTypesForGame(gameSlug: string): Record<string, { name: string; icon: string; color: string; description: string }> {
+  if (gameSlug === 'wowforever') {
+    return {
+      raid: EVENT_TYPES.raid,
+      dungeon: EVENT_TYPES.dungeon,
+      gathering: EVENT_TYPES.gathering,
+      social: EVENT_TYPES.social,
+      leveling: EVENT_TYPES.leveling,
+      world_pvp: EVENT_TYPES.world_pvp,
+      battleground_pvp: EVENT_TYPES.battleground_pvp,
+      arena_pvp: EVENT_TYPES.arena_pvp,
+      other: EVENT_TYPES.other,
+    };
+  }
   if (gameSlug === 'starcitizen') {
     return {
       missions: EVENT_TYPES.missions,
@@ -352,7 +371,7 @@ export function getEventTypesForGame(gameSlug: string): Record<string, { name: s
       other: EVENT_TYPES.other,
     };
   }
-  
+
   // Default AoC event types
   return {
     raid: EVENT_TYPES.raid,
@@ -367,3 +386,17 @@ export function getEventTypesForGame(gameSlug: string): Record<string, { name: s
   };
 }
 
+export function getCanonicalEventType(eventType: EventType, gameSlug: string): EventType {
+  return gameSlug === 'wowforever' && eventType === 'siege' ? 'dungeon' : eventType;
+}
+
+export function getEventTypeForGame(eventType: EventType, gameSlug: string) {
+  return EVENT_TYPES[getCanonicalEventType(eventType, gameSlug)];
+}
+
+export function isEventTypeAllowedForGame(value: unknown, gameSlug: string, previous?: string): value is EventType {
+  return typeof value === 'string' && (
+    Object.prototype.hasOwnProperty.call(getEventTypesForGame(gameSlug), value) ||
+    (value === previous && Object.prototype.hasOwnProperty.call(EVENT_TYPES, value))
+  );
+}

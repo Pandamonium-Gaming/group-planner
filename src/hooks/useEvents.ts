@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Event, EventWithRsvps, EventRsvp, RsvpStatus, EventRole, Announcement } from '@/lib/events';
+import { Event, EventWithRsvps, EventRsvp, RsvpStatus, EventRole, Announcement, isEventTypeAllowedForGame } from '@/lib/events';
 import { notifyNewEvent, notifyAnnouncement } from '@/lib/discord';
 import { roleHasPermission } from '@/lib/permissions';
 import { getClientAuthStack } from '@/lib/authStack';
@@ -263,6 +263,11 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
     event: Omit<Event, 'id' | 'created_at' | 'updated_at' | 'is_cancelled'>,
     sendDiscordNotification: boolean
   ): Promise<Event | null> => {
+    if (!isEventTypeAllowedForGame(event.event_type, gameSlug || 'aoc')) {
+      const message = 'Invalid event type for this game';
+      setError(message);
+      throw new Error(message);
+    }
     // Ensure game_slug is set
     const eventWithGame = {
       ...event,
@@ -337,6 +342,13 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
 
   // Update event
   const updateEvent = async (id: string, updates: Partial<Event>) => {
+    const currentEvent = events.find(event => event.id === id);
+    if (updates.event_type !== undefined &&
+      !isEventTypeAllowedForGame(updates.event_type, gameSlug || currentEvent?.game_slug || 'aoc', currentEvent?.event_type)) {
+      const message = 'Invalid event type for this game';
+      setError(message);
+      throw new Error(message);
+    }
     if (getClientAuthStack() === 'v2') {
       if (!groupId) {
         throw new Error('Missing group id');

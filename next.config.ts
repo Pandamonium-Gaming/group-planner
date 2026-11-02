@@ -7,6 +7,9 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'ut
 const version = packageJson.version;
 
 const nextConfig: NextConfig = {
+  typescript: {
+    tsconfigPath: 'tsconfig.build.json',
+  },
   // Hide the Next.js dev indicator (the "N" icon)
   devIndicators: false,
   // Inject build-time environment variables
@@ -30,4 +33,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

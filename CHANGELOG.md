@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added WoW-specific Dungeon, Levelling, World PvP, Battleground PvP and Arena PvP event choices while preserving other games and historical events.
 * Added administrator-only JSON character export/import for the current group and game, with preview, explicit confirmation, Discord owner matching and atomic updates.
 * Added WoW multi-select class/profession filters and visible owner display names on character and profession views.
 * Added optional trained ranks for each WoW Forever profession, shown on character cards and the coverage overview without assuming skill levels.
@@ -36,11 +37,15 @@
 
 ### Changed
 
+* Updated application and development dependencies while keeping TypeScript on the compatible 6.0 release line and ESLint on version 9 for lint plugin compatibility.
+* Separated strict application build type-checking from Jest test files; test compilation remains validated by the test runner.
+
 * Integrated main's subscriber ship fixes into develop and prepared the 0.3.0 release.
 
 ### Fixed
 
 * Fixed profession summary counts and faction restrictions showing untranslated interpolation placeholders.
+* Fixed long WoW filter labels overflowing their panels at narrower screen widths.
 * Added a localized hover tooltip and accessible label to the main-character star.
 
 * Fixed Discord login callbacks being rejected when Discord includes its OAuth issuer.

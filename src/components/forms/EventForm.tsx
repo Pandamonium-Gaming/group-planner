@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
-import { Event, EventType, EventRole, EVENT_ROLES, utcToLocal, getEventTypesForGame } from '@/lib/events';
+import { Event, EventType, EventRole, EVENT_ROLES, utcToLocal, getEventTypesForGame, getCanonicalEventType, isEventTypeAllowedForGame } from '@/lib/events';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EventFormData {
   title: string;
@@ -56,10 +57,11 @@ export function EventForm({
   onCancel,
   isEditing = false 
 }: EventFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<EventFormData>({
     title: initialData?.title || '',
     description: initialData?.description || '',
-    event_type: initialData?.event_type || 'other',
+    event_type: getCanonicalEventType(initialData?.event_type || 'other', gameSlug),
     starts_at: initialData?.starts_at ? utcToLocal(initialData.starts_at) : '',
     ends_at: initialData?.ends_at ? utcToLocal(initialData.ends_at) : '',
     location: initialData?.location || '',
@@ -100,6 +102,10 @@ export function EventForm({
     }
     if (!formData.starts_at) {
       setError('Start time is required');
+      return;
+    }
+    if (!isEventTypeAllowedForGame(formData.event_type, gameSlug, initialData?.event_type)) {
+      setError(t('wowForever.invalidEventType'));
       return;
     }
 
@@ -188,7 +194,10 @@ export function EventForm({
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Event Type
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            {gameSlug === 'wowforever' && !Object.prototype.hasOwnProperty.call(getEventTypesForGame(gameSlug), formData.event_type) && (
+              <p className="mb-2 text-sm text-slate-400">{t('wowForever.legacyEventType')}</p>
+            )}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {Object.entries(getEventTypesForGame(gameSlug)).map(([id, type]) => {
                 const isSelected = formData.event_type === id;
                 return (
@@ -206,8 +215,8 @@ export function EventForm({
                       color: type.color
                     } : undefined}
                   >
-                    <span className="text-lg">{type.icon}</span>
-                    <span className={isSelected ? '' : 'text-slate-300'}>{type.name}</span>
+                    <span className="text-lg" aria-hidden="true">{type.icon}</span>
+                    <span className={isSelected ? '' : 'text-slate-300'}>{gameSlug === 'wowforever' ? t(`wowForever.eventTypes.${id}`) : type.name}</span>
                   </button>
                 );
               })}
@@ -637,4 +646,3 @@ export function EventForm({
     </div>
   );
 }
-

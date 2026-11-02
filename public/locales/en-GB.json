@@ -189,6 +189,19 @@
     "linkToMain": "Link to Main Character"
   },
   "wowForever": {
+    "invalidEventType": "Choose an event type available for this game.",
+    "legacyEventType": "This existing event uses a legacy type. It is retained unless you choose a new type.",
+    "eventTypes": {
+      "raid": "Raid",
+      "dungeon": "Dungeon",
+      "gathering": "Gathering",
+      "social": "Social",
+      "leveling": "Leveling",
+      "world_pvp": "World PvP",
+      "battleground_pvp": "Battleground PvP",
+      "arena_pvp": "Arena PvP",
+      "other": "Other"
+    },
     "firstProfessionRank": "1st Profession Rank",
     "secondProfessionRank": "2nd Profession Rank",
     "rankNotRecorded": "Not recorded",

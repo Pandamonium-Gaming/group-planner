@@ -10,5 +10,6 @@
   "008_add_wow_forever_support.sql",
   "009_add_wow_forever_faction.sql",
   "010_add_wow_forever_profession_ranks.sql",
-  "011_add_character_transfer.sql"
+  "011_add_character_transfer.sql",
+  "012_add_wow_forever_event_types.sql"
 ]

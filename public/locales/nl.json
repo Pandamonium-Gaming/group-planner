@@ -189,6 +189,19 @@
     "linkToMain": "Koppelen aan hoofdpersonage"
   },
   "wowForever": {
+    "invalidEventType": "Kies een evenementtype dat beschikbaar is voor dit spel.",
+    "legacyEventType": "Dit bestaande evenement gebruikt een oud type. Het blijft behouden tenzij je een nieuw type kiest.",
+    "eventTypes": {
+      "raid": "Raid",
+      "dungeon": "Dungeon",
+      "gathering": "Verzamelen",
+      "social": "Sociaal",
+      "leveling": "Levelen",
+      "world_pvp": "Wereld-PvP",
+      "battleground_pvp": "Slagveld-PvP",
+      "arena_pvp": "Arena-PvP",
+      "other": "Overig"
+    },
     "firstProfessionRank": "Rang van het 1e beroep",
     "secondProfessionRank": "Rang van het 2e beroep",
     "rankNotRecorded": "Niet vastgelegd",
