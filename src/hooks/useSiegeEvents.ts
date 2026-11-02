@@ -145,7 +145,11 @@ export function useSiegeEvents(groupId: string | null): UseSiegeEventsReturn {
 
   // Initial fetch
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   // Create siege event

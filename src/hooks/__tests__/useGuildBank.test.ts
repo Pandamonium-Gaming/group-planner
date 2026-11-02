@@ -90,10 +90,61 @@ const mockRequests = [
 describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'guild_banks') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+        } as any;
+      }
+
+      if (table === 'resource_catalog') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          order: jest
+            .fn()
+            .mockReturnValueOnce({ order: jest.fn().mockResolvedValue({ data: [], error: null }) })
+            .mockResolvedValue({ data: [], error: null }),
+        } as any;
+      }
+
+      if (table === 'bank_inventory') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          gt: jest.fn().mockReturnThis(),
+          order: jest.fn().mockResolvedValue({ data: [], error: null }),
+        } as any;
+      }
+
+      if (table === 'bank_transactions') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          order: jest.fn().mockReturnThis(),
+          limit: jest.fn().mockResolvedValue({ data: [], error: null }),
+        } as any;
+      }
+
+      if (table === 'resource_requests') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          in: jest.fn().mockReturnThis(),
+          order: jest.fn().mockResolvedValue({ data: [], error: null }),
+        } as any;
+      }
+
+      return {
+        select: jest.fn().mockReturnThis(),
+      } as any;
+    });
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -109,6 +160,10 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
       expect(result.current.requests).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('returns early with null groupId', () => {
@@ -119,7 +174,7 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
       expect(mockSupabase.from).not.toHaveBeenCalled();
     });
 
-    it('exposes all required API methods', () => {
+    it('exposes all required API methods', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -128,6 +183,10 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
       });
 
       const { result } = renderHook(() => useGuildBank('group-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.initializeBank).toBe('function');
       expect(typeof result.current.updateBankSettings).toBe('function');

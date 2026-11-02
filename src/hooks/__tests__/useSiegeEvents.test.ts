@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useSiegeEvents } from '../useSiegeEvents';
 import { supabase } from '@/lib/supabase';
 
@@ -105,7 +105,7 @@ describe('useSiegeEvents', () => {
   });
 
   describe('Hook Initialization', () => {
-    it('should initialize with empty state and loading true', () => {
+    it('should initialize with empty state and loading true', async () => {
       const mockSelectQuery = {
         eq: jest.fn().mockReturnValue({
           order: jest.fn().mockResolvedValue({ data: [], error: null }),
@@ -120,6 +120,10 @@ describe('useSiegeEvents', () => {
 
       expect(result.current.sieges).toEqual([]);
       expect(result.current.loading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('should return early when groupId is null', async () => {
@@ -284,11 +288,14 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      const newSiege = await result.current.createSiege({
-        title: 'New Siege',
-        siege_type: 'castle_attack',
-        target_name: 'Blue Castle',
-        starts_at: '2026-04-01T18:00:00Z',
+      let newSiege: { id: string } | null = null;
+      await act(async () => {
+        newSiege = await result.current.createSiege({
+          title: 'New Siege',
+          siege_type: 'castle_attack',
+          target_name: 'Blue Castle',
+          starts_at: '2026-04-01T18:00:00Z',
+        });
       });
 
       expect(newSiege.id).toBe('siege-new');
@@ -323,8 +330,10 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.updateSiege('siege-1', {
-        title: 'Updated Siege Title',
+      await act(async () => {
+        await result.current.updateSiege('siege-1', {
+          title: 'Updated Siege Title',
+        });
       });
 
       expect(mockUpdateQuery.update).toHaveBeenCalledWith(
@@ -362,7 +371,9 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.cancelSiege('siege-1');
+      await act(async () => {
+        await result.current.cancelSiege('siege-1');
+      });
 
       expect(mockUpdateQuery.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -399,7 +410,9 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.setSiegeResult('siege-1', 'victory');
+      await act(async () => {
+        await result.current.setSiegeResult('siege-1', 'victory');
+      });
 
       expect(mockUpdateQuery.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -436,10 +449,12 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.signUp('siege-1', {
-        character_id: 'char-2',
-        role: 'healer',
-        note: 'Ready to heal',
+      await act(async () => {
+        await result.current.signUp('siege-1', {
+          character_id: 'char-2',
+          role: 'healer',
+          note: 'Ready to heal',
+        });
       });
 
       expect(mockUpsertQuery.upsert).toHaveBeenCalledWith(
@@ -483,7 +498,9 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.withdraw('siege-1', 'char-1');
+      await act(async () => {
+        await result.current.withdraw('siege-1', 'char-1');
+      });
 
       expect(mockDeleteQuery.delete).toHaveBeenCalled();
     });
@@ -516,7 +533,9 @@ describe('useSiegeEvents', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await result.current.updateRosterStatus('roster-1', 'checked_in');
+      await act(async () => {
+        await result.current.updateRosterStatus('roster-1', 'checked_in');
+      });
 
       expect(mockUpdateQuery.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -573,7 +592,9 @@ describe('useSiegeEvents', () => {
 
       const initialCallCount = (supabase.from as jest.Mock).mock.calls.length;
 
-      await result.current.refresh();
+      await act(async () => {
+        await result.current.refresh();
+      });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);

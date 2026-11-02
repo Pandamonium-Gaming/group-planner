@@ -1,20 +1,20 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "npx tsc": true,
+        "yarn tsc": true,
         "Tee-Object": true,
         "Test-Path": true,
         "Get-Item": true,
-        "npx next": true,
+        "yarn next": true,
         "ForEach-Object": true,
         "Rename-Item": true,
         "git add": true,
         "git commit": true,
         "git push": true,
         "Set-Content": true,
-        "npx markdownlint-cli2": true,
+        "yarn markdownlint-cli2": true,
         "Move-Item": true,
         "git checkout": true,
-        "npx supabase": true,
+        "yarn supabase": true,
         "Get-Command": true,
         "pg_dump": true,
         "psql": true,
@@ -27,13 +27,13 @@
             "matchCommandLine": true
         },
         ".\\switch-env.ps1": true,
-        "npm install": true,
+        "yarn install": true,
         "tee": true,
         "Resolve-Path": true,
         "Group-Object": true,
         "Get-Unique": true,
         "ConvertFrom-String": true,
-        "npx eslint": true,
+        "yarn eslint": true,
         "EventsList\"": true,
         "FAIL": true,
         "Test": true,
@@ -46,11 +46,18 @@
             "matchCommandLine": true
         },
         "git tag": true,
-        "npx tsx": true,
+        "yarn tsx": true,
         ".\\scripts\\backup-prod-database.ps1": true,
         "gh": true,
         "Get-AzKeyVaultSecret": true,
-        "ConvertFrom-SecureString": true
+        "ConvertFrom-SecureString": true,
+        "Tests:": true,
+        "Snapshots:": true,
+        "Time:": true,
+        "Jest:": true,
+        "PASS": true,
+        "docker compose": true
     },
-    "codeQL.githubDatabase.download": "never"
+    "codeQL.githubDatabase.download": "never",
+    "npmSafetyGuard.enablePhantomCheck": false
 }

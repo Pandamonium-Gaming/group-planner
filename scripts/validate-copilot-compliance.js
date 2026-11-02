@@ -88,7 +88,7 @@ function checkChangelogUpdate() {
       if (!beforeNextVersion || beforeNextVersion.trim().length < 20) {
         return {
           violation: 'CHANGELOG.md [Unreleased] section is empty',
-          fix: 'Add changes under [Unreleased] section or use: npm run version:patch'
+          fix: 'Add changes under [Unreleased] section or use: yarn version:patch'
         };
       }
     }
@@ -109,11 +109,11 @@ function checkTranslationSync() {
     if (transFiles.length > 0) {
       // If translations changed, check they're synced
       try {
-        execSync('npm run check:translations', { stdio: 'pipe' });
+        execSync('yarn check:translations', { stdio: 'pipe' });
       } catch (err) {
         return {
           violation: 'Translation files are out of sync',
-          fix: 'Run: npm run check:translations'
+          fix: 'Run: yarn check:translations'
         };
       }
     }

@@ -51,18 +51,20 @@ Example:
 
 The loaner matrix changes when RSI updates ships or releases new content.
 
-### Manual Update (Current Data)
+### Routine Data Refresh (No Migration)
 
-Migration `070_populate_sc_loaner_matrix.sql` contains the matrix as of **November 26, 2025** (game version 4.4.0-live.10733565).
-
-### Automated Update (Future)
-
-Run `npm run update-loaners` to:
+Run `yarn update-loaners` to:
 
 1. Scrape latest data from RSI support page
-2. Generate fresh migration SQL
+2. Generate SQL snapshot in `scripts/generated/refresh_sc_loaner_matrix.sql`
 3. Generate TypeScript types
-4. Apply with `npx supabase db push`
+4. Apply directly to `sc_loaner_matrix` using service role credentials
+
+Preview only (no DB writes):
+
+```bash
+yarn update-loaners:preview
+```
 
 ## Usage Example
 
@@ -120,7 +122,9 @@ Official RSI Support:\
 ## Migrations
 
 * **069** - Create `sc_loaner_matrix` table and triggers
-* **070** - Populate with current loaner data
+* **070** - Historical initial loaner matrix seed
+
+Routine matrix refreshes are now data sync operations, not new schema migrations.
 
 ## Future Enhancements
 

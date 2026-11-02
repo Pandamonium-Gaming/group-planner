@@ -5,15 +5,17 @@ import { Plus, Sword } from 'lucide-react';
 import { CharacterForm } from '@/components/characters/CharacterForm';
 import { CharacterData } from '@/hooks/useGroupData';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Clan } from '@/lib/types';
 
 interface AddCharacterButtonProps {
   onAdd: (data: CharacterData) => Promise<void>;
   gameSlug?: string;
   disabled?: boolean;
   disabledReason?: string;
+  group?: Clan | null;
 }
 
-export function AddCharacterButton({ onAdd, gameSlug = 'aoc', disabled = false, disabledReason }: AddCharacterButtonProps) {
+export function AddCharacterButton({ onAdd, gameSlug = 'aoc', disabled = false, disabledReason, group = null }: AddCharacterButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -50,6 +52,7 @@ export function AddCharacterButton({ onAdd, gameSlug = 'aoc', disabled = false, 
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
           gameSlug={gameSlug}
+          group={group}
         />
       )}
     </>

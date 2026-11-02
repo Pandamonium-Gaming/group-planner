@@ -8,11 +8,12 @@ import { useAuthContext } from '@/components/auth/AuthProvider';
 import { useArchiveStatus } from '@/contexts/ArchiveStatusContext';
 import { GroupRole } from '@/lib/permissions';
 import { canEditCharacter, canDeleteCharacter, canOfficerManageUser } from '@/lib/character-permissions';
-import { CharacterWithProfessions, RankLevel } from "@/lib/types";
+import { CharacterWithProfessions, RankLevel, Clan } from "@/lib/types";
 import { CharacterData } from '@/hooks/useGroupData';
 
 interface CharactersTabProps {
   groupId: string;
+  group: Clan;
   characters: CharacterWithProfessions[];
   addCharacter: (data: CharacterData) => Promise<void>;
   updateMember: (id: string, name: string) => Promise<void>;
@@ -26,6 +27,7 @@ interface CharactersTabProps {
 
 export function CharactersTab({
   groupId,
+  group,
   characters,
   addCharacter,
   updateMember,
@@ -99,6 +101,7 @@ export function CharactersTab({
       <AddCharacterButton 
         onAdd={addCharacter} 
         gameSlug={gameSlug}
+        group={group}
         disabled={isGameArchived}
         disabledReason="Cannot add characters to an archived game"
       />
@@ -122,9 +125,9 @@ export function CharactersTab({
           const canDelete = getUserCanDeleteCharacter(character) && !isGameArchived;
           
           // Get main character name if this is an alt
-          const mainCharacter = character.is_main ? null : characters.find(c => c.user_id === character.user_id && c.is_main);
+          const mainCharacter = character.is_main || !character.user_id ? null : characters.find(c => c.user_id === character.user_id && c.is_main);
           // Get alt characters if this is a main
-          const alts = character.is_main ? characters.filter(c => c.user_id === character.user_id && !c.is_main) : [];
+          const alts = character.is_main && character.user_id ? characters.filter(c => c.user_id === character.user_id && !c.is_main) : [];
           
           return (
             <CharacterCard
@@ -138,6 +141,7 @@ export function CharactersTab({
               mainCharacterName={mainCharacter?.name}
               altCharacters={alts}
               gameSlug={gameSlug}
+              group={group}
             />
           );
         })
@@ -145,4 +149,3 @@ export function CharactersTab({
     </div>
   );
 }
-

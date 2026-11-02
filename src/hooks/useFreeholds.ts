@@ -44,7 +44,7 @@ interface UseFreeholdsReturn {
 
 export function useFreeholds(groupId: string | null): UseFreeholdsReturn {
   const [freeholds, setFreeholds] = useState<FreeholdWithBuildings[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => groupId !== null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -87,7 +87,11 @@ export function useFreeholds(groupId: string | null): UseFreeholdsReturn {
   }, [groupId]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   const myFreehold = freeholds.find((f) => {

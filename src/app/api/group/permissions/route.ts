@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GroupRole } from '@/lib/permissions';
+import { auth } from '@/auth';
 
 interface PostgrestErrorWithDetails {
   code?: string;
@@ -72,6 +73,31 @@ export type PermissionOverrides = {
   updated_at: string;
 };
 
+async function resolveRequestUserId(request: NextRequest): Promise<string | null> {
+  const nextAuthSession = await auth();
+  if (nextAuthSession?.user?.id) {
+    return nextAuthSession.user.id;
+  }
+
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+  if (!token) {
+    return null;
+  }
+
+  const userClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+  if (authError || !user) {
+    return null;
+  }
+
+  return user.id;
+}
+
 // GET: Fetch permission overrides for a group
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -90,35 +116,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Verify user is admin
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorised - no auth header' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorised - no token' }, { status: 401 });
-    }
-
-    // Create a client with the user's token to verify they exist
-    const userClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    // Verify token by calling getUser with the token
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('User auth verification failed:', { 
-        error: authError?.message, 
-        code: authError?.code,
-        hasUser: !!user
-      });
-      return NextResponse.json({ 
-        error: 'Unauthorized - invalid or expired token'
-      }, { status: 401 });
+    const userId = await resolveRequestUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is a member of the group (any role)
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       .from('group_members')
       .select('role')
       .eq('group_id', groupId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (!membership) {
@@ -176,34 +176,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is admin of the group
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized - no auth header' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized - no token' }, { status: 401 });
-    }
-
-    // Create a client to verify the user token
-    const userClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    // Verify token by calling getUser with the token
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('User auth verification failed:', { 
-        error: authError?.message, 
-        code: authError?.code,
-        hasUser: !!user
-      });
-      return NextResponse.json({ 
-        error: 'Unauthorized - invalid or expired token'
-      }, { status: 401 });
+    const userId = await resolveRequestUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
@@ -211,7 +186,7 @@ export async function POST(request: NextRequest) {
       .from('group_members')
       .select('role')
       .eq('group_id', groupId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     if (!membership || membership.role !== 'admin') {

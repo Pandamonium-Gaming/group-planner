@@ -79,8 +79,17 @@ export function GameLayout({ params, children, activeTab, characterCount }: Game
           };
         })
         .filter(game => gameStatuses.some(gs => gs.game_slug === game.slug)); // Only show games that are enabled
-      
-      setEnabledGames(gamesWithStatus);
+
+      setEnabledGames(gamesWithStatus.length > 0
+        ? gamesWithStatus
+        : allGames.map((game) => ({
+            slug: game.id,
+            name: game.name,
+            icon: game.icon,
+            iconUrl: game.iconUrl,
+            archived: false,
+          }))
+      );
     }
     
     fetchGames();

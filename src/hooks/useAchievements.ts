@@ -23,7 +23,7 @@ interface UseAchievementsReturn {
 export function useAchievements(groupId: string | null): UseAchievementsReturn {
   const [achievements, setAchievements] = useState<ClanAchievementWithDefinition[]>([]);
   const [definitions, setDefinitions] = useState<AchievementDefinition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => groupId !== null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -92,7 +92,11 @@ export function useAchievements(groupId: string | null): UseAchievementsReturn {
   }, [groupId]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   const unlockedCount = achievements.filter((a) => a.is_unlocked).length;

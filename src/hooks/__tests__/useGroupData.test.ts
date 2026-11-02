@@ -33,8 +33,8 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'user-1' } },
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { user: { id: 'user-1' } } },
         error: null,
       }),
     },
@@ -51,7 +51,7 @@ describe('useGroupData Hook - Phase 2 Sprint 3', () => {
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       const mockFrom = {
         select: jest
           .fn()
@@ -71,9 +71,13 @@ describe('useGroupData Hook - Phase 2 Sprint 3', () => {
       expect(result.current.group).toBeNull();
       expect(result.current.characters).toEqual([]);
       expect(result.current.loading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
-    it('exposes required API methods', () => {
+    it('exposes required API methods', async () => {
       const mockFrom = {
         select: jest
           .fn()
@@ -89,6 +93,10 @@ describe('useGroupData Hook - Phase 2 Sprint 3', () => {
       mockSupabase.from.mockReturnValue(mockFrom as any);
 
       const { result } = renderHook(() => useGroupData('test-group', 'aoc'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.addCharacter).toBe('function');
       expect(typeof result.current.updateCharacter).toBe('function');
@@ -285,6 +293,28 @@ describe('useGroupData Hook - Phase 2 Sprint 3', () => {
     });
 
     it('setProfessionRank accepts character id, profession, and rank data', async () => {
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'member_professions') {
+          return {
+            delete: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  select: jest.fn().mockResolvedValue({ data: [], error: null }),
+                }),
+              }),
+            }),
+            insert: jest.fn().mockResolvedValue({ error: null }),
+          } as any;
+        }
+
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+          order: jest.fn().mockReturnThis(),
+        } as any;
+      });
+
       const { result } = renderHook(() => useGroupData('test-group', 'aoc'));
 
       await waitFor(() => {
@@ -471,8 +501,10 @@ describe('useGroupData Hook - Phase 2 Sprint 3', () => {
       expect(typeof result.current.refresh).toBe('function');
 
       try {
-        const refreshPromise = result.current.refresh();
-        if (refreshPromise) await refreshPromise.catch(() => {});
+        await act(async () => {
+          const refreshPromise = result.current.refresh();
+          if (refreshPromise) await refreshPromise.catch(() => {});
+        });
       } catch (e) {
         // Refresh may fail due to mock setup, but function should exist
       }

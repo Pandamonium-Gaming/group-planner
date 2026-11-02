@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sword, Hammer, Pickaxe, LogOut, User, Shield, Users, Settings, Loader2, Globe } from 'lucide-react';
+import Image from 'next/image';
+import { Sword, LogOut, User, Shield, Users, Settings, Loader2, Globe } from 'lucide-react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InlineFooter } from '@/components/layout/Footer';
@@ -13,9 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingClanForm } from '@/components/forms/LandingClanForm';
 import { LandingFeatureHighlights } from '@/components/landing/LandingFeatureHighlights';
-import { GameSelector } from '@/components/common/GameSelector';
 import { GameSwitcher } from '@/components/common/GameSwitcher';
-import { useGame } from '@/contexts/GameContext';
 
 interface UserClan {
   id: string;
@@ -41,10 +39,8 @@ export default function Home() {
   const [clansLoading, setClansLoading] = useState(false);
   const [publicGroups, setPublicGroups] = useState<PublicGroup[]>([]);
   const [publicGroupsLoading, setPublicGroupsLoading] = useState(false);
-  const router = useRouter();
   const { user, profile, loading, signIn, signOut } = useAuthContext();
   const { t, isLoading } = useLanguage();
-  const { selectedGame } = useGame();
 
   // Fetch user's clans when logged in
   useEffect(() => {
@@ -76,16 +72,17 @@ export default function Home() {
     async function fetchPublicGroups() {
       setPublicGroupsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('groups')
-          .select('id, slug, name, group_icon_url, public_description, recruitment_open')
-          .eq('is_public', true)
-          .order('name');
+        const response = await fetch('/api/groups/public', { cache: 'no-store' });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to load public groups (${response.status})`);
+        }
+
+        const payload = (await response.json()) as { groups?: PublicGroup[] };
 
         if (isMounted) {
-          setPublicGroups((data || []) as PublicGroup[]);
+          setPublicGroups((payload.groups || []) as PublicGroup[]);
         }
       } catch (err) {
         console.error('Error fetching public groups:', err);
@@ -105,18 +102,6 @@ export default function Home() {
       isMounted = false;
     };
   }, []);
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (groupName.trim()) {
-      const slug = groupName
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      router.push(`/${slug}`);
-    }
-  };
 
   const displayName = profile?.display_name || profile?.discord_username || 'User';
 
@@ -138,10 +123,10 @@ export default function Home() {
           <Link
             href="/events"
             className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group"
-            title="Public Events"
+            title={t('home.publicEventsLink')}
           >
             <Sword size={18} className="group-hover:text-indigo-400 transition-colors" />
-            <span className="text-sm font-medium hidden sm:inline">Public Events</span>
+            <span className="text-sm font-medium hidden sm:inline">{t('home.publicEventsLink')}</span>
           </Link>
           <div className="flex items-center justify-end">
           {loading ? (
@@ -153,9 +138,12 @@ export default function Home() {
               <GameSwitcher />
               <div className="flex items-center gap-2 text-slate-300">
                 {profile?.discord_avatar ? (
-                  <img
+                  <Image
                     src={profile.discord_avatar}
                     alt={displayName}
+                    width={32}
+                    height={32}
+                    unoptimized
                     className="w-8 h-8 rounded-full ring-2 ring-slate-700"
                   />
                 ) : (
@@ -166,7 +154,7 @@ export default function Home() {
               <Link
                 href="/settings"
                 className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-all cursor-pointer"
-                title="Settings"
+                title={t('common.settings')}
               >
                 <Settings size={18} />
               </Link>
@@ -202,7 +190,7 @@ export default function Home() {
       <div className="mt-12 w-full max-w-2xl mx-auto">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2 justify-center">
           <Globe className="w-5 h-5 text-cyan-400" />
-          Public Groups
+          {t('home.publicGroupsTitle')}
         </h2>
         {publicGroupsLoading ? (
           <div className="flex items-center justify-center py-4">
@@ -218,9 +206,12 @@ export default function Home() {
               >
                 <div className="flex items-center gap-3">
                   {group.group_icon_url ? (
-                    <img
+                    <Image
                       src={group.group_icon_url}
-                      alt="Group Icon"
+                      alt={group.name}
+                      width={32}
+                      height={32}
+                      unoptimized
                       className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800"
                     />
                   ) : (
@@ -238,14 +229,14 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="text-sm text-slate-400">
-                  {group.recruitment_open ? 'Open Recruitment' : 'View Group'}
+                  {group.recruitment_open ? t('home.openRecruitmentStatus') : t('home.viewGroupStatus')}
                 </div>
               </Link>
             ))}
           </div>
         ) : (
           <p className="text-center text-slate-500 py-4">
-            No public groups yet.
+            {t('home.noPublicGroups')}
           </p>
         )}
       </div>
@@ -271,9 +262,12 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3">
                     {group.group_icon_url ? (
-                      <img
+                      <Image
                         src={group.group_icon_url}
-                        alt="Guild Icon"
+                        alt={group.name}
+                        width={40}
+                        height={40}
+                        unoptimized
                         className="w-10 h-10 rounded-xl border border-slate-700 bg-slate-800 group-hover:border-indigo-500/50 transition-colors"
                       />
                     ) : (
@@ -310,24 +304,6 @@ export default function Home() {
       <div className="shrink-0">
         <InlineFooter />
       </div>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-lg p-6 text-center">
-      <div className="flex justify-center mb-3">{icon}</div>
-      <h3 className="font-semibold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm">{description}</p>
     </div>
   );
 }

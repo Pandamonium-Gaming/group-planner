@@ -5,6 +5,21 @@ export interface GroupGameInfo {
   archived: boolean;
 }
 
+async function fetchGroupGamesViaApi(groupId: string): Promise<GroupGameInfo[]> {
+  const response = await fetch(`/api/group/games?group_id=${encodeURIComponent(groupId)}`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch group games via API (${response.status})`);
+  }
+
+  const payload = (await response.json()) as { games?: GroupGameInfo[] };
+  return payload.games || [];
+}
+
 /**
  * Get all enabled games for a group (excludes archived games by default)
  * Returns all available games if none have been explicitly configured
@@ -139,7 +154,7 @@ export async function isGameArchived(groupId: string, gameSlug: string): Promise
       .select('archived')
       .eq('group_id', groupId)
       .eq('game_slug', gameSlug)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data?.archived || false;

@@ -523,7 +523,7 @@ This approach:
 ### Test Execution
 
 ```bash
-npm test
+yarn test
 # Output: Tests: 148 passed, 148 total
 # Time: 2.75s
 ```

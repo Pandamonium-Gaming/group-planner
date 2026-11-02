@@ -1,4 +1,5 @@
-// TypeScript types for the AoC Guild Planner
+// TypeScript types for the AoC Group Planner
+import type { WowForeverProfessionRank } from '@/games/wowforever/config';
 
 // Profession tier types
 export type ProfessionTier = 'gathering' | 'processing' | 'crafting';
@@ -51,6 +52,11 @@ export interface Clan {
   sc_events_webhook_url?: string;
   ror_webhook_url?: string;
   ror_events_webhook_url?: string;
+  wowforever_webhook_url?: string;
+  wowforever_events_webhook_url?: string;
+  wowforever_recruitment_open?: boolean;
+  wowforever_recruitment_message?: string | null;
+  wowforever_public_description?: string | null;
   notify_on_events?: boolean;
   notify_on_announcements?: boolean;
   discord_announcement_role_id?: string;
@@ -60,6 +66,8 @@ export interface Clan {
   sc_events_role_id?: string;
   ror_announcement_role_id?: string;
   ror_events_role_id?: string;
+  wowforever_announcement_role_id?: string;
+  wowforever_events_role_id?: string;
   group_icon_url?: string;
   aoc_welcome_enabled?: boolean;
   sc_welcome_enabled?: boolean;
@@ -72,6 +80,14 @@ export interface Clan {
   aoc_public_description?: string | null;
   sc_public_description?: string | null;
   ror_public_description?: string | null;
+  aoc_ranks_enabled?: boolean;
+  sc_ranks_enabled?: boolean;
+  ror_ranks_enabled?: boolean;
+  wowforever_ranks_enabled?: boolean;
+  aoc_custom_ranks?: Array<{ id: string; name: string; hierarchy: number }>;
+  sc_custom_ranks?: Array<{ id: string; name: string; hierarchy: number }>;
+  ror_custom_ranks?: Array<{ id: string; name: string; hierarchy: number }>;
+  wowforever_custom_ranks?: Array<{ id: string; name: string; hierarchy: number }>;
 }
 
 // Race and Archetype types (match database ENUMs)
@@ -98,6 +114,15 @@ export interface Character {
   rank?: string | null;
   ror_faction?: string | null;
   ror_class?: string | null;
+  wow_race?: string | null;
+  wow_faction?: 'Alliance' | 'Horde' | null;
+  wow_class?: string | null;
+  wow_main_spec?: string | null;
+  wow_secondary_spec?: string | null;
+  wow_profession_1?: string | null;
+  wow_profession_2?: string | null;
+  wow_profession_1_rank?: WowForeverProfessionRank | null;
+  wow_profession_2_rank?: WowForeverProfessionRank | null;
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -119,6 +144,7 @@ export interface MemberProfession {
 // Extended character with professions loaded
 export interface CharacterWithProfessions extends Character {
   professions: MemberProfession[];
+  owner?: { display_name: string | null; discord_username: string | null } | null;
 }
 
 // Legacy alias for compatibility
@@ -900,5 +926,3 @@ export interface BuildComment {
   updated_at: string;
   user?: { display_name: string };
 }
-
-

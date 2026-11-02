@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabase';
-import { CharacterWithProfessions } from './types';
+import { CharacterWithProfessions, MemberProfession } from './types';
 
 /**
  * Find a user's character by Discord ID and group ID
@@ -226,7 +226,52 @@ export async function getCurrentUserMainCharacter(
 /**
  * Transform character data to include professions
  */
-function transformCharacter(char: any): CharacterWithProfessions {
+type CharacterLookupRow = CharacterWithProfessions & {
+  member_professions?: unknown[];
+};
+
+function toRankLevel(value: unknown): MemberProfession['rank'] {
+  if (value === 1 || value === 2 || value === 3 || value === 4) {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    if (value >= 4) return 4;
+    if (value >= 3) return 3;
+    if (value >= 2) return 2;
+  }
+
+  return 1;
+}
+
+function toMemberProfession(value: unknown, fallbackMemberId: string): MemberProfession | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const profession = value as Partial<Record<keyof MemberProfession, unknown>>;
+
+  if (typeof profession.profession !== 'string') {
+    return null;
+  }
+
+  return (
+    {
+      id: typeof profession.id === 'string' ? profession.id : `${fallbackMemberId}-${profession.profession}`,
+      member_id: typeof profession.member_id === 'string' ? profession.member_id : fallbackMemberId,
+      profession: profession.profession,
+      rank: toRankLevel(profession.rank),
+      artisan_level: typeof profession.artisan_level === 'number' ? profession.artisan_level : 0,
+      quality_score: typeof profession.quality_score === 'number' ? profession.quality_score : 0,
+    }
+  );
+}
+
+function transformCharacter(char: CharacterLookupRow): CharacterWithProfessions {
+  const professions = (char.member_professions || [])
+    .map((profession) => toMemberProfession(profession, char.id))
+    .filter((profession): profession is MemberProfession => profession !== null);
+
   return {
     ...char,
     race: char.race || null,
@@ -234,6 +279,6 @@ function transformCharacter(char: any): CharacterWithProfessions {
     secondary_archetype: char.secondary_archetype || null,
     level: char.level || 1,
     is_main: char.is_main || false,
-    professions: char.member_professions || [],
+    professions,
   };
 }

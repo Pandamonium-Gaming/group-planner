@@ -46,6 +46,10 @@ const config: Config = {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: {
         jsx: 'react',
+        rootDir: '.',
+        moduleResolution: 'bundler',
+        module: 'esnext',
+        ignoreDeprecations: '6.0',
       },
     }],
   },

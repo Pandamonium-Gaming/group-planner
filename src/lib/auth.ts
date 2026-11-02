@@ -18,6 +18,7 @@ export async function updateClanIconUrl(groupId: string, url: string) {
 }
 import { supabase } from './supabase';
 import { getURL } from './url';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
 
@@ -71,6 +72,16 @@ export async function getSession() {
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
   return session;
+}
+
+/**
+ * Subscribe to auth state changes.
+ */
+export function onAuthStateChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void | Promise<void>
+) {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  return { subscription };
 }
 
 /**
@@ -256,9 +267,14 @@ export async function applyToGroup(groupId: string, userId: string) {
   if (groupError) throw groupError;
 
   const approvalRequired = group?.approval_required ?? true;
-  const defaultRole = group?.default_role || 'trial';
-  const insertPayload = approvalRequired
-    ? { group_id: groupId, user_id: userId, role: 'pending' }
+  const defaultRole: string = group?.default_role || 'trial';
+  const insertPayload: {
+    group_id: string;
+    user_id: string;
+    role: string;
+    approved_at: string | null;
+  } = approvalRequired
+    ? { group_id: groupId, user_id: userId, role: 'pending', approved_at: null }
     : { group_id: groupId, user_id: userId, role: defaultRole, approved_at: new Date().toISOString() };
 
   const { error } = await supabase

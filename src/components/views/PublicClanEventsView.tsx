@@ -21,11 +21,7 @@ export function PublicClanEventsView({ groupId, groupName, groupSlug }: PublicCl
   const [events, setEvents] = useState<EventWithRsvps[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPublicEvents();
-  }, [groupId]);
-
-  async function fetchPublicEvents() {
+  const fetchPublicEvents = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -102,7 +98,15 @@ export function PublicClanEventsView({ groupId, groupName, groupSlug }: PublicCl
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      void fetchPublicEvents();
+    }, 0);
+
+    return () => clearTimeout(timerId);
+  }, [groupId]);
 
   if (loading) {
     return (

@@ -407,6 +407,7 @@ describe('Authentication & User Management', () => {
         group_id: 'group-123',
         user_id: 'user-123',
         role: 'pending',
+        approved_at: null,
       });
     });
 

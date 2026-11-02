@@ -88,9 +88,9 @@ export function ManageTab({
   };
 
   // Helper to check if current user can edit member's rank
-  const canEditMemberRank = (memberId: string, memberRole: string | null): boolean => {
-    // Can't edit your own rank
-    if (memberId === currentUserId) return false;
+  const canEditMemberRank = (memberUserId: string, memberRole: string | null): boolean => {
+    // Only admins can edit their own rank.
+    if (memberUserId === currentUserId && currentUserRole !== 'admin') return false;
     
     // Admins can edit any rank
     if (currentUserRole === 'admin') return true;
@@ -169,22 +169,7 @@ export function ManageTab({
         </h2>
         <div className="space-y-2">
           {(() => {
-            // Sort members by creator status, role hierarchy, then display name
-            const getRoleRank = (role: string | null) => {
-              const hierarchy = {
-                admin: 4,
-                officer: 3,
-                member: 2,
-                trial: 1,
-                pending: 0,
-              };
-              return role && Object.prototype.hasOwnProperty.call(hierarchy, role)
-                ? hierarchy[role as keyof typeof hierarchy]
-                : -1;
-            };
-
-            const getMemberRank = (member: { role: string | null; is_creator: boolean }) =>
-              member.is_creator ? 5 : getRoleRank(member.role);
+            // Sort members by game rank hierarchy (highest first), then display name.
 
             const getMemberRoleConfig = (member: { role: string | null; is_creator: boolean }) => {
               if (member.is_creator) return ROLE_CONFIG.admin;
@@ -197,8 +182,8 @@ export function ManageTab({
             return members
               .slice()
               .sort((a, b) => {
-                const roleDiff = getMemberRank(b) - getMemberRank(a);
-                if (roleDiff !== 0) return roleDiff;
+                const rankDiff = getRankHierarchy(b.guild_rank) - getRankHierarchy(a.guild_rank);
+                if (rankDiff !== 0) return rankDiff;
                 const nameA = (a.user?.display_name || a.user?.discord_username || '').toLowerCase();
                 const nameB = (b.user?.display_name || b.user?.discord_username || '').toLowerCase();
                 return nameA.localeCompare(nameB);
@@ -246,35 +231,37 @@ export function ManageTab({
                       </span>
                     </div>
                   </div>
-                  {onUpdateRole && member.user_id !== currentUserId && (
+                  {(onUpdateRole || onUpdateRank || onRemove) && (
                     <div className="flex items-center gap-2">
-                      <select
-                        value={member.role || 'member'}
-                        onChange={(e) => onUpdateRole(member.id, e.target.value as GroupRole)}
-                        className="bg-slate-800 border border-slate-600 rounded px-3 py-1 text-white text-sm cursor-pointer"
-                        title={t('members.changeRole')}
-                      >
-                        {Object.entries(ROLE_CONFIG)
-                          .filter(([role]) => role !== 'pending')
-                          .filter(([role]) => {
-                            // Only allow managing roles below your own
-                            if (currentUserRole === 'admin') return true;
-                            if (currentUserRole === 'officer') return ['member', 'trial'].includes(role);
-                            return false;
-                          })
-                          .map(([role, config]) => (
-                            <option
-                              key={role}
-                              value={role}
-                              title={config.description}
-                            >
-                              {t(`clan.${role}`) || config.label}
-                            </option>
-                          ))}
-                      </select>
+                      {onUpdateRole && member.user_id !== currentUserId && (
+                        <select
+                          value={member.role || 'member'}
+                          onChange={(e) => onUpdateRole(member.id, e.target.value as GroupRole)}
+                          className="bg-slate-800 border border-slate-600 rounded px-3 py-1 text-white text-sm cursor-pointer"
+                          title={t('members.changeRole')}
+                        >
+                          {Object.entries(ROLE_CONFIG)
+                            .filter(([role]) => role !== 'pending')
+                            .filter(([role]) => {
+                              // Only allow managing roles below your own
+                              if (currentUserRole === 'admin') return true;
+                              if (currentUserRole === 'officer') return ['member', 'trial'].includes(role);
+                              return false;
+                            })
+                            .map(([role, config]) => (
+                              <option
+                                key={role}
+                                value={role}
+                                title={config.description}
+                              >
+                                {t(`clan.${role}`) || config.label}
+                              </option>
+                            ))}
+                        </select>
+                      )}
 
                       {onUpdateRank && gameRanks.length > 0 && (
-                        canEditMemberRank(member.id, member.role) ? (
+                        canEditMemberRank(member.user_id, member.role) ? (
                           <select
                             value={member.guild_rank || ''}
                             onChange={(e) => onUpdateRank(member.id, e.target.value || null)}
@@ -283,6 +270,8 @@ export function ManageTab({
                           >
                             <option value="">{t('members.noRank')}</option>
                             {gameRanks
+                              .slice()
+                              .sort((a: GameRank, b: GameRank) => (b.hierarchy || 0) - (a.hierarchy || 0))
                               .filter((rank: GameRank) => {
                                 // Admins can assign any rank
                                 if (currentUserRole === 'admin') return true;

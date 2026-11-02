@@ -58,7 +58,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
   const [transactions, setTransactions] = useState<BankTransactionWithDetails[]>([]);
   const [requests, setRequests] = useState<ResourceRequestWithDetails[]>([]);
   const [resourceCatalog, setResourceCatalog] = useState<ResourceCatalog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => groupId !== null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch all bank data
@@ -172,7 +172,11 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
   }, [groupId]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   // Initialize bank for clan

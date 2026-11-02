@@ -1,0 +1,25 @@
+services:
+  app:
+    container_name: guild-planner-app-prod
+    env_file:
+      - .env.production
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/', (res) => process.exit(res.statusCode >= 200 && res.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1));"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M

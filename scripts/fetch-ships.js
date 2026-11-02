@@ -1,6 +1,6 @@
 /**
  * Fetch Star Citizen ship data from RSI ship matrix
- * Run manually: npm run update-ships
+ * Run manually: yarn update-ships
  */
 
 const fs = require('fs');

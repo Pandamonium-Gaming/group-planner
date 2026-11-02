@@ -90,7 +90,11 @@ export function useAlliances(groupId: string | null): UseAlliancesReturn {
   }, [groupId]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   const myAlliance = alliances.find((a) =>

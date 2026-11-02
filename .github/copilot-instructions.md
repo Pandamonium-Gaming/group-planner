@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for Guild Planner
+# GitHub Copilot Instructions for Group Planner
 
 ## Critical Rules - Always Follow
 
@@ -61,7 +61,7 @@
 1. Update `en-GB.json` first with English text
 2. Add corresponding keys to `es.json` with Spanish translation
 3. Add corresponding keys to `nl.json` with Dutch translation
-4. Run `npm run check:translations` to verify
+4. Run `yarn check:translations` to verify
 
 **Pre-commit hook will reject commits if:**
 
@@ -158,14 +158,14 @@ Using `--no-verify` or `--allow-empty` bypasses critical safety checks and creat
 
 ```bash
 # After making changes and updating CHANGELOG.md:
-npm run version:patch -- --commit   # Automatically commits and tags
+yarn version:patch -- --commit   # Automatically commits and tags
 # Then just: git push && git push --tags
 ```
 
 **Manual workflow (if you have other uncommitted changes):**
 
 ```bash
-npm run version:patch    # Updates files only
+yarn version:patch    # Updates files only
 # Review changes, then:
 git add package.json CHANGELOG.md
 git commit -m "chore: bump version to X.Y.Z"
@@ -186,7 +186,7 @@ git push && git push --tags
 ### Creating a Release
 
 1. Ensure CHANGELOG.md is up-to-date
-2. Run `npm run version:patch -- --commit` (or minor/major)
+2. Run `yarn version:patch -- --commit` (or minor/major)
 3. Push: `git push && git push --tags`
 
 **That's it! Three commands total, or just one if using aliases.**
@@ -239,7 +239,7 @@ git push && git push --tags
 1. Add to `en-GB.json`: `"key": "English text"`
 2. Add to `es.json`: `"key": "Spanish text"`
 3. Add to `nl.json`: `"key": "Dutch text"`
-4. Verify: `npm run check:translations`
+4. Verify: `yarn check:translations`
 5. Update CHANGELOG.md under `### Added`
 
 ### Adding a New Feature
@@ -287,9 +287,9 @@ git push && git push --tags
 ### Running Tests
 
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
-npm run test:coverage # With coverage report
+yarn test             # Run all tests
+yarn test:watch       # Watch mode
+yarn test:coverage    # With coverage report
 ```
 
 ### Test Coverage
@@ -301,19 +301,19 @@ npm run test:coverage # With coverage report
 
 ```bash
 # Validation
-npm run check:translations   # Check translation sync
-npm run check:changelog      # Check changelog updates
+yarn check:translations      # Check translation sync
+yarn check:changelog         # Check changelog updates
 
 # Version Management
-npm run version:patch        # Bump patch version
-npm run version:minor        # Bump minor version
-npm run version:major        # Bump major version
+yarn version:patch           # Bump patch version
+yarn version:minor           # Bump minor version
+yarn version:major           # Bump major version
 
 # Development
-npm run dev                  # Start dev server
-npm run build                # Production build
-npm run lint                 # Run linter
-npm test                     # Run tests
+yarn dev                     # Start dev server
+yarn build                   # Production build
+yarn lint                    # Run linter
+yarn test                    # Run tests
 
 # Database Operations
 .\scripts\backup-prod-database.ps1       # Backup prod DB (read-only)
@@ -322,7 +322,7 @@ npm test                     # Run tests
 .\scripts\sync-prod-to-dev-data.ps1      # Sync prod data to dev (file-based)
 
 # Scripts
-npm run update-ships         # Update Star Citizen ship data
+yarn update-ships            # Update Star Citizen ship data
 ```
 
 ## Notes for AI Assistant

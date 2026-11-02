@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Edit2, Check, X, AlertTriangle, Star } from 'lucide-react';
 import { CharacterWithProfessions, RankLevel, RANK_COLORS } from '@/lib/types';
 import { SUBSCRIBER_COLORS, SUBSCRIBER_TIERS } from '@/games/starcitizen/config/subscriber-ships';
@@ -11,6 +11,10 @@ import { ROR_FACTIONS, ROR_CLASSES, ROR_ROLE_CONFIG, RORRole } from '@/games/ret
 import { ProfessionSelector } from '@/components/game-specific/ProfessionSelector';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getGameConfig } from '@/config';
+import { Clan } from '@/lib/types';
+import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRankSettings';
+import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
+import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -22,6 +26,7 @@ interface CharacterCardProps {
   mainCharacterName?: string; // Name of the main character this alt belongs to
   altCharacters?: Array<{ id: string; name: string }>; // List of alts for this main character
   gameSlug?: string; // Game slug to determine if professions should be shown
+  group?: Clan | null;
 }
 
 export function CharacterCard({ 
@@ -33,7 +38,8 @@ export function CharacterCard({
   readOnly = false,
   mainCharacterName,
   altCharacters = [],
-  gameSlug = 'aoc'
+  gameSlug = 'aoc',
+  group = null,
 }: CharacterCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,12 +69,12 @@ export function CharacterCard({
 
   // Get game config for Star Citizen ranks/roles
   const gameConfig = gameSlug ? getGameConfig(gameSlug) : null;
-  const gameRanks = (gameConfig as any)?.ranks || [];
+  const gameRanks = getConfiguredGameRanks(group, gameSlug);
   const gameRoles = (gameConfig as any)?.roles || [];
   
   // Get Star Citizen rank name from ID
-  const scRankName = character.rank && gameSlug === 'starcitizen'
-    ? gameRanks.find((r: any) => r.id === character.rank)?.name || character.rank
+  const scRankName = gameSlug === 'starcitizen'
+    ? resolveConfiguredRankLabel(gameRanks, character.rank)
     : character.rank;
 
   // Get Star Citizen role names from IDs
@@ -85,6 +91,10 @@ export function CharacterCard({
   const rorFaction = character.ror_faction ? ROR_FACTIONS[character.ror_faction as keyof typeof ROR_FACTIONS] : null;
   const rorClass = character.ror_class ? ROR_CLASSES.find(c => c.id === character.ror_class) : null;
   const rorRole = rorClass ? ROR_ROLE_CONFIG[rorClass.role] : null;
+  const wowClass = character.wow_class ? getWowForeverClass(character.wow_class) : null;
+  const wowFaction = character.wow_race && character.wow_class
+    ? getWowForeverFaction(character.wow_race, character.wow_class, character.wow_faction)
+    : null;
 
   const handleSave = async () => {
     if (editName.trim() && editName !== character.name) {
@@ -173,9 +183,16 @@ export function CharacterCard({
               <div>
                 <div className="flex items-center gap-2">
                   {character.is_main && (
-                    <Star size={14} className="text-amber-400 fill-amber-400" />
+                    <span role="img" aria-label={t('character.mainCharacter')} title={t('character.mainCharacter')}>
+                      <Star size={14} className="text-amber-400 fill-amber-400" aria-hidden="true" />
+                    </span>
                   )}
                   <h3 className="text-white font-semibold truncate">{character.name}</h3>
+                  <span className="truncate text-xs text-slate-400" title={t('character.owner')}>
+                    {character.user_id
+                      ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
+                      : t('character.unclaimed')}
+                  </span>
                   {character.level > 1 && (
                     <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
                       Lv.{character.level}
@@ -224,6 +241,28 @@ export function CharacterCard({
                     <span className={rorFaction.color}>{rorFaction.name}</span>
                     <span className="text-slate-600">•</span>
                     <span className="text-slate-300">{rorClass.name}</span>
+                  </div>
+                )}
+                {gameSlug === 'wowforever' && (
+                  <div className="mt-0.5 text-sm">
+                    <div className="flex items-center gap-2">
+                      {wowClass && <WowClassIcon classId={wowClass.id} />}
+                      {wowFaction && <WowFactionIcon faction={wowFaction} />}
+                      {character.wow_race && <span className="text-slate-400">{character.wow_race}</span>}
+                      {character.wow_race && wowClass && <span className="text-slate-600">•</span>}
+                      {wowClass && <span className="text-slate-300">{wowClass.name}</span>}
+                      {wowFaction && <span className="text-slate-500">({wowFaction})</span>}
+                    </div>
+                    {(character.wow_main_spec || character.wow_secondary_spec) && (
+                      <div className="text-xs text-slate-400 mt-1">
+                        {[character.wow_main_spec, character.wow_secondary_spec].filter(Boolean).join(' / ')}
+                      </div>
+                    )}
+                    {(character.wow_profession_1 || character.wow_profession_2) && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        {[character.wow_profession_1, character.wow_profession_2].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Main/Alt relationship */}
@@ -350,6 +389,34 @@ export function CharacterCard({
               <div>readOnly: {String(readOnly)}</div>
             </div>
           )}
+
+        </div>
+      )}
+
+      {isExpanded && gameSlug === 'wowforever' && (
+        <div className="border-t border-slate-800 p-4 space-y-2 text-sm">
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.mainSpec')}:</span>{' '}
+            {character.wow_main_spec || '—'}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.secondarySpec')}:</span>{' '}
+            {character.wow_secondary_spec || '—'}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.firstProfession')}:</span>{' '}
+            {character.wow_profession_1 || '—'}
+            {character.wow_profession_1 && <span className="ml-2 text-xs text-indigo-200">
+              {t(character.wow_profession_1_rank ? `wowForever.professionRanks.${character.wow_profession_1_rank}` : 'wowForever.rankNotRecorded')}
+            </span>}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.secondProfession')}:</span>{' '}
+            {character.wow_profession_2 || '—'}
+            {character.wow_profession_2 && <span className="ml-2 text-xs text-indigo-200">
+              {t(character.wow_profession_2_rank ? `wowForever.professionRanks.${character.wow_profession_2_rank}` : 'wowForever.rankNotRecorded')}
+            </span>}
+          </div>
         </div>
       )}
 
@@ -460,4 +527,3 @@ export function CharacterCard({
 
 // Legacy alias for backward compatibility
 export { CharacterCard as MemberCard };
-

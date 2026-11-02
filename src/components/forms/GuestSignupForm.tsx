@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Users, X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { submitGuestRsvp } from '@/lib/actions/guest-rsvp';
 import { EventRole, EVENT_ROLES } from '@/lib/events';
 
@@ -15,7 +14,6 @@ interface GuestSignupFormProps {
 
 export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignupFormProps) {
   const { success, error } = useToast();
-  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,7 +22,7 @@ export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignu
     role: 'ranged_dps' as EventRole,
   });
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!formData.guestName.trim()) {
@@ -98,7 +96,7 @@ export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignu
           <input
             type="text"
             value={formData.guestName}
-            onChange={(e: any) => setFormData({ ...formData, guestName: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, guestName: e.target.value })}
             placeholder="Enter your character name"
             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isSubmitting}

@@ -10,8 +10,8 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'user-1' } },
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { user: { id: 'user-1' } } },
         error: null,
       }),
     },
@@ -70,10 +70,22 @@ const mockBuilds = [
 describe('useBuilds Hook - Phase 2 Sprint 5', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockSupabase.from.mockImplementation(() => ({
+      select: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({ data: [], error: null }),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    }) as any);
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
@@ -90,9 +102,13 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
       expect(result.current.publicBuilds).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
-    it('exposes all required API methods', () => {
+    it('exposes all required API methods', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
@@ -102,6 +118,10 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
       });
 
       const { result } = renderHook(() => useBuilds('group-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.createBuild).toBe('function');
       expect(typeof result.current.updateBuild).toBe('function');
@@ -127,6 +147,9 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
 
       const likesQuery = {
         select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue({ data: [], error: null }),
         eq: jest.fn().mockResolvedValue({ data: [{ build_id: 'build-1' }], error: null }),
       };
 
@@ -154,14 +177,8 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
         limit: jest.fn().mockResolvedValue({ data: mockBuilds, error: null }),
       };
 
-      const likesQuery = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ data: [], error: null }),
-      };
-
       mockSupabase.from
-        .mockReturnValueOnce(buildsQuery)
-        .mockReturnValueOnce(likesQuery);
+        .mockReturnValueOnce(buildsQuery);
 
       const { result } = renderHook(() => useBuilds('group-1'));
 
@@ -185,6 +202,9 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
 
       const likesQuery = {
         select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue({ data: [], error: null }),
         eq: jest.fn().mockResolvedValue({ data: [], error: null }),
       };
 
@@ -273,13 +293,13 @@ describe('useBuilds Hook - Phase 2 Sprint 5', () => {
 
     it('throws error if not authenticated', async () => {
       // Restore and set up auth failure
-      supabase.auth.getUser
+      supabase.auth.getSession
         .mockResolvedValueOnce({
-          data: { user: null },
+          data: { session: null },
           error: null,
         })
         .mockResolvedValueOnce({
-          data: { user: null },
+          data: { session: null },
           error: null,
         });
 

@@ -44,6 +44,26 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Load group games from database
+  const loadGroupGames = async (gid: string) => {
+    try {
+      const gamesStatus = await getGroupGamesWithStatus(gid);
+      if (gamesStatus.length === 0) {
+        const allGames = getAllGames();
+        setEnabledGames(allGames.map((game) => game.id));
+        setGamesWithStatus(allGames.map((game) => ({ slug: game.id, archived: false })));
+        return;
+      }
+
+      setEnabledGames(gamesStatus.map(g => g.game_slug));
+      setGamesWithStatus(gamesStatus.map(g => ({ slug: g.game_slug, archived: g.archived })));
+    } catch (err) {
+      console.error('Error loading group games:', err);
+      setEnabledGames([]);
+      setGamesWithStatus([]);
+    }
+  };
+
   // Fetch group data
   useEffect(() => {
     async function checkGroup() {
@@ -78,19 +98,6 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
     }
     checkGroup();
   }, [groupSlug]);
-
-  // Load group games from database
-  const loadGroupGames = async (gid: string) => {
-    try {
-      const gamesStatus = await getGroupGamesWithStatus(gid);
-      setEnabledGames(gamesStatus.map(g => g.game_slug));
-      setGamesWithStatus(gamesStatus.map(g => ({ slug: g.game_slug, archived: g.archived })));
-    } catch (err) {
-      console.error('Error loading group games:', err);
-      setEnabledGames([]);
-      setGamesWithStatus([]);
-    }
-  };
 
   // Add game to group
   const handleAddGame = async (gameSlug: string) => {
@@ -342,15 +349,15 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
       {/* Member - show games */}
       {!membershipLoading && membership && membership.role !== 'pending' && (
         <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-8">
           <div>
             <h2 className="text-lg font-semibold text-white mb-2">{t('group.availableGames')}</h2>
             <p className="text-slate-400 text-sm">{t('group.availableGamesDesc')}</p>
           </div>
-          {canEditSettings && (
+          {canEditSettings && enabledGames.length > 0 && (
             <button
               onClick={() => setShowAddGame(!showAddGame)}
-              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-500/25 text-sm font-medium"
+              className="self-start flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-500/25 text-sm font-medium"
               title="Add a game to this group"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />

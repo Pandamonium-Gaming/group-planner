@@ -71,7 +71,7 @@ export function useLootSystem(groupId: string | null): UseLootSystemReturn {
   const [lootSystem, setLootSystem] = useState<LootSystem | null>(null);
   const [leaderboard, setLeaderboard] = useState<DKPPointsWithCharacter[]>([]);
   const [lootHistory, setLootHistory] = useState<LootHistoryWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => groupId !== null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch loot system and data
@@ -205,7 +205,11 @@ export function useLootSystem(groupId: string | null): UseLootSystemReturn {
 
   // Initial fetch
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   // Create loot system

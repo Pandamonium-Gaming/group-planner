@@ -1,4 +1,4 @@
-// Permission system for the Guild Planner
+// Permission system for the Group Planner
 // Defines all available permissions and their configuration
 
 export type GroupRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending';

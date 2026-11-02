@@ -8,12 +8,14 @@ import { useGroupMembership } from '@/hooks/useGroupMembership';
 import { RankManagement } from '@/components/settings/RankManagement';
 import { ClanSettings } from '@/components/settings/ClanSettings';
 import { GameRecruitmentSettings } from '@/components/settings/GameRecruitmentSettings';
+import { GameRankSettings } from '@/components/settings/GameRankSettings';
 import { getGroupBySlug } from '@/lib/auth';
 import type { GroupRole } from '@/lib/permissions';
 import { ArrowLeft } from 'lucide-react';
+import { getConfiguredGameRanks, isGameRankEnabled } from '@/lib/gameRankSettings';
 
 export default function SettingsPage() {
-  const { group, groupSlug, gameSlug, userId, hasPermission, membership } = useGameLayoutContext();
+  const { group, groupSlug, gameSlug, userId, hasPermission, membership, refreshGroupData } = useGameLayoutContext();
   const { t } = useLanguage();
 
   // Settings page needs full membership management functions
@@ -28,7 +30,6 @@ export default function SettingsPage() {
   const [_guildIconUrl, _setGuildIconUrl] = useState(group?.group_icon_url || '');
   const prevIconUrlRef = useRef<string | undefined>(group?.group_icon_url);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const newUrl = group?.group_icon_url || '';
     if (prevIconUrlRef.current !== newUrl) {
@@ -47,22 +48,22 @@ export default function SettingsPage() {
     return null;
   }
 
-  // Determine if this game has member ranks (Star Citizen only currently)
-  const gameHasRanks = gameSlug === 'sc' || gameSlug === 'starcitizen';
+  const gameHasRanks = isGameRankEnabled(group, gameSlug);
+  const configuredRanks = getConfiguredGameRanks(group, gameSlug);
 
   return (
     <div className="space-y-6">
       <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
         <h2 className="text-xl font-bold text-white mb-2">{t('settings.gameSettingsTitle') || `${gameSlug.toUpperCase()} Settings`}</h2>
         <p className="text-sm text-slate-400 mb-3">
-          Configure game-specific settings for {gameSlug === 'aoc' ? 'Ashes of Creation' : gameSlug === 'sc' || gameSlug === 'starcitizen' ? 'Star Citizen' : gameSlug === 'ror' ? 'Return of Reckoning' : gameSlug.toUpperCase()}.
+          Configure game-specific settings for {gameSlug === 'aoc' ? 'Ashes of Creation' : gameSlug === 'sc' || gameSlug === 'starcitizen' ? 'Star Citizen' : gameSlug === 'ror' ? 'Return of Reckoning' : gameSlug === 'wowforever' ? 'WoW Forever' : gameSlug.toUpperCase()}.
         </p>
         <Link 
           href={`/${groupSlug}/settings`}
           className="inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          View Guild-wide Settings
+          View Group-wide Settings
         </Link>
       </div>
 
@@ -74,6 +75,19 @@ export default function SettingsPage() {
           currentUserId={userId}
           currentUserRole={(membership.role || 'member') as GroupRole}
           gameSlug={gameSlug}
+          ranks={configuredRanks}
+        />
+      )}
+
+      {/* Game-Specific Rank Settings */}
+      {canEditSettings && group && (
+        <GameRankSettings
+          groupId={group.id}
+          gameSlug={gameSlug}
+          group={group}
+          onSaved={() => {
+            void refreshGroupData();
+          }}
         />
       )}
 
@@ -88,12 +102,16 @@ export default function SettingsPage() {
           currentScEventsWebhookUrl={group.sc_events_webhook_url || ''}
           currentRorWebhookUrl={group.ror_webhook_url || ''}
           currentRorEventsWebhookUrl={group.ror_events_webhook_url || ''}
+          currentWowForeverWebhookUrl={group.wowforever_webhook_url || ''}
+          currentWowForeverEventsWebhookUrl={group.wowforever_events_webhook_url || ''}
           aocAnnouncementRoleId={group.aoc_announcement_role_id || ''}
           aocEventsRoleId={group.aoc_events_role_id || ''}
           scAnnouncementRoleId={group.sc_announcement_role_id || ''}
           scEventsRoleId={group.sc_events_role_id || ''}
           rorAnnouncementRoleId={group.ror_announcement_role_id || ''}
           rorEventsRoleId={group.ror_events_role_id || ''}
+          wowForeverAnnouncementRoleId={group.wowforever_announcement_role_id || ''}
+          wowForeverEventsRoleId={group.wowforever_events_role_id || ''}
         />
       )}
 

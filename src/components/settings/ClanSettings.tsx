@@ -8,6 +8,7 @@ import { Webhook, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { testDiscordWebhook } from '@/lib/discord';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getClientAuthStack } from '@/lib/authStack';
 
 interface ClanSettingsProps {
   groupId: string;
@@ -18,12 +19,16 @@ interface ClanSettingsProps {
   currentScEventsWebhookUrl?: string;
   currentRorWebhookUrl?: string;
   currentRorEventsWebhookUrl?: string;
+  currentWowForeverWebhookUrl?: string;
+  currentWowForeverEventsWebhookUrl?: string;
   aocAnnouncementRoleId?: string;
   aocEventsRoleId?: string;
   scAnnouncementRoleId?: string;
   scEventsRoleId?: string;
   rorAnnouncementRoleId?: string;
   rorEventsRoleId?: string;
+  wowForeverAnnouncementRoleId?: string;
+  wowForeverEventsRoleId?: string;
   onUpdate?: () => void;
 }
 
@@ -36,12 +41,16 @@ export function ClanSettings({
   currentScEventsWebhookUrl = '',
   currentRorWebhookUrl = '',
   currentRorEventsWebhookUrl = '',
+  currentWowForeverWebhookUrl = '',
+  currentWowForeverEventsWebhookUrl = '',
   aocAnnouncementRoleId = '',
   aocEventsRoleId = '',
   scAnnouncementRoleId = '',
   scEventsRoleId = '',
   rorAnnouncementRoleId = '',
   rorEventsRoleId = '',
+  wowForeverAnnouncementRoleId = '',
+  wowForeverEventsRoleId = '',
   onUpdate,
 }: ClanSettingsProps) {
   const { loading } = usePermissions(groupId);
@@ -73,6 +82,12 @@ export function ClanSettings({
       announcementRoleId: rorAnnouncementRoleId,
       eventsRoleId: rorEventsRoleId,
     },
+    wowforever: {
+      webhookUrl: currentWowForeverWebhookUrl,
+      eventsWebhookUrl: currentWowForeverEventsWebhookUrl,
+      announcementRoleId: wowForeverAnnouncementRoleId,
+      eventsRoleId: wowForeverEventsRoleId,
+    },
     cc: {
       webhookUrl: '',
       eventsWebhookUrl: '',
@@ -87,48 +102,164 @@ export function ClanSettings({
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; game?: string } | null>(null);
   const { t } = useLanguage();
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
 
   // Sync state when props change (when group data loads)
   useEffect(() => {
-    setGameConfig({
-      aoc: {
-        webhookUrl: currentAocWebhookUrl,
-        eventsWebhookUrl: currentAocEventsWebhookUrl,
-        announcementRoleId: aocAnnouncementRoleId,
-        eventsRoleId: aocEventsRoleId,
-      },
-      sc: {
-        webhookUrl: currentScWebhookUrl,
-        eventsWebhookUrl: currentScEventsWebhookUrl,
-        announcementRoleId: scAnnouncementRoleId,
-        eventsRoleId: scEventsRoleId,
-      },
-      ror: {
-        webhookUrl: currentRorWebhookUrl,
-        eventsWebhookUrl: currentRorEventsWebhookUrl,
-        announcementRoleId: rorAnnouncementRoleId,
-        eventsRoleId: rorEventsRoleId,
-      },
-      cc: {
-        webhookUrl: '',
-        eventsWebhookUrl: '',
-        announcementRoleId: '',
-        eventsRoleId: '',
-      },
-    });
+    let isMounted = true;
+
+    const syncFromProps = () => {
+      if (!isMounted) {
+        return;
+      }
+
+      setGameConfig({
+        aoc: {
+          webhookUrl: currentAocWebhookUrl,
+          eventsWebhookUrl: currentAocEventsWebhookUrl,
+          announcementRoleId: aocAnnouncementRoleId,
+          eventsRoleId: aocEventsRoleId,
+        },
+        sc: {
+          webhookUrl: currentScWebhookUrl,
+          eventsWebhookUrl: currentScEventsWebhookUrl,
+          announcementRoleId: scAnnouncementRoleId,
+          eventsRoleId: scEventsRoleId,
+        },
+        ror: {
+          webhookUrl: currentRorWebhookUrl,
+          eventsWebhookUrl: currentRorEventsWebhookUrl,
+          announcementRoleId: rorAnnouncementRoleId,
+          eventsRoleId: rorEventsRoleId,
+        },
+        wowforever: {
+          webhookUrl: currentWowForeverWebhookUrl,
+          eventsWebhookUrl: currentWowForeverEventsWebhookUrl,
+          announcementRoleId: wowForeverAnnouncementRoleId,
+          eventsRoleId: wowForeverEventsRoleId,
+        },
+        cc: {
+          webhookUrl: '',
+          eventsWebhookUrl: '',
+          announcementRoleId: '',
+          eventsRoleId: '',
+        },
+      });
+    };
+
+    syncFromProps();
+
+    async function refreshFromApi() {
+      if (!canUseV2Api) {
+        return;
+      }
+
+      try {
+        const fields = [
+          'aoc_webhook_url',
+          'aoc_events_webhook_url',
+          'sc_webhook_url',
+          'sc_events_webhook_url',
+          'ror_webhook_url',
+          'ror_events_webhook_url',
+          'wowforever_webhook_url',
+          'wowforever_events_webhook_url',
+          'aoc_announcement_role_id',
+          'aoc_events_role_id',
+          'sc_announcement_role_id',
+          'sc_events_role_id',
+          'ror_announcement_role_id',
+          'ror_events_role_id',
+          'wowforever_announcement_role_id',
+          'wowforever_events_role_id',
+        ].join(',');
+
+        const response = await fetch(
+          `/api/group/settings?group_id=${encodeURIComponent(groupId)}&view=group_fields&fields=${encodeURIComponent(fields)}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          }
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { fields?: Record<string, unknown> };
+        const apiFields = payload.fields || {};
+
+        if (!isMounted) {
+          return;
+        }
+
+        setGameConfig({
+          aoc: {
+            webhookUrl: (apiFields.aoc_webhook_url as string | null) || '',
+            eventsWebhookUrl: (apiFields.aoc_events_webhook_url as string | null) || '',
+            announcementRoleId: (apiFields.aoc_announcement_role_id as string | null) || '',
+            eventsRoleId: (apiFields.aoc_events_role_id as string | null) || '',
+          },
+          sc: {
+            webhookUrl: (apiFields.sc_webhook_url as string | null) || '',
+            eventsWebhookUrl: (apiFields.sc_events_webhook_url as string | null) || '',
+            announcementRoleId: (apiFields.sc_announcement_role_id as string | null) || '',
+            eventsRoleId: (apiFields.sc_events_role_id as string | null) || '',
+          },
+          ror: {
+            webhookUrl: (apiFields.ror_webhook_url as string | null) || '',
+            eventsWebhookUrl: (apiFields.ror_events_webhook_url as string | null) || '',
+            announcementRoleId: (apiFields.ror_announcement_role_id as string | null) || '',
+            eventsRoleId: (apiFields.ror_events_role_id as string | null) || '',
+          },
+          wowforever: {
+            webhookUrl: (apiFields.wowforever_webhook_url as string | null) || '',
+            eventsWebhookUrl: (apiFields.wowforever_events_webhook_url as string | null) || '',
+            announcementRoleId: (apiFields.wowforever_announcement_role_id as string | null) || '',
+            eventsRoleId: (apiFields.wowforever_events_role_id as string | null) || '',
+          },
+          cc: {
+            webhookUrl: '',
+            eventsWebhookUrl: '',
+            announcementRoleId: '',
+            eventsRoleId: '',
+          },
+        });
+      } catch (refreshError) {
+        console.error('[ClanSettings] Failed to refresh settings from API:', refreshError);
+      }
+    }
+
+    void refreshFromApi();
+
+    const timerId = setTimeout(() => {
+      syncFromProps();
+    }, 0);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timerId);
+    };
   }, [
+    canUseV2Api,
+    groupId,
     currentAocWebhookUrl,
     currentAocEventsWebhookUrl,
     currentScWebhookUrl,
     currentScEventsWebhookUrl,
     currentRorWebhookUrl,
     currentRorEventsWebhookUrl,
+    currentWowForeverWebhookUrl,
+    currentWowForeverEventsWebhookUrl,
     aocAnnouncementRoleId,
     aocEventsRoleId,
     scAnnouncementRoleId,
     scEventsRoleId,
     rorAnnouncementRoleId,
     rorEventsRoleId,
+    wowForeverAnnouncementRoleId,
+    wowForeverEventsRoleId,
   ]);
 
   const normalizeGameId = (id: string): GameId => {
@@ -165,13 +296,33 @@ export function ClanSettings({
       updateData[columns.announcementRoleId] = currentConfig.announcementRoleId.trim() || null;
       updateData[columns.eventsRoleId] = currentConfig.eventsRoleId.trim() || null;
 
-      const { error: updateError } = await supabase
-        .from('groups')
-        .update(updateData)
-        .eq('id', groupId)
-        .select();
+      if (canUseV2Api) {
+        const response = await fetch('/api/group/settings', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'update_group_fields',
+            group_id: groupId,
+            changes: updateData,
+          }),
+        });
 
-      if (updateError) throw updateError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to save settings (${response.status})`);
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('groups')
+          .update(updateData)
+          .eq('id', groupId)
+          .select();
+
+        if (updateError) throw updateError;
+      }
 
       setSaved(true);
       onUpdate?.();
@@ -223,6 +374,7 @@ export function ClanSettings({
       aoc: 'Ashes of Creation',
       sc: 'Star Citizen',
       ror: 'Return of Reckoning',
+      wowforever: 'WoW Forever',
       cc: 'Crowfall',
     };
     return names[currentGameId] || gameSlug;
@@ -400,4 +552,3 @@ export function ClanSettings({
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Sword, Star, Ship, Truck, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Sword, Star, RefreshCw } from 'lucide-react';
 import { Race, Archetype } from '@/lib/types';
 import { 
   RACES, 
@@ -16,11 +16,27 @@ import {
 import { ROR_FACTIONS, ROR_CLASSES, ROR_ROLE_CONFIG, getClassesByFaction, RORRole } from '@/games/returnofreckooning/config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getGameConfig } from '@/config';
-import ShipSelector from '@/components/game-specific/ShipSelector';
-import { SUBSCRIBER_TIERS, SUBSCRIBER_COLORS, getCurrentMonthKey, getSubscriberShips } from '@/games/starcitizen/config/subscriber-ships';
+import { SUBSCRIBER_TIERS, SUBSCRIBER_COLORS, getCurrentMonthKey } from '@/games/starcitizen/config/subscriber-ships';
 import { syncSubscriberShips } from '@/lib/subscriberShips';
 import { supabase } from '@/lib/supabase';
+import { getClientAuthStack } from '@/lib/authStack';
 import { CenturionSVG, ImperatorSVG } from '@/components/game-specific/SubscriberIcons';
+import { Clan } from '@/lib/types';
+import { getConfiguredGameRanks, isGameRankEnabled } from '@/lib/gameRankSettings';
+import {
+  getWowForeverClass,
+  getWowForeverClassesForRace,
+  getWowForeverRaceFaction,
+  getWowForeverFaction,
+  isValidWowForeverSelection,
+  WOW_FOREVER_CLASSES,
+  WOW_FOREVER_PROFESSIONS,
+  WOW_FOREVER_PROFESSION_RANKS,
+  isWowForeverProfessionRank,
+  type WowForeverProfessionRank,
+  WOW_FOREVER_RACES,
+} from '@/games/wowforever/config';
+import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 
 export interface CharacterFormData {
   name: string;
@@ -33,6 +49,15 @@ export interface CharacterFormData {
   rank?: string | null;
   ror_faction?: string | null;
   ror_class?: string | null;
+  wow_race?: string | null;
+  wow_faction?: 'Alliance' | 'Horde' | null;
+  wow_class?: string | null;
+  wow_main_spec?: string | null;
+  wow_secondary_spec?: string | null;
+  wow_profession_1?: string | null;
+  wow_profession_2?: string | null;
+  wow_profession_1_rank?: WowForeverProfessionRank | null;
+  wow_profession_2_rank?: WowForeverProfessionRank | null;
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -55,6 +80,7 @@ interface CharacterFormProps {
   isEditing?: boolean;
   gameSlug?: string;
   characterId?: string; // Character ID when editing (for re-sync ships)
+  group?: Clan | null;
 }
 
 export function CharacterForm({ 
@@ -63,7 +89,8 @@ export function CharacterForm({
   onCancel,
   isEditing = false,
   gameSlug = 'aoc',
-  characterId
+  characterId,
+  group = null,
 }: CharacterFormProps) {
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -76,6 +103,15 @@ export function CharacterForm({
     rank: initialData?.rank || null,
     ror_faction: (initialData as any)?.ror_faction || null,
     ror_class: (initialData as any)?.ror_class || null,
+    wow_race: initialData?.wow_race || null,
+    wow_faction: getWowForeverFaction(initialData?.wow_race || '', initialData?.wow_class || '', initialData?.wow_faction),
+    wow_class: initialData?.wow_class || null,
+    wow_main_spec: initialData?.wow_main_spec || null,
+    wow_secondary_spec: initialData?.wow_secondary_spec || null,
+    wow_profession_1: initialData?.wow_profession_1 || null,
+    wow_profession_2: initialData?.wow_profession_2 || null,
+    wow_profession_1_rank: initialData?.wow_profession_1_rank || null,
+    wow_profession_2_rank: initialData?.wow_profession_2_rank || null,
     subscriber_tier: (initialData as any)?.subscriber_tier || null,
     subscriber_since: (initialData as any)?.subscriber_since || null,
     subscriber_ships_month: (initialData as any)?.subscriber_ships_month || null,
@@ -84,18 +120,19 @@ export function CharacterForm({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showShipsSection, setShowShipsSection] = useState(false);
-  const [showVehiclesSection, setShowVehiclesSection] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const { t } = useLanguage();
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
 
   const isAoC = gameSlug === 'aoc';
   const isStarCitizen = gameSlug === 'starcitizen';
   const isRoR = gameSlug === 'ror';
+  const isWowForever = gameSlug === 'wowforever';
   const gameConfig = getGameConfig(gameSlug);
   const gameRoles = (gameConfig as any)?.roles || [];
-  const gameRanks = (gameConfig as any)?.ranks || [];
+  const gameRanks = getConfiguredGameRanks(group, gameSlug);
+  const ranksEnabled = isGameRankEnabled(group, gameSlug);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +149,32 @@ export function CharacterForm({
     if (isRoR && (!formData.ror_faction || !formData.ror_class)) {
       setError('Faction and Class are required for Return of Reckoning');
       return;
+    }
+
+    if (isWowForever) {
+      if (!formData.wow_race || !formData.wow_class || !formData.wow_main_spec) {
+        setError(t('wowForever.requiredFieldsError'));
+        return;
+      }
+
+      if (!isValidWowForeverSelection({
+        race: formData.wow_race,
+        faction: formData.wow_faction,
+        classId: formData.wow_class,
+        mainSpec: formData.wow_main_spec,
+        secondarySpec: formData.wow_secondary_spec,
+        profession1: formData.wow_profession_1,
+        profession2: formData.wow_profession_2,
+        profession1Rank: formData.wow_profession_1_rank,
+        profession2Rank: formData.wow_profession_2_rank,
+      })) {
+        setError(t('wowForever.invalidCombinationError'));
+        return;
+      }
+      if (formData.wow_race === 'Skyborne' && !formData.wow_faction) {
+        setError(t('professionOverview.factionRequired'));
+        return;
+      }
     }
     
     setIsSubmitting(true);
@@ -134,11 +197,40 @@ export function CharacterForm({
     setError(null);
     
     try {
-      const result = await syncSubscriberShips(
-        supabase,
-        characterId,
-        formData.subscriber_tier,
-      );
+      let result: { success: boolean; error?: string } = { success: false };
+
+      if (canUseV2Api && group?.id) {
+        const response = await fetch('/api/group/members', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'sync_subscriber_tier',
+            group_id: group.id,
+            character_id: characterId,
+            old_tier: initialData?.subscriber_tier ?? null,
+            new_tier: formData.subscriber_tier,
+            force: true,
+          }),
+        });
+
+        if (response.ok) {
+          result = { success: true };
+        } else {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          result = { success: false, error: payload.details || payload.error || `Failed to sync ships (${response.status})` };
+        }
+      }
+
+      if (!result.success) {
+        result = await syncSubscriberShips(
+          supabase,
+          characterId,
+          formData.subscriber_tier,
+        );
+      }
       
       if (result.success) {
         const currentMonth = getCurrentMonthKey();
@@ -405,6 +497,224 @@ export function CharacterForm({
             </>
           )}
 
+          {isWowForever && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="wow-race" className="block text-sm font-medium text-slate-300 mb-2">
+                  {t('wowForever.race')} *
+                </label>
+                <select
+                  id="wow-race"
+                  value={formData.wow_race || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    wow_race: e.target.value || null,
+                    wow_faction: null,
+                    wow_class: null,
+                    wow_main_spec: null,
+                    wow_secondary_spec: null,
+                  })}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">{t('wowForever.selectRace')}</option>
+                  {WOW_FOREVER_RACES.map((race) => (
+                    <option key={race} value={race}>{race}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="wow-class" className="block text-sm font-medium text-slate-300 mb-2">
+                  {t('wowForever.class')} *
+                </label>
+                <select
+                  id="wow-class"
+                  value={formData.wow_class || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    wow_class: e.target.value || null,
+                    wow_faction: getWowForeverFaction(formData.wow_race || '', e.target.value, formData.wow_faction),
+                    wow_main_spec: null,
+                    wow_secondary_spec: null,
+                  })}
+                  disabled={!formData.wow_race}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                >
+                  <option value="">{t('wowForever.selectClass')}</option>
+                  {(formData.wow_race
+                    ? getWowForeverClassesForRace(formData.wow_race)
+                    : WOW_FOREVER_CLASSES
+                  ).map((wowClass) => {
+                    const faction = formData.wow_race
+                      ? getWowForeverRaceFaction(formData.wow_race, wowClass.id)
+                      : null;
+                    return (
+                      <option key={wowClass.id} value={wowClass.id}>
+                        {wowClass.name}{faction ? ` (${faction})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {(() => {
+                const wowClass = getWowForeverClass(formData.wow_class || '');
+                if (!wowClass) return null;
+
+                const specs = wowClass.specs as readonly string[];
+                const faction = formData.wow_race
+                  ? getWowForeverFaction(formData.wow_race, wowClass.id, formData.wow_faction)
+                  : null;
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <WowClassIcon classId={wowClass.id} />
+                      <span className="text-sm text-slate-300">{wowClass.name}</span>
+                      {faction && <><WowFactionIcon faction={faction} /><span className="text-sm text-slate-300">{faction}</span></>}
+                    </div>
+                    {formData.wow_race === 'Skyborne' && !getWowForeverRaceFaction(formData.wow_race, wowClass.id) && (
+                      <div>
+                        <label htmlFor="wow-faction" className="mb-2 block text-sm font-medium text-slate-300">
+                          {t('professionOverview.faction')} *
+                        </label>
+                        <select id="wow-faction" value={formData.wow_faction || ''}
+                          onChange={event => setFormData({
+                            ...formData,
+                            wow_faction: event.target.value === 'Alliance' || event.target.value === 'Horde' ? event.target.value : null,
+                          })}
+                          className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                          <option value="">{t('professionOverview.selectFaction')}</option>
+                          <option value="Alliance">Alliance</option>
+                          <option value="Horde">Horde</option>
+                        </select>
+                      </div>
+                    )}
+                    {formData.wow_race && getWowForeverRaceFaction(formData.wow_race, wowClass.id) && (
+                      <p className="text-sm text-slate-400">
+                        {t('wowForever.factionRestriction', { faction: faction || '' })}
+                      </p>
+                    )}
+                    <div>
+                      <label htmlFor="wow-main-spec" className="block text-sm font-medium text-slate-300 mb-2">
+                        {t('wowForever.mainSpec')} *
+                      </label>
+                      <select
+                        id="wow-main-spec"
+                        value={formData.wow_main_spec || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          wow_main_spec: e.target.value || null,
+                          wow_secondary_spec: e.target.value === formData.wow_secondary_spec
+                            ? null
+                            : formData.wow_secondary_spec,
+                        })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">{t('wowForever.selectSpec')}</option>
+                        {specs.map((spec) => <option key={spec} value={spec}>{spec}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="wow-secondary-spec" className="block text-sm font-medium text-slate-300 mb-2">
+                        {t('wowForever.secondarySpec')}
+                      </label>
+                      <select
+                        id="wow-secondary-spec"
+                        value={formData.wow_secondary_spec || ''}
+                        onChange={(e) => setFormData({ ...formData, wow_secondary_spec: e.target.value || null })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">{t('wowForever.selectSpec')}</option>
+                        {specs
+                          .filter((spec) => spec !== formData.wow_main_spec)
+                          .map((spec) => <option key={spec} value={spec}>{spec}</option>)}
+                      </select>
+                    </div>
+                  </>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="wow-profession-1" className="block text-sm font-medium text-slate-300 mb-2">
+                    {t('wowForever.firstProfession')}
+                  </label>
+                  <select
+                    id="wow-profession-1"
+                    value={formData.wow_profession_1 || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      wow_profession_1: e.target.value || null,
+                      wow_profession_1_rank: e.target.value === formData.wow_profession_1 ? formData.wow_profession_1_rank : null,
+                      wow_profession_2_rank: e.target.value === formData.wow_profession_2 ? null : formData.wow_profession_2_rank,
+                      wow_profession_2: e.target.value === formData.wow_profession_2
+                        ? null
+                        : formData.wow_profession_2,
+                    })}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">{t('wowForever.selectProfession')}</option>
+                    {WOW_FOREVER_PROFESSIONS.map((profession) => (
+                      <option key={profession} value={profession}>{profession}</option>
+                    ))}
+                  </select>
+                  {formData.wow_profession_1 && (
+                    <div className="mt-3">
+                      <label htmlFor="wow-profession-1-rank" className="mb-2 block text-sm font-medium text-slate-300">
+                        {t('wowForever.firstProfessionRank')}
+                      </label>
+                      <select id="wow-profession-1-rank" value={formData.wow_profession_1_rank || ''}
+                        onChange={event => setFormData({ ...formData, wow_profession_1_rank:
+                          isWowForeverProfessionRank(event.target.value) ? event.target.value : null })}
+                        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                        <option value="">{t('wowForever.rankNotRecorded')}</option>
+                        {WOW_FOREVER_PROFESSION_RANKS.map(rank => (
+                          <option key={rank} value={rank}>{t(`wowForever.professionRanks.${rank}`)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="wow-profession-2" className="block text-sm font-medium text-slate-300 mb-2">
+                    {t('wowForever.secondProfession')}
+                  </label>
+                  <select
+                    id="wow-profession-2"
+                    value={formData.wow_profession_2 || ''}
+                    onChange={(e) => setFormData({ ...formData, wow_profession_2: e.target.value || null,
+                      wow_profession_2_rank: e.target.value === formData.wow_profession_2 ? formData.wow_profession_2_rank : null })}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="">{t('wowForever.selectProfession')}</option>
+                    {WOW_FOREVER_PROFESSIONS
+                      .filter((profession) => profession !== formData.wow_profession_1)
+                      .map((profession) => (
+                        <option key={profession} value={profession}>{profession}</option>
+                      ))}
+                  </select>
+                  {formData.wow_profession_2 && (
+                    <div className="mt-3">
+                      <label htmlFor="wow-profession-2-rank" className="mb-2 block text-sm font-medium text-slate-300">
+                        {t('wowForever.secondProfessionRank')}
+                      </label>
+                      <select id="wow-profession-2-rank" value={formData.wow_profession_2_rank || ''}
+                        onChange={event => setFormData({ ...formData, wow_profession_2_rank:
+                          isWowForeverProfessionRank(event.target.value) ? event.target.value : null })}
+                        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                        <option value="">{t('wowForever.rankNotRecorded')}</option>
+                        {WOW_FOREVER_PROFESSION_RANKS.map(rank => (
+                          <option key={rank} value={rank}>{t(`wowForever.professionRanks.${rank}`)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {gameSlug === 'starcitizen' && gameRoles.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Preferred Roles</label>
@@ -430,16 +740,19 @@ export function CharacterForm({
             </div>
           )}
 
-          {!isAoC && gameRanks.length > 0 && (
+          {!isAoC && ranksEnabled && gameRanks.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Guild Rank</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Group Rank</label>
               <select
                 value={formData.rank || ''}
                 onChange={(e) => setFormData({ ...formData, rank: e.target.value || null })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">Select a rank...</option>
-                {gameRanks.map((rank: any) => (
+                {gameRanks
+                  .slice()
+                  .sort((a: any, b: any) => (b.hierarchy || 0) - (a.hierarchy || 0))
+                  .map((rank: any) => (
                   <option key={rank.id} value={rank.id}>
                     {rank.name}
                   </option>
@@ -608,4 +921,3 @@ export function CharacterForm({
     </div>
   );
 }
-

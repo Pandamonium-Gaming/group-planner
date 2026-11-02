@@ -7,6 +7,7 @@ import { Globe, UserPlus, Save, Loader2, Check, ExternalLink, CheckCircle, XCirc
 import { supabase } from '@/lib/supabase';
 import { RecruitmentApplication } from '@/lib/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getClientAuthStack } from '@/lib/authStack';
 
 interface RecruitmentSettingsProps {
   groupId: string;
@@ -25,9 +26,9 @@ export function RecruitmentSettings({ groupId, groupSlug }: RecruitmentSettingsP
   const [applications, setApplications] = useState<RecruitmentApplication[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [localLoading, setLocalLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const canManageRecruitment = hasPermission('recruitment_manage');
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
 
   // Fetch current settings and applications
   useEffect(() => {
@@ -37,41 +38,80 @@ export function RecruitmentSettings({ groupId, groupSlug }: RecruitmentSettingsP
       if (!isMounted) return;
       setError(null);
       try {
-        // Fetch clan settings
-        const { data: clanData, error: clanError } = await supabase
-          .from('groups')
-          .select('is_public, recruitment_open, recruitment_message, public_description, approval_required, default_role')
-          .eq('id', groupId)
-          .single();
-        if (!isMounted) return;
-        if (clanError) {
-          console.error('[RecruitmentSettings] Error fetching clan:', clanError);
-        }
+        if (canUseV2Api) {
+          const response = await fetch(
+            `/api/group/settings?group_id=${encodeURIComponent(groupId)}&view=recruitment_overview`,
+            {
+              method: 'GET',
+              credentials: 'include',
+              cache: 'no-store',
+            }
+          );
 
-        if (clanData) {
-          setIsPublic(clanData.is_public || false);
-          setRecruitmentOpen(clanData.recruitment_open || false);
-          setApprovalRequired(clanData.approval_required ?? true);
-          setDefaultRole(clanData.default_role || 'trial');
-          setRecruitmentMessage(clanData.recruitment_message || '');
-          setPublicDescription(clanData.public_description || '');
-        }
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+            throw new Error(payload.details || payload.error || `Failed to load recruitment settings (${response.status})`);
+          }
 
-        // Fetch applications
-        const { data: appsData, error: appsError } = await supabase
-          .from('recruitment_applications')
-          .select('*')
-          .eq('group_id', groupId)
-          .order('created_at', { ascending: false });
+          const payload = (await response.json()) as {
+            settings?: {
+              is_public?: boolean;
+              recruitment_open?: boolean;
+              approval_required?: boolean;
+              default_role?: 'trial' | 'member';
+              recruitment_message?: string | null;
+              public_description?: string | null;
+            } | null;
+            applications?: RecruitmentApplication[];
+          };
 
-        if (!isMounted) return;
+          if (!isMounted) return;
 
-        if (appsError) {
-          console.error('[RecruitmentSettings] Error fetching applications:', appsError);
-        }
+          if (payload.settings) {
+            setIsPublic(payload.settings.is_public || false);
+            setRecruitmentOpen(payload.settings.recruitment_open || false);
+            setApprovalRequired(payload.settings.approval_required ?? true);
+            setDefaultRole(payload.settings.default_role || 'trial');
+            setRecruitmentMessage(payload.settings.recruitment_message || '');
+            setPublicDescription(payload.settings.public_description || '');
+          }
 
-        if (appsData) {
-          setApplications(appsData);
+          setApplications(payload.applications || []);
+        } else {
+          const { data: clanData, error: clanError } = await supabase
+            .from('groups')
+            .select('is_public, recruitment_open, recruitment_message, public_description, approval_required, default_role')
+            .eq('id', groupId)
+            .single();
+          if (!isMounted) return;
+          if (clanError) {
+            console.error('[RecruitmentSettings] Error fetching clan:', clanError);
+          }
+
+          if (clanData) {
+            setIsPublic(clanData.is_public || false);
+            setRecruitmentOpen(clanData.recruitment_open || false);
+            setApprovalRequired(clanData.approval_required ?? true);
+            setDefaultRole(clanData.default_role || 'trial');
+            setRecruitmentMessage(clanData.recruitment_message || '');
+            setPublicDescription(clanData.public_description || '');
+          }
+
+          const { data: appsData, error: appsError } = await supabase
+            .from('recruitment_applications')
+            .select('*')
+            .eq('group_id', groupId)
+            .order('created_at', { ascending: false });
+
+          if (!isMounted) return;
+
+          if (appsError) {
+            console.error('[RecruitmentSettings] Error fetching applications:', appsError);
+          }
+
+          if (appsData) {
+            setApplications(appsData);
+          }
         }
       } catch (err) {
         console.error('[RecruitmentSettings] Unexpected error:', err);
@@ -79,22 +119,25 @@ export function RecruitmentSettings({ groupId, groupSlug }: RecruitmentSettingsP
           setError(t('recruitment.loadError') || 'Failed to load recruitment settings');
         }
       } finally {
-        if (isMounted) {
-          setLocalLoading(false);
-        }
+        // no-op
       }
     }
 
     if (groupId) {
-      fetchData();
-    } else {
-      setLocalLoading(false);
+      const timerId = setTimeout(() => {
+        void fetchData();
+      }, 0);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timerId);
+      };
     }
 
     return () => {
       isMounted = false;
     };
-  }, [groupId]);
+  }, [groupId, canUseV2Api, t]);
 
   const handleSave = async () => {
     if (!canManageRecruitment) {
@@ -115,17 +158,41 @@ export function RecruitmentSettings({ groupId, groupSlug }: RecruitmentSettingsP
         public_description: publicDescription.trim() || null,
       };
 
-      const { error: updateError } = await supabase
-        .from('groups')
-        .update(updateData)
-        .eq('id', groupId)
-        .select();
+      if (canUseV2Api) {
+        const response = await fetch('/api/group/settings', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'update_group_fields',
+            group_id: groupId,
+            changes: updateData,
+          }),
+        });
 
-      if (updateError) {
-        console.error('[RecruitmentSettings] Save error:', updateError);
-        setError(updateError.message);
-        return;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          const message = payload.details || payload.error || `Failed to save settings (${response.status})`;
+          console.error('[RecruitmentSettings] Save error:', message);
+          setError(message);
+          return;
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('groups')
+          .update(updateData)
+          .eq('id', groupId)
+          .select();
+
+        if (updateError) {
+          console.error('[RecruitmentSettings] Save error:', updateError);
+          setError(updateError.message);
+          return;
+        }
       }
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -141,16 +208,37 @@ export function RecruitmentSettings({ groupId, groupSlug }: RecruitmentSettingsP
       return;
     }
     try {
-      const { error } = await supabase
-        .from('recruitment_applications')
-        .update({
-          status: action,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', appId)
-        .select();
+      if (canUseV2Api) {
+        const response = await fetch('/api/group/settings', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'update_recruitment_application',
+            group_id: groupId,
+            application_id: appId,
+            status: action,
+          }),
+        });
 
-      if (error) throw error;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to update application (${response.status})`);
+        }
+      } else {
+        const { error } = await supabase
+          .from('recruitment_applications')
+          .update({
+            status: action,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq('id', appId)
+          .select();
+
+        if (error) throw error;
+      }
 
       setApplications(prev => 
         prev.map(app => 

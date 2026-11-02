@@ -8,21 +8,21 @@
     "checkPoint": "pre-commit",
     
     "Windows": {
-      "allowed": ["powershell", "pwsh", "cmd", "npm", "npx", "node", "git"],
+      "allowed": ["powershell", "pwsh", "cmd", "yarn", "node", "git"],
       "blocked": ["head", "grep", "tail", "cat", "sed", "awk", "ls", "rm", "cp", "mv"],
       "required": ["Select-Object", "Select-String", "Get-ChildItem", "Where-Object", "Get-Content", "Set-Content", "Test-Path"],
       "pattern": ".*\\|(\\s+head|\\s+grep|\\s+tail|\\s+sed|\\s+awk|@\\s+ls|@\\s+rm)"
     },
     
     "Linux": {
-      "allowed": ["bash", "sh", "npm", "npx", "node", "git"],
+      "allowed": ["bash", "sh", "yarn", "node", "git"],
       "blocked": [],
       "required": ["POSIX standard"],
       "pattern": null
     },
     
     "macOS": {
-      "allowed": ["bash", "zsh", "npm", "npx", "node", "git"],
+      "allowed": ["bash", "zsh", "yarn", "node", "git"],
       "blocked": [],
       "required": ["POSIX standard"],
       "pattern": null
@@ -57,12 +57,12 @@
     "translations": {
       "requiresSync": true,
       "files": ["public/locales/en-GB.json", "public/locales/es.json", "public/locales/nl.json"],
-      "tool": "npm run check:translations"
+      "tool": "yarn check:translations"
     },
     "versionBump": {
       "requiresChangelogUpdate": true,
       "requiredFormat": "SEMVER",
-      "tool": "npm run version:patch|minor|major"
+      "tool": "yarn version:patch|minor|major"
     }
   },
 
@@ -114,9 +114,9 @@
       },
       {
         "violation": "Unix command on Windows",
-        "example": "npm test | head -100",
+        "example": "yarn test | head -100",
         "windows": "Windows",
-        "fix": "npm test | Select-Object -First 100"
+        "fix": "yarn test | Select-Object -First 100"
       },
       {
         "violation": "Empty [Unreleased] in CHANGELOG.md",
@@ -126,7 +126,7 @@
       {
         "violation": "Mismatched translation keys",
         "scope": "any commit touching translations",
-        "fix": "npm run check:translations must pass"
+        "fix": "yarn check:translations must pass"
       }
     ]
   }

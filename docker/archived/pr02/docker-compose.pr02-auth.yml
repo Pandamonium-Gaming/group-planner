@@ -1,0 +1,49 @@
+name: guild-planner-pr02
+
+services:
+  authdb:
+    image: postgres:16
+    container_name: guild-planner-authdb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: guild_planner_auth
+    ports:
+      - "5433:5432"
+    volumes:
+      - pr02_authdb_data:/var/lib/postgresql/data
+      - ./auth-db-init.sql:/docker-entrypoint-initdb.d/001-auth-db-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d guild_planner_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: node:22-bookworm
+    container_name: guild-planner-app-pr02
+    working_dir: /app
+    depends_on:
+      authdb:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - pr02_node_modules:/app/node_modules
+    env_file:
+      - .env.local
+    environment:
+      AUTH_STACK: v2
+      NEXT_PUBLIC_AUTH_STACK: v2
+      AUTH_SESSION_STRATEGY: database
+      AUTH_DATABASE_URL: postgresql://postgres:postgres@authdb:5432/guild_planner_auth
+      DATABASE_URL: postgresql://postgres:postgres@authdb:5432/guild_planner_auth
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    command: >
+      bash -lc "corepack enable && corepack yarn install && corepack yarn dev"
+
+volumes:
+  pr02_authdb_data:
+  pr02_node_modules:

@@ -1,0 +1,103 @@
+-- Auto-generated loaner ship matrix from RSI
+-- Generated: 2026-05-20T22:52:19.756Z
+-- Source: https://support.robertsspaceindustries.com/hc/en-us/articles/360003093114-Loaner-Ship-Matrix
+
+BEGIN;
+
+-- Clear existing loaner matrix
+DELETE FROM sc_loaner_matrix;
+
+-- Insert loaner mappings
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('600i-explorer-and-executive', 'cyclone', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('890-jump', '85x', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('arrastra', 'prospector', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('arrastra', 'mole', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('arrastra', 'arrow', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack', 'c8-pisces', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-expedition', 'c8-pisces', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-expedition', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-w', 'c8x-pisces-expedition', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-w', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('c8x', 'c8x-pisces-expedition', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('c8x', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-expedition-w', 'c8x-pisces-expedition', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('carrack-expedition-w', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('c8x', 'c8x-pisces-expedition', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('c8x', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('centurion', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-andromeda', 'p-52-merlin', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-aquila', 'p-52-merlin', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-aquila', 'ursa-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-phoenix', 'p-72-archimedes', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-phoenix', 'lynx-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-phoenix-emerald', 'p-72-archimedes', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('constellation-phoenix-emerald', 'lynx-rover', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('crucible', 'constellation-andromeda', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('csv-sm', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('cyclone', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('dragonfly', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('e1-spirit', 'a1-spirit', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('endeavor', 'starfarer', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('endeavor', 'cutlass-red', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('expanse', 'prospector', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('expanse', 'reliant-kore', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('fury', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('g12', 'lynx', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('galaxy', 'carrack', 'arena_commander', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('genesis-starliner', 'hercules-c2', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('hull-d', 'hull-c', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('hull-d', 'hercules-c2', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('hull-e', 'hull-c', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('hull-e', 'hercules-c2', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('idris-m', 'f7c-m-super-hornet', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('idris-m', 'mpuv-passenger', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('idris-p', 'f7c-m-super-hornet', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('idris-p', 'mpuv-passenger', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('javelin', 'idris-p', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('javelin', 'mpuv-cargo', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken', 'polaris', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken', 'ironclad-assault', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken', 'buccaneer', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken-privateer', 'polaris', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken-privateer', 'ironclad', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('kraken-privateer', 'buccaneer', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('liberator', 'ironclad-assault', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('liberator', 'f7c-m-super-hornet', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('legionnaire', 'vanguard-hoplite', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('lynx', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('mantis', 'aurora-ln', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('merchantman', 'hull-c', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('merchantman', 'defender', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('merchantman', 'hercules-c2', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('mole', 'prospector', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('mpuv-tractor', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('mxc', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('mule', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('nautilus', 'polaris', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('nautilus', 'avenger-titan', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('nova', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('nox', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('odyssey', 'carrack', 'arena_commander', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('odyssey', 'reliant-kore', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('orion', 'prospector', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('orion', 'mole', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('pioneer', 'caterpillar', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('pioneer', 'nomad', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('pitbull', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('pulse', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('railen', 'hercules-c2', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('railen', 'syulen', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('ranger-cv', 'cyclone', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('ranger-rc', 'cyclone-rc', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('ranger-tr', 'cyclone-tr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('redeemer', 'arrow', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('srv', 'aurora-ln', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('storm', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('stv', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('utv', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('vulcan', 'starfarer', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('x1', 'aurora-mr', 'primary', NULL);
+INSERT INTO sc_loaner_matrix (pledged_ship, loaner_ship, loaner_type, notes) VALUES ('zeus-mk-ii-mr', 'zeus-mk-ii-es', 'primary', NULL);
+
+COMMIT;

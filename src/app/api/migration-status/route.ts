@@ -8,7 +8,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key' // Needs service role for RLS bypass
 );
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   // Get applied migrations from DB
   const { data, error } = await supabase
     .from('migration_history')
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const applied = new Set((data || []).map((row: any) => row.filename));
+  const applied = new Set((data || []).map((row: { filename: string }) => row.filename));
   const unapplied = (migrationFiles as string[]).filter(f => !applied.has(f));
 
   return NextResponse.json({ unapplied });

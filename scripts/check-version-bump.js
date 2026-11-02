@@ -72,9 +72,9 @@ if (tagVersion === currentVersion) {
   console.error(`Current version: ${currentVersion}`);
   console.error(`Latest tag: ${latestTag}\n`);
   console.error('Please run one of the following commands before merging:');
-  console.error('  npm run version:patch -- --commit  (for bug fixes)');
-  console.error('  npm run version:minor -- --commit  (for new features)');
-  console.error('  npm run version:major -- --commit  (for breaking changes)\n');
+  console.error('  yarn version:patch -- --commit  (for bug fixes)');
+  console.error('  yarn version:minor -- --commit  (for new features)');
+  console.error('  yarn version:major -- --commit  (for breaking changes)\n');
   process.exit(1);
 }
 

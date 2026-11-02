@@ -12,16 +12,16 @@ Quick checklist for developers - bookmark this page!
 
 ```bash
 # Run tests in watch mode (auto-rerun on changes)
-npm run test:watch
+yarn test:watch
 ```
 
 ## Before You Commit
 
 ```bash
 # Run all checks
-npm run lint        # ✅ No style issues
-npm test            # ✅ All tests pass
-npm run build       # ✅ Build succeeds
+yarn lint        # ✅ No style issues
+yarn test            # ✅ All tests pass
+yarn build       # ✅ Build succeeds
 ```
 
 ## Quick Test Template
@@ -95,7 +95,7 @@ it('should NOT allow member to do X', () => {
 
 ```bash
 # Generate coverage report
-npm run test:coverage
+yarn test:coverage
 
 # Open in browser
 # File: coverage/lcov-report/index.html

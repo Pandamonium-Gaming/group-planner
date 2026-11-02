@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Ship, Plus, Trash2, Loader2, AlertCircle,
   Sword, Shield, Package, Wrench, Search, Rocket, Heart,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { CharacterWithProfessions } from '@/lib/types';
+import { getClientAuthStack } from '@/lib/authStack';
 import shipsData from '@/config/games/star-citizen-ships.json';
 import { getManufacturerLogo } from '@/config/games/star-citizen-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -201,6 +202,8 @@ function getOwnershipBadge(ship: CharacterShip) {
 export function FleetView({ characters, userId, canManage, groupId }: FleetViewProps) {
   const { t } = useLanguage();
   const [characterShips, setCharacterShips] = useState<Record<string, CharacterShip[]>>({});
+  const [fleetCharacters, setFleetCharacters] = useState<CharacterWithProfessions[]>(characters);
+  const [ownCharacterIds, setOwnCharacterIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
@@ -210,27 +213,70 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [shipIdToDelete, setShipIdToDelete] = useState<string | null>(null);
+  const characterIdsKey = useMemo(() => characters.map((char) => char.id).join('|'), [characters]);
 
-  const playerCharacters = characters.filter(c => c.user_id === userId);
-
-  useEffect(() => {
-    if (!showAddForm || selectedCharacter || playerCharacters.length === 0) return;
-    const mainCharacter = playerCharacters.find(c => c.is_main);
-    if (mainCharacter) {
-      setSelectedCharacter(mainCharacter.id);
-    } else if (playerCharacters.length === 1) {
-      setSelectedCharacter(playerCharacters[0].id);
-    }
-  }, [showAddForm, selectedCharacter, playerCharacters]);
-
-  useEffect(() => {
-    loadCharacterShips();
-  }, [groupId, characters]);
+  const playerCharacters = ownCharacterIds.length > 0
+    ? fleetCharacters.filter((c) => ownCharacterIds.includes(c.id))
+    : fleetCharacters.filter((c) => c.user_id === userId);
+  const hasAnyShipsInDataset = Object.values(characterShips).some((ships) => ships.length > 0);
+  const visibleCharacters = playerCharacters.length > 0
+    ? playerCharacters
+    : fleetCharacters.filter((char) => (characterShips[char.id] || []).length > 0);
+  const usingOwnershipFallback = playerCharacters.length === 0 && visibleCharacters.length > 0;
 
   const loadCharacterShips = async () => {
     setLoading(true);
     setError(null);
     try {
+      if (groupId) {
+        try {
+          let headers: HeadersInit | undefined;
+          if (getClientAuthStack() !== 'v2') {
+            const session = await supabase.auth.getSession();
+            const accessToken = session.data.session?.access_token;
+            if (!accessToken) {
+              throw new Error('Missing Supabase access token for fleet overview');
+            }
+            headers = { authorization: `Bearer ${accessToken}` };
+          }
+
+          const response = await fetch(`/api/group/ships-overview?group_id=${groupId}`, {
+            headers,
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            const overviewCharacters = (result.characters || []) as CharacterWithProfessions[];
+            const overviewShips = (result.ships || []) as CharacterShip[];
+            const overviewOwnCharacterIds = (result.ownCharacterIds || []) as string[];
+            const sourceCharacters = overviewCharacters.length > 0 ? overviewCharacters : characters;
+
+            const shipsByCharacter: Record<string, CharacterShip[]> = {};
+            sourceCharacters.forEach(char => {
+              shipsByCharacter[char.id] = [];
+            });
+
+            overviewShips.forEach(ship => {
+              if (shipsByCharacter[ship.character_id]) {
+                shipsByCharacter[ship.character_id].push(ship);
+              }
+            });
+
+            setFleetCharacters(sourceCharacters);
+            setOwnCharacterIds(overviewOwnCharacterIds);
+            setCharacterShips(shipsByCharacter);
+            setLoading(false);
+            return;
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Fleet ships overview API error:', response.status, errorData);
+          }
+        } catch (apiError) {
+          console.error('Fleet ships overview API fetch error:', apiError);
+        }
+      }
+
       const shipsByCharacter: Record<string, CharacterShip[]> = {};
       characters.forEach(char => {
         shipsByCharacter[char.id] = [];
@@ -255,6 +301,8 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
           });
         }
       }
+      setFleetCharacters(characters);
+      setOwnCharacterIds([]);
       setCharacterShips(shipsByCharacter);
     } catch (err) {
       console.error('Failed to load ships:', err);
@@ -262,6 +310,26 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      void loadCharacterShips();
+    }, 0);
+
+    return () => clearTimeout(timerId);
+  }, [groupId, characterIdsKey]);
+
+  const openAddShipForm = () => {
+    if (!selectedCharacter && playerCharacters.length > 0) {
+      const mainCharacter = playerCharacters.find(c => c.is_main);
+      if (mainCharacter) {
+        setSelectedCharacter(mainCharacter.id);
+      } else if (playerCharacters.length === 1) {
+        setSelectedCharacter(playerCharacters[0].id);
+      }
+    }
+    setShowAddForm(true);
   };
 
   const getShipData = (shipId: string): ShipData | undefined => {
@@ -278,15 +346,38 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
     setError(null);
 
     try {
-      const { error: insertError } = await supabase
-        .from('character_ships')
-        .insert({
-          character_id: selectedCharacter,
-          ship_id: selectedShip,
-          ownership_type: ownershipType,
+      if (getClientAuthStack() === 'v2') {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+
+        const response = await fetch('/api/group/ships', {
+          method: 'POST',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify({
+            group_id: groupId,
+            character_id: selectedCharacter,
+            ship_id: selectedShip,
+            ownership_type: ownershipType,
+          }),
         });
 
-      if (insertError) throw insertError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to add ship (${response.status})`);
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('character_ships')
+          .insert({
+            character_id: selectedCharacter,
+            ship_id: selectedShip,
+            ownership_type: ownershipType,
+          });
+
+        if (insertError) throw insertError;
+      }
 
       await loadCharacterShips();
       setShowAddForm(false);
@@ -310,14 +401,33 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
     setDeleteConfirmOpen(false);
     setError(null);
     try {
-      const { error: deleteError } = await supabase
-        .from('character_ships')
-        .delete()
-        .eq('id', shipIdToDelete);
+      if (getClientAuthStack() === 'v2') {
+        const response = await fetch('/api/group/ships', {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            group_id: groupId,
+            ship_record_id: shipIdToDelete,
+          }),
+        });
 
-      if (deleteError) {
-        console.error('Error deleting ship:', deleteError);
-        throw deleteError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to delete ship (${response.status})`);
+        }
+      } else {
+        const { error: deleteError } = await supabase
+          .from('character_ships')
+          .delete()
+          .eq('id', shipIdToDelete);
+
+        if (deleteError) {
+          console.error('Error deleting ship:', deleteError);
+          throw deleteError;
+        }
       }
 
       await loadCharacterShips();
@@ -369,14 +479,14 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
           <Ship className="w-6 h-6 text-cyan-400" />
           <div>
             <h2 className="text-2xl font-bold text-white">
-              {playerCharacters.length > 1 ? t('fleet.titlePlural') : t('fleet.title')}
+              {visibleCharacters.length > 1 ? t('fleet.titlePlural') : t('fleet.title')}
             </h2>
             <p className="text-sm text-slate-400">{t('fleet.subtitle')}</p>
           </div>
         </div>
         {canManage && !showAddForm && (
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={openAddShipForm}
             className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
           >
             <Plus className="w-5 h-5" />
@@ -390,6 +500,15 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
         <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span className="text-sm">{error}</span>
+        </div>
+      )}
+
+      {usingOwnershipFallback && (
+        <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span className="text-sm">
+            Showing ship-owning characters because personal ownership matching did not resolve for this session.
+          </span>
         </div>
       )}
 
@@ -482,12 +601,12 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
 
       {/* Ships by Character */}
       <div className="space-y-4">
-        {playerCharacters.length === 0 ? (
+        {visibleCharacters.length === 0 ? (
           <div className="text-center py-12 text-slate-400">
             <p>No characters found. Add a character to start managing your fleet.</p>
           </div>
         ) : (
-          playerCharacters.map(char => {
+          visibleCharacters.map(char => {
                 const ships = characterShips[char.id] || [];
                 return (
                   <div key={char.id} className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
@@ -720,13 +839,13 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
       </div>
 
       {/* Empty State */}
-      {Object.values(characterShips).every(ships => ships.length === 0) && !showAddForm && (
+      {!hasAnyShipsInDataset && !showAddForm && (
         <div className="text-center py-12">
           <Ship className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400">{t('fleet.noShips')}</p>
           {canManage && (
             <button
-              onClick={() => setShowAddForm(true)}
+              onClick={openAddShipForm}
               className="mt-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
             >
               Add the first ship

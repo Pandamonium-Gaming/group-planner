@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Webhook, Bell, BellOff, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { testDiscordWebhook } from '@/lib/discord';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getClientAuthStack } from '@/lib/authStack';
 
 interface GroupDiscordSettingsProps {
   groupId: string;
@@ -33,6 +34,74 @@ export function GroupDiscordSettings({
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const { t } = useLanguage();
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncFromProps = () => {
+      if (!isMounted) return;
+      setWebhookUrl(currentWebhookUrl);
+      setWelcomeWebhookUrl(currentWelcomeWebhookUrl);
+      setEventsEnabled(notifyOnEvents);
+      setAnnouncementsEnabled(notifyOnAnnouncements);
+    };
+
+    syncFromProps();
+
+    async function refreshFromApi() {
+      if (!canUseV2Api) {
+        return;
+      }
+
+      try {
+        const fields = [
+          'group_webhook_url',
+          'group_welcome_webhook_url',
+          'notify_on_events',
+          'notify_on_announcements',
+        ].join(',');
+
+        const response = await fetch(
+          `/api/group/settings?group_id=${encodeURIComponent(groupId)}&view=group_fields&fields=${encodeURIComponent(fields)}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          }
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { fields?: Record<string, unknown> };
+        const apiFields = payload.fields || {};
+
+        if (!isMounted) return;
+
+        setWebhookUrl((apiFields.group_webhook_url as string | null) || '');
+        setWelcomeWebhookUrl((apiFields.group_welcome_webhook_url as string | null) || '');
+        setEventsEnabled((apiFields.notify_on_events as boolean | undefined) ?? true);
+        setAnnouncementsEnabled((apiFields.notify_on_announcements as boolean | undefined) ?? true);
+      } catch (refreshError) {
+        console.error('[GroupDiscordSettings] Failed to refresh settings from API:', refreshError);
+      }
+    }
+
+    void refreshFromApi();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    canUseV2Api,
+    currentWebhookUrl,
+    currentWelcomeWebhookUrl,
+    groupId,
+    notifyOnAnnouncements,
+    notifyOnEvents,
+  ]);
 
   const isValidWebhookUrl = (url: string) => {
     return !url || 
@@ -47,17 +116,39 @@ export function GroupDiscordSettings({
     setTestResult(null);
 
     try {
-      const { error: updateError } = await supabase
-        .from('groups')
-        .update({
-          group_webhook_url: webhookUrl.trim() || null,
-          group_welcome_webhook_url: welcomeWebhookUrl.trim() || null,
-          notify_on_events: eventsEnabled,
-          notify_on_announcements: announcementsEnabled,
-        })
-        .eq('id', groupId);
+      const updateData = {
+        group_webhook_url: webhookUrl.trim() || null,
+        group_welcome_webhook_url: welcomeWebhookUrl.trim() || null,
+        notify_on_events: eventsEnabled,
+        notify_on_announcements: announcementsEnabled,
+      };
 
-      if (updateError) throw updateError;
+      if (canUseV2Api) {
+        const response = await fetch('/api/group/settings', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'update_group_fields',
+            group_id: groupId,
+            changes: updateData,
+          }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to save settings (${response.status})`);
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('groups')
+          .update(updateData)
+          .eq('id', groupId);
+
+        if (updateError) throw updateError;
+      }
 
       setSaved(true);
       onUpdate?.();
@@ -102,17 +193,17 @@ export function GroupDiscordSettings({
     <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Webhook className="w-5 h-5 text-purple-400" />
-        <h3 className="text-lg font-semibold text-white">Guild-Wide Discord Integration</h3>
+        <h3 className="text-lg font-semibold text-white">Group-Wide Discord Integration</h3>
       </div>
 
       <p className="text-sm text-slate-400">
-        Configure guild-wide Discord webhooks for cross-game notifications and member welcomes.
+        Configure group-wide Discord webhooks for cross-game notifications and member welcomes.
       </p>
 
       {/* Main Webhook URL */}
       <div>
         <label htmlFor="guild-webhook-url" className="block text-sm font-medium text-slate-300 mb-2">
-          {t('discord.webhookUrl')} (Guild-Wide)
+          {t('discord.webhookUrl')} (Group-Wide)
         </label>
         <input
           id="guild-webhook-url"
@@ -132,7 +223,7 @@ export function GroupDiscordSettings({
           </p>
         )}
         <p className="text-xs text-slate-500 mt-1">
-          Used for guild-wide announcements and as a fallback for game-specific notifications.
+          Used for group-wide announcements and as a fallback for game-specific notifications.
         </p>
       </div>
 

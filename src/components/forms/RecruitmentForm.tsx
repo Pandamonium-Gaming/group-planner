@@ -48,7 +48,7 @@ export function RecruitmentForm({
     };
 
     try {
-      const { error: submitError, data } = await supabase
+      const { error: submitError } = await supabase
         .from('recruitment_applications')
         .insert(applicationData)
         .select();

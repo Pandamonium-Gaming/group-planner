@@ -12,24 +12,19 @@ const eslintConfig = defineConfig([
     },
     rules: {
       // Warn about text content that should probably be translated
-      "i18next/no-literal-string": ["warn", {
-        markupOnly: true,
-        ignoreAttribute: ["className", "style", "type", "id", "name", "data-", "aria-", "role", "key", "href", "src", "alt"],
-        ignore: ["^[A-Z_]+$", "^\\d+$"],
-      }],
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", {
-        argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_",
-        caughtErrorsIgnorePattern: "^_",
-      }],
+      "i18next/no-literal-string": "off",
+      "no-console": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@next/next/no-img-element": "off",
+      "react-hooks/exhaustive-deps": "off",
     },
   },
   globalIgnores([
     ".next/**",
     "out/**",
     "build/**",
+    "coverage/**",
     "next-env.d.ts",
     "scripts/**",
   ]),

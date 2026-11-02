@@ -35,6 +35,43 @@ const mockSupabase = jest.mocked(supabase);
 describe('useActivity Hook - Phase 2', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'member_activity_summary') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              order: jest.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+        } as any;
+      }
+
+      if (table === 'inactivity_alerts') {
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                order: jest.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+            }),
+          }),
+          update: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ error: null }),
+          }),
+        } as any;
+      }
+
+      if (table === 'activity_log') {
+        return {
+          insert: jest.fn().mockResolvedValue({ error: null }),
+        } as any;
+      }
+
+      return {
+        select: jest.fn().mockReturnThis(),
+      } as any;
+    });
   });
 
   describe('Initial State', () => {
@@ -51,6 +88,12 @@ describe('useActivity Hook - Phase 2', () => {
     it('should set loading true when fetching data', async () => {
       const mockSelect = jest.fn().mockReturnValue({
         eq: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            order: jest.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+          }),
           order: jest.fn().mockReturnValue({
             data: [],
             error: null,
@@ -328,22 +371,8 @@ describe('useActivity Hook - Phase 2', () => {
         }),
       };
 
-      const mockAlertsQuery = {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      };
-
       mockSupabase.from
-        .mockReturnValueOnce(mockSummariesQuery as any)
-        .mockReturnValueOnce(mockAlertsQuery as any);
+        .mockReturnValueOnce(mockSummariesQuery as any);
 
       const { result } = renderHook(() => useActivity('group-123'));
 
@@ -404,22 +433,8 @@ describe('useActivity Hook - Phase 2', () => {
         }),
       };
 
-      const mockAlertsQuery = {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      };
-
       mockSupabase.from
-        .mockReturnValueOnce(mockSummariesQuery as any)
-        .mockReturnValueOnce(mockAlertsQuery as any);
+        .mockReturnValueOnce(mockSummariesQuery as any);
 
       const { result } = renderHook(() => useActivity('group-123'));
 

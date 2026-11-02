@@ -5,6 +5,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import { Check, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { getClientAuthStack } from '@/lib/authStack';
 import { 
   GroupRole, 
   PERMISSIONS, 
@@ -24,9 +25,10 @@ interface PermissionsSettingsProps {
 export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSettingsProps) {
   const { t } = useLanguage();
   const { session } = useAuth();
+  const authStack = getClientAuthStack();
   const [selectedRole, setSelectedRole] = useState<GroupRole>('member');
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => userRole === 'admin' && (authStack === 'v2' || !!session));
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Track custom permissions for each role
@@ -43,19 +45,28 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
 
   // Load permissions from database on mount (optional - will use defaults if not found)
   useEffect(() => {
-    if (!session || userRole !== 'admin') {
-      setIsLoading(false);
+    if (userRole !== 'admin') {
       return;
     }
 
     const loadPermissions = async () => {
       try {
+        const headers: HeadersInit | undefined = authStack === 'v2'
+          ? undefined
+          : (session
+              ? { 'Authorization': `Bearer ${session.access_token}` }
+              : undefined);
+
+        if (authStack !== 'v2' && !headers) {
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch(
           `/api/group/permissions?group_id=${groupId}`,
           {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
+            headers,
+            credentials: 'include',
           }
         );
 
@@ -108,8 +119,12 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
       }
     };
 
-    loadPermissions();
-  }, [session, groupId, userRole]);
+    const timerId = setTimeout(() => {
+      void loadPermissions();
+    }, 0);
+
+    return () => clearTimeout(timerId);
+  }, [session, groupId, userRole, authStack]);
 
   const hierarchy = getRoleHierarchy();
   const canEditRole = userRole === 'admin';
@@ -138,7 +153,7 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
   };
 
   const handleSave = async () => {
-    if (!canEditRole || !session) return;
+    if (!canEditRole) return;
     
     setIsSaving(true);
     setMessage(null);
@@ -161,12 +176,21 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
         rolePermissions,
       };
 
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authStack !== 'v2') {
+        if (!session?.access_token) {
+          throw new Error('Missing Supabase auth session');
+        }
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/group/permissions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

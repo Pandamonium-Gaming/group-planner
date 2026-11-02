@@ -320,19 +320,19 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'yarn'
       
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
       
       - name: Run linter
-        run: npm run lint
+        run: yarn lint
       
       - name: Run type check
-        run: npx tsc --noEmit
+        run: yarn tsc --noEmit
       
       - name: Run tests
-        run: npm test -- --coverage
+        run: yarn test --coverage
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
@@ -445,20 +445,20 @@ src/lib/
 touch src/lib/__tests__/myFeature.test.ts
 
 # 2. Write failing tests
-npm run test:watch
+yarn test:watch
 
 # 3. Implement feature until tests pass
 
 # 4. Check coverage
-npm run test:coverage
+yarn test:coverage
 ```
 
 **Before committing**:
 
 ```bash
-npm run lint        # Fix style issues
-npm test            # All tests must pass
-npm run build       # Build must succeed
+yarn lint        # Fix style issues
+yarn test            # All tests must pass
+yarn build       # Build must succeed
 ```
 
 ### For Reviewers

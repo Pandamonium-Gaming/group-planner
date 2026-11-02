@@ -59,7 +59,11 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
   };
 
   useEffect(() => {
-    fetchGameStatuses();
+    const timerId = setTimeout(() => {
+      void fetchGameStatuses();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [groupId]);
 
   const handleArchive = async (gameSlug: string, gameName: string) => {

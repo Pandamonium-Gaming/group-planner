@@ -83,9 +83,10 @@ describe('useAchievements Hook - Phase 2 Sprint 4', () => {
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockResolvedValue({ data: [], error: null } as any),
       } as any);
 
@@ -95,6 +96,10 @@ describe('useAchievements Hook - Phase 2 Sprint 4', () => {
       expect(result.current.definitions).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('returns null group id early without loading definitions', () => {
@@ -105,13 +110,18 @@ describe('useAchievements Hook - Phase 2 Sprint 4', () => {
       expect(result.current.definitions).toEqual([]);
     });
 
-    it('exposes all required API methods', () => {
+    it('exposes all required API methods', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockResolvedValue({ data: [], error: null } as any),
       } as any);
 
       const { result } = renderHook(() => useAchievements('group-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.getByCategory).toBe('function');
       expect(typeof result.current.updateProgress).toBe('function');

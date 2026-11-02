@@ -6,6 +6,8 @@ import { useGameLayoutContext } from '@/contexts/GameLayoutContext';
 import { CharacterEditModal } from '../CharacterEditModal';
 import { CharacterWithProfessions } from '@/lib/types';
 import { DEFAULT_FILTERS, CharacterFilters } from '@/components/characters/CharacterFilters';
+import { CharacterTransferControls } from '@/components/characters/CharacterTransferControls';
+import { useArchiveStatus } from '@/contexts/ArchiveStatusContext';
 
 export default function CharactersPage() {
   const {
@@ -17,7 +19,10 @@ export default function CharactersPage() {
     deleteMember,
     updateCharacter,
     setProfessionRank,
+    membership,
+    refreshGroupData,
   } = useGameLayoutContext();
+  const { isGameArchived } = useArchiveStatus();
   
   const [editingCharacter, setEditingCharacter] = useState<CharacterWithProfessions | null>(null);
   const [characterFilters, setCharacterFilters] = useState<CharacterFilters>(DEFAULT_FILTERS);
@@ -28,8 +33,13 @@ export default function CharactersPage() {
 
   return (
     <>
+      {membership?.role === 'admin' && <div className="mb-4">
+        <CharacterTransferControls key={`${group.id}:${gameSlug}`} groupId={group.id} gameSlug={gameSlug}
+          archived={isGameArchived} onImported={refreshGroupData} />
+      </div>}
       <CharactersTab
         groupId={group.id}
+        group={group}
         characters={characters}
         addCharacter={addCharacter}
         updateMember={updateMember}
@@ -49,6 +59,7 @@ export default function CharactersPage() {
         }}
         onCancel={() => setEditingCharacter(null)}
         gameSlug={gameSlug}
+        group={group}
       />
     </>
   );

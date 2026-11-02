@@ -91,7 +91,7 @@ describe('useLootSystem Hook - Phase 2 Sprint 9', () => {
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       supabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -105,6 +105,10 @@ describe('useLootSystem Hook - Phase 2 Sprint 9', () => {
       expect(result.current.lootHistory).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('returns null groupId early without fetching', () => {
@@ -115,7 +119,7 @@ describe('useLootSystem Hook - Phase 2 Sprint 9', () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
-    it('exposes all required API methods', () => {
+    it('exposes all required API methods', async () => {
       supabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -123,6 +127,10 @@ describe('useLootSystem Hook - Phase 2 Sprint 9', () => {
       });
 
       const { result } = renderHook(() => useLootSystem('group-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.createSystem).toBe('function');
       expect(typeof result.current.updateSystem).toBe('function');

@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { Plus, X, Check } from 'lucide-react';
-import { ROLE_CONFIG, GroupRole } from '@/lib/permissions';
-
 
 interface AddMemberFormProps {
   onAdd: (name: string) => Promise<void>;

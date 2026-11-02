@@ -18,6 +18,11 @@ interface RankManagementProps {
   currentUserId: string;
   currentUserRole: GroupRole;
   gameSlug: string;
+  ranks?: Array<{
+    id: string;
+    name: string;
+    hierarchy?: number;
+  }>;
 }
 
 export function RankManagement({
@@ -26,10 +31,12 @@ export function RankManagement({
   currentUserId,
   currentUserRole,
   gameSlug,
+  ranks,
 }: RankManagementProps) {
   const { processing, add, remove } = useProcessingSet();
   const gameConfig = getGameConfig(gameSlug);
-  const gameRanks = (gameConfig as any)?.ranks || [];
+  const defaultRanks = (gameConfig as any)?.ranks || [];
+  const gameRanks = ranks && ranks.length > 0 ? ranks : defaultRanks;
 
   const handleRankUpdate = async (memberId: string, newRank: string) => {
     if (!onUpdateRank) return;
@@ -41,9 +48,9 @@ export function RankManagement({
     }
   };
 
-  const canEditMemberRank = (memberId: string, memberRole: string | null): boolean => {
-    // Can't edit your own rank
-    if (memberId === currentUserId) return false;
+  const canEditMemberRank = (memberUserId: string, memberRole: string | null): boolean => {
+    // Only admins can edit their own rank.
+    if (memberUserId === currentUserId && currentUserRole !== 'admin') return false;
     
     // Admins can edit any rank
     if (currentUserRole === 'admin') return true;
@@ -68,6 +75,19 @@ export function RankManagement({
     return getRankHierarchy(currentUserMember?.guild_rank || null);
   };
 
+  const sortedMembers = members
+    .slice()
+    .sort((a, b) => {
+      const rankDiff = getRankHierarchy(b.guild_rank) - getRankHierarchy(a.guild_rank);
+      if (rankDiff !== 0) {
+        return rankDiff;
+      }
+
+      const nameA = (a.user?.display_name || a.user?.discord_username || '').toLowerCase();
+      const nameB = (b.user?.display_name || b.user?.discord_username || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
   return (
     <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
       <div className="space-y-4">
@@ -81,8 +101,8 @@ export function RankManagement({
         </div>
 
         <div className="space-y-2">
-          {members.map((member) => {
-            const canEdit = canEditMemberRank(member.id, member.role);
+          {sortedMembers.map((member) => {
+            const canEdit = canEditMemberRank(member.user_id, member.role);
             const isCurrentUser = member.user_id === currentUserId;
             const currentUserRankHierarchy = getCurrentUserRankHierarchy();
             const memberRankHierarchy = getRankHierarchy(member.guild_rank);
@@ -126,7 +146,10 @@ export function RankManagement({
                         className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
                       >
                         <option value="">No Rank</option>
-                        {gameRanks.map((rank: any) => {
+                        {gameRanks
+                          .slice()
+                          .sort((a: any, b: any) => (b.hierarchy || 0) - (a.hierarchy || 0))
+                          .map((rank: any) => {
                           const disabled = canEdit && currentUserRole !== 'admin' && rank.hierarchy >= currentUserRankHierarchy && rank.hierarchy > memberRankHierarchy;
                           return (
                             <option key={rank.id} value={rank.id} disabled={disabled}>

@@ -1,19 +1,19 @@
 /**
  * Star Citizen Subscriber Ship Promotions
- * 
+ *
  * These are the ships granted to subscribers each month based on their subscription tier.
  * Updated monthly from https://robertsspaceindustries.com/en/comm-link/
- * 
+ *
  * ⚠️  IMPORTANT: After updating this file, the app must be rebuilt/redeployed to reflect changes.
  * The config is cached at build time. Simply pushing changes won't update the running app.
- * 
- * For local development: `npm run dev` (Next.js watch mode auto-rebuilds)
+ *
+ * For local development: `yarn dev` (Next.js watch mode auto-rebuilds)
  * For production: Deployment/rebuild required (see CI/CD pipeline)
- * 
+ *
  * Tiers:
  * - centurion: Base subscription ($10/month) - Gold/Bronze branding
  * - imperator: Premium subscription ($20/month) - Platinum/Silver branding
- * 
+ *
  * Source: https://robertsspaceindustries.com/pledge/subscriptions
  * Comm-Link Pattern: https://robertsspaceindustries.com/comm-link/transmission/[ID]-[Month]-[Year]-Subscriber-Promotions
  */
@@ -102,6 +102,13 @@ export const SUBSCRIBER_SHIPS: Record<string, SubscriberShipMonth> = {
     flair: 'Medical themed cosmetics and vehicles',
     notes: 'Auto-fetched from RSI comm-link. Ships have 12m insurance for Centurion, 24m for Imperator.',
   },
+  '2026-05': {
+    label: 'May 2026',
+    centurion: ['dragonfly-black'],
+    imperator: ['cutlass-black', 'dragonfly-black'],
+    flair: "R6 Pro Yaeger Aviator Glasses, Behring P8-AR 'Dominion Camo' Rifle, Top Gunner's Kit",
+    notes: 'Drake Dragonfly Black for Centurion (12m insurance), Drake Cutlass Black + Drake Dragonfly Black for Imperator (24m insurance).',
+  },
 };
 
 /**
@@ -112,20 +119,20 @@ export function getSubscriberShips(
   month?: string
 ): string[] {
   if (!tier) return [];
-  
+
   const key = month || getCurrentMonthKey();
   const monthData = SUBSCRIBER_SHIPS[key];
-  
+
   console.log('[getSubscriberShips]', { tier, month, key, monthData: monthData ? monthData.label : 'NOT FOUND', available: Object.keys(SUBSCRIBER_SHIPS) });
-  
+
   if (!monthData) {
     console.log('[Subscriber Ships] No data found for month:', key, 'Available months:', Object.keys(SUBSCRIBER_SHIPS));
     return [];
   }
-  
+
   const ships = tier === 'imperator' ? monthData.imperator : monthData.centurion;
   console.log(`[Subscriber Ships] Loading ships for ${tier} (${key}):`, ships);
-  
+
   return ships;
 }
 
@@ -161,7 +168,7 @@ export function hasCurrentSubscriberShips(
   month?: string
 ): boolean {
   if (!subscriberTier) return false;
-  
+
   const shouldHave = getSubscriberShips(subscriberTier as any, month);
   return shouldHave.every(ship => characterShips.includes(ship));
 }

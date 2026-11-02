@@ -13,6 +13,7 @@ import { getManufacturerLogo } from '@/config/games/star-citizen-utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SUBSCRIBER_COLORS } from '@/games/starcitizen/config/subscriber-ships';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { getClientAuthStack } from '@/lib/authStack';
 
 interface ShipData {
   id: string;
@@ -195,15 +196,21 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
     setLoading(true);
     setError(null);
     try {
-      const session = await supabase.auth.getSession();
-      const accessToken = session.data.session?.access_token;
-
-      if (accessToken && groupId) {
+      if (groupId) {
         try {
+          let headers: HeadersInit | undefined;
+          if (getClientAuthStack() !== 'v2') {
+            const session = await supabase.auth.getSession();
+            const accessToken = session.data.session?.access_token;
+            if (!accessToken) {
+              throw new Error('Missing Supabase access token for ships overview');
+            }
+            headers = { authorization: `Bearer ${accessToken}` };
+          }
+
           const response = await fetch(`/api/group/ships-overview?group_id=${groupId}&game_slug=${gameSlug}`, {
-            headers: {
-              authorization: `Bearer ${accessToken}`,
-            },
+            headers,
+            credentials: 'include',
           });
 
           if (response.ok) {
@@ -273,7 +280,11 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
 
   // Load character ships
   useEffect(() => {
-    loadCharacterShips();
+    const timerId = setTimeout(() => {
+      void loadCharacterShips();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [groupId, characters, gameSlug]);
 
   const getShipData = (shipId: string): ShipData | undefined => {
@@ -291,14 +302,33 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
     setDeleteConfirmOpen(false);
     setError(null);
     try {
-      const { error: deleteError } = await supabase
-        .from('character_ships')
-        .delete()
-        .eq('id', shipIdToDelete);
+      if (getClientAuthStack() === 'v2') {
+        const response = await fetch('/api/group/ships', {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            group_id: groupId,
+            ship_record_id: shipIdToDelete,
+          }),
+        });
 
-      if (deleteError) {
-        console.error('Error deleting ship:', deleteError);
-        throw deleteError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to delete ship (${response.status})`);
+        }
+      } else {
+        const { error: deleteError } = await supabase
+          .from('character_ships')
+          .delete()
+          .eq('id', shipIdToDelete);
+
+        if (deleteError) {
+          console.error('Error deleting ship:', deleteError);
+          throw deleteError;
+        }
       }
 
       await loadCharacterShips();

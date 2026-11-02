@@ -32,7 +32,6 @@ function Import-EnvFile {
 Write-Host "Loading prod environment..." -ForegroundColor Cyan
 Import-EnvFile ".env.local.prod"
 
-$prodRef = [Environment]::GetEnvironmentVariable("SUPABASE_PROJECT_REF", "Process")
 $prodDbUrl = [Environment]::GetEnvironmentVariable("DATABASE_URL", "Process")
 
 $dumpDir = Split-Path $DumpFile -Parent
@@ -58,16 +57,15 @@ pg_dump $prodDbUrl --data-only | Out-File -FilePath $DumpFile -Encoding utf8
 Write-Host "Loading dev environment..." -ForegroundColor Cyan
 Import-EnvFile ".env.local.dev"
 
-$devRef = [Environment]::GetEnvironmentVariable("SUPABASE_PROJECT_REF", "Process")
 $devDbUrl = [Environment]::GetEnvironmentVariable("DATABASE_URL", "Process")
 
 if ($ResetDev) {
   Write-Host "Resetting dev database..." -ForegroundColor Yellow
   # Use supabase CLI to reset - this applies all migrations
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
-    throw "npx not found. Install Node.js"
+  if (-not (Get-Command yarn -ErrorAction SilentlyContinue)) {
+    throw "yarn not found. Install Yarn"
   }
-  npx supabase db reset --linked --yes
+  yarn supabase db reset --linked --yes
 }
 
 Write-Host "Restoring data into dev..." -ForegroundColor Cyan

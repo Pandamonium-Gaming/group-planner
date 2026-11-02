@@ -4,7 +4,7 @@
  * from group data with proper fallback handling
  */
 
-export type GameId = 'aoc' | 'sc' | 'ror' | 'cc';
+export type GameId = 'aoc' | 'sc' | 'ror' | 'wowforever' | 'cc';
 
 interface GroupDiscordConfig {
   id: string;
@@ -27,6 +27,11 @@ interface GroupDiscordConfig {
   ror_events_webhook_url?: string;
   ror_announcement_role_id?: string;
   ror_events_role_id?: string;
+
+  wowforever_webhook_url?: string;
+  wowforever_events_webhook_url?: string;
+  wowforever_announcement_role_id?: string;
+  wowforever_events_role_id?: string;
   
   cc_webhook_url?: string;
   cc_events_webhook_url?: string;
@@ -60,6 +65,12 @@ export const GAME_DISCORD_COLUMNS: Record<GameId, {
     eventsWebhookUrl: 'ror_events_webhook_url',
     announcementRoleId: 'ror_announcement_role_id',
     eventsRoleId: 'ror_events_role_id',
+  },
+  wowforever: {
+    webhookUrl: 'wowforever_webhook_url',
+    eventsWebhookUrl: 'wowforever_events_webhook_url',
+    announcementRoleId: 'wowforever_announcement_role_id',
+    eventsRoleId: 'wowforever_events_role_id',
   },
   cc: {
     webhookUrl: 'cc_webhook_url',

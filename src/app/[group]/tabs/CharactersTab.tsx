@@ -6,11 +6,12 @@ import { useGroupMembership } from '@/hooks/useGroupMembership';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { roleHasPermission } from '@/lib/permissions';
-import { CharacterWithProfessions, RankLevel } from "@/lib/types";
+import { CharacterWithProfessions, RankLevel, Clan } from "@/lib/types";
 import { CharacterData } from "@/hooks/useGroupData";
 
 interface CharactersTabProps {
   groupId: string;
+  group: Clan;
   characters: CharacterWithProfessions[];
   addCharacter: (data: CharacterData) => Promise<void>;
   updateMember: (id: string, name: string) => Promise<void>;
@@ -23,6 +24,7 @@ interface CharactersTabProps {
 
 export function CharactersTab({
   groupId,
+  group,
   characters,
   addCharacter,
   updateMember,
@@ -39,7 +41,7 @@ export function CharactersTab({
 
   return (
     <div className="space-y-4">
-      <AddCharacterButton onAdd={addCharacter} />
+      <AddCharacterButton onAdd={addCharacter} group={group} />
       {characters.length > 0 && (
         <CharacterFiltersBar
           filters={characterFilters}
@@ -77,6 +79,7 @@ export function CharactersTab({
               readOnly={!canEdit}
               mainCharacterName={mainCharacter?.name}
               altCharacters={alts}
+              group={group}
             />
           );
         })

@@ -1,15 +1,12 @@
 'use client';
 
 import { AlertCircle, Archive } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ArchivedGameBannerProps {
   gameName: string;
 }
 
 export function ArchivedGameBanner({ gameName }: ArchivedGameBannerProps) {
-  const { t } = useLanguage();
-
   return (
     <div className="bg-amber-900/30 border-t border-b border-amber-700/50 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center gap-3">

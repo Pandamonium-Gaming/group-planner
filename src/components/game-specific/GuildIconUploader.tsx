@@ -16,23 +16,18 @@ interface GuildIconUploaderProps {
 
 export function GuildIconUploader({ groupId, currentUrl, onUploaded }: GuildIconUploaderProps) {
   const [uploading, setUploading] = useState(false);
-  const [iconUrl, setIconUrl] = useState(currentUrl || '');
+  const [uploadedIconUrl, setUploadedIconUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { user, session } = useAuthContext();
-
-  // Keep iconUrl in sync with currentUrl prop
-  useEffect(() => {
-    setIconUrl(currentUrl || '');
-  }, [currentUrl]);
+  const iconUrl = uploadedIconUrl || currentUrl || '';
 
   // Clean up previewUrl when component unmounts or iconUrl changes
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewUrl]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +57,7 @@ export function GuildIconUploader({ groupId, currentUrl, onUploaded }: GuildIcon
     const { data } = supabase.storage.from(GUILD_ICON_BUCKET).getPublicUrl(filePath);
     if (data?.publicUrl) {
       await updateClanIconUrl(groupId, data.publicUrl);
-      setIconUrl(data.publicUrl);
+      setUploadedIconUrl(data.publicUrl);
       setSuccess('Icon uploaded successfully!');
       if (onUploaded) onUploaded(data.publicUrl);
       setPreviewUrl(null); // clear preview after upload

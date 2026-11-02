@@ -113,7 +113,7 @@ describe('useParties Hook - Phase 2 Sprint 10', () => {
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       (supabase.from as any).mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -125,6 +125,10 @@ describe('useParties Hook - Phase 2 Sprint 10', () => {
       expect(result.current.parties).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('returns early with null groupId', () => {
@@ -277,14 +281,24 @@ describe('useParties Hook - Phase 2 Sprint 10', () => {
         melee_dps_needed: 1,
       };
 
-      (supabase.from as any).mockReturnValue({
+      const fetchQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({ data: [], error: null }),
+      };
+
+      const createQuery = {
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: null,
           error: new Error('Create failed'),
         }),
-      });
+      };
+
+      (supabase.from as any)
+        .mockReturnValueOnce(fetchQuery)
+        .mockReturnValueOnce(createQuery);
 
       const { result } = renderHook(() => useParties('group-1', mockCharacters));
 

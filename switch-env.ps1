@@ -20,7 +20,7 @@ Write-Host ".env.local updated from $envFile"
 
 # Also switch Supabase CLI context if needed
 if ($Environment -eq 'dev') {
-    Write-Host "To reset dev database: npx supabase db reset --linked --yes" -ForegroundColor Cyan
+    Write-Host "To reset dev database: yarn supabase db reset --linked --yes" -ForegroundColor Cyan
 } else {
-    Write-Host "To reset prod database: npx supabase db reset --linked --yes" -ForegroundColor Cyan
+    Write-Host "To reset prod database: yarn supabase db reset --linked --yes" -ForegroundColor Cyan
 }

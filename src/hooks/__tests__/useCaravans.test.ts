@@ -69,7 +69,7 @@ describe('useCaravans Hook - Phase 2 Sprint 6', () => {
   });
 
   describe('Hook Initialization & Loading State', () => {
-    it('initializes with empty state and loading=true', () => {
+    it('initializes with empty state and loading=true', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -82,6 +82,10 @@ describe('useCaravans Hook - Phase 2 Sprint 6', () => {
       expect(result.current.upcomingCaravans).toEqual([]);
       expect(result.current.loading).toBe(true);
       expect(result.current.error).toBeNull();
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('returns null groupId early without fetching', () => {
@@ -92,7 +96,7 @@ describe('useCaravans Hook - Phase 2 Sprint 6', () => {
       expect(mockSupabase.from).not.toHaveBeenCalled();
     });
 
-    it('exposes all required API methods', () => {
+    it('exposes all required API methods', async () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -100,6 +104,10 @@ describe('useCaravans Hook - Phase 2 Sprint 6', () => {
       });
 
       const { result } = renderHook(() => useCaravans('group-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(typeof result.current.createCaravan).toBe('function');
       expect(typeof result.current.updateCaravan).toBe('function');

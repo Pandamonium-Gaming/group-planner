@@ -8,9 +8,10 @@ import { useLanguage, LANGUAGES } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { COMMON_TIMEZONES } from '@/lib/events';
 import { InlineFooter } from '@/components/layout/Footer';
+import { getClientAuthStack } from '@/lib/authStack';
 
 export default function SettingsPage() {
-  const { user, profile, loading } = useAuthContext();
+  const { user, profile, loading, refresh } = useAuthContext();
   const { language, setLanguage, t } = useLanguage();
   const [timezone, setTimezone] = useState('UTC');
   const [displayName, setDisplayName] = useState('');
@@ -20,10 +21,14 @@ export default function SettingsPage() {
 
   // Initialize from profile
   useEffect(() => {
-    if (profile) {
+    if (!profile) return;
+
+    const timerId = setTimeout(() => {
       setTimezone(profile.timezone || 'UTC');
       setDisplayName(profile.display_name || '');
-    }
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [profile]);
 
   // Auto-detect timezone
@@ -41,17 +46,37 @@ export default function SettingsPage() {
     setSaved(false);
 
     try {
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ 
-          timezone,
-          display_name: displayName.trim() || null
-        })
-        .eq('id', user.id)
-        .select();
+      if (getClientAuthStack() === 'v2') {
+        const response = await fetch('/api/me/profile', {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timezone,
+            display_name: displayName.trim() || null,
+          }),
+        });
 
-      if (updateError) throw updateError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to save settings (${response.status})`);
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            timezone,
+            display_name: displayName.trim() || null,
+          })
+          .eq('id', user.id)
+          .select();
+
+        if (updateError) throw updateError;
+      }
       
+      await refresh();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -125,10 +150,12 @@ export default function SettingsPage() {
 
           {/* Display Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="profile-display-name" className="block text-sm font-medium text-slate-300 mb-2">
               {t('settings.displayName')}
             </label>
             <input
+              id="profile-display-name"
+              maxLength={100}
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -268,4 +295,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

@@ -1,10 +1,61 @@
 # Multi-Game Architecture
 
+## Profession Coverage and WoW Factions
+
+The Professions tab (`/[group]/[game]/professions`) shows read-only coverage
+cards for Ashes of Creation and WoW Forever. Counts represent distinct characters
+per profession, not accounts; main/alt filters apply to cards and summary counts.
+Ashes uses its existing profession ranks, while WoW uses both profession slots.
+
+WoW profession slots have optional manually recorded trained ranks: Apprentice,
+Journeyman, Expert and Artisan. Rank names follow the
+[Forever client-backed profession guide](https://foreverguide.net/professions/).
+No numeric skill, cap or trainer eligibility is inferred. Unknown ranks remain
+unrecorded, and changing a profession clears its old rank. Apply migration
+`010_add_wow_forever_profession_ranks.sql` before deploying rank tracking.
+
+The Characters page supports multi-select WoW classes and professions. Selections
+use OR within a category and AND between categories; professions match either
+slot. Search retains main/alt account grouping, while unclaimed characters are
+never grouped together. Character and coverage views show the owner's profile
+display name, falling back to Discord username. Users can edit their override
+in account Settings; names never change identity or permissions.
+
+Group administrators can export/import a versioned JSON file for the current
+group and game, including Ashes profession data and Star Citizen ship ownership.
+Use live export -> local file -> destination import, never direct database sync.
+Import previews create/update counts and unresolved-owner warnings, requires
+typing `IMPORT`, and is applied atomically through migration
+`011_add_character_transfer.sql`. Owners match approved destination group
+members by Discord ID, never source user UUIDs or display names. Missing owners
+remain unclaimed. Only included character IDs are updated; their professions
+and ships are replaced, while unrelated characters stay untouched. Conflicting
+IDs, multiple mains and stale previews are rejected. Transfers are limited to
+1,000 characters and 2 MB. The server-only function denies public, anonymous
+and authenticated direct calls; the API separately requires group-admin access.
+Run `supabase/tests/character_transfer.sql` against development to exercise the
+transaction with synthetic data; its outer transaction always rolls back.
+
+WoW event choices are Raid, Dungeon, Gathering, Social, Levelling, World PvP,
+Battleground PvP, Arena PvP and Other. Farming choices are not offered for new
+WoW events. Historical farming events retain their type when edited without
+choosing a replacement; historical WoW Siege events display as Dungeon.
+Other games keep their existing choices. Apply
+`012_add_wow_forever_event_types.sql` before deploying; it adds enum values
+without rewriting existing events.
+
+WoW faction and class badges use original app-styled symbols, not official game
+artwork. Standard races resolve to their faction automatically. Skyborne Mage
+is Alliance-only and Shaman is Horde-only; other Skyborne classes choose their
+faction in the character form. Apply migration `009_add_wow_forever_faction.sql`
+before deploying. Legacy Skyborne characters can retain an unknown faction until
+edited; no faction is guessed for them.
+
 This document describes the architecture for supporting multiple games in the Group Planner application.
 
 ## Overview
 
-The application has been refactored to support multiple games (Ashes of Creation, Star Citizen, and more in the future) while maintaining a shared authentication, group management, and organizational structure.
+The application supports Ashes of Creation, Star Citizen, Return of Reckoning, and WoW Forever while maintaining shared authentication, group management, and organizational structure.
 
 ## Directory Structure
 
@@ -27,6 +78,11 @@ src/
 │       │   └── roles.json
 │       └── hooks/
 │           └── (game-specific hooks)
+│
+│   └── wowforever/
+│       └── config/
+│           ├── index.ts          # Races, class/spec combinations, and professions
+│           └── game.ts          # Game registry entry
 │
 ├── lib/
 │   ├── games.ts                   # Game registry and utilities
@@ -88,6 +144,8 @@ A new migration (`034_add_game_support.sql`) adds:
 * `game` column to `clans` table (tracks which game each clan belongs to)
 * `game_types` table (reference table for game definitions)
 * `user_games` table (tracks which games a user participates in)
+
+WoW Forever characters store race, class, main/secondary specialization, and two professions in game-specific member fields. Current race/class options follow the Wowhead WoW: Forever guide; the class specialization and profession lists are maintained from the supplied game data.
 
 ## User Flow
 

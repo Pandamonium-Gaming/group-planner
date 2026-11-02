@@ -102,7 +102,11 @@ export function useNodeCitizenships(groupId: string | null): UseNodeCitizenships
 
   // Initial fetch
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   // Set or update citizenship for a character

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import shipData from '@/config/games/star-citizen-ships.json';
-import { getShipRoleConfig, ownershipTypes, productionStatuses, type OwnershipTypeConfig } from '@/config/games/star-citizen-config';
+import { getShipRoleConfig, ownershipTypes, productionStatuses } from '@/config/games/star-citizen-config';
 import { Search, X, Info } from 'lucide-react';
 
 interface Ship {

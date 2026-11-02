@@ -8,16 +8,16 @@ node scripts/validate-copilot-compliance.js || { echo "❌ Copilot command viola
 echo "🔤 Checking spelling and markdown..."
 
 # Run cspell on changed markdown files
-npx cspell "**/*.md" || { echo "❌ Spelling errors detected (en-GB). Add words to cspell.json if needed."; exit 1; }
+./node_modules/.bin/cspell "**/*.md" || { echo "❌ Spelling errors detected (en-GB). Add words to cspell.json if needed."; exit 1; }
 
 # Run markdownlint on changed markdown files  
-npx markdownlint-cli2 "**/*.md" || { echo "❌ Markdown linting errors detected. Fix and retry."; exit 1; }
+./node_modules/.bin/markdownlint-cli2 "**/*.md" || { echo "❌ Markdown linting errors detected. Fix and retry."; exit 1; }
 
 echo "🌍 Checking translation sync..."
-node scripts/check-translations.js || { echo "❌ Translation files are out of sync. Run 'npm run check:translations' for details."; exit 1; }
+node scripts/check-translations.js || { echo "❌ Translation files are out of sync. Run 'yarn check:translations' for details."; exit 1; }
 
 echo "📝 Checking changelog updates..."
-node scripts/check-changelog.js || { echo "❌ Please update CHANGELOG.md with your changes. Run 'npm run check:changelog' for details."; exit 1; }
+node scripts/check-changelog.js || { echo "❌ Please update CHANGELOG.md with your changes. Run 'yarn check:changelog' for details."; exit 1; }
 
 echo "✅ All pre-commit checks passed! (Tests run in CI)"
 

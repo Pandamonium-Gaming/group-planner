@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Home, LogOut, User, Settings, Loader2 } from 'lucide-react';
 import { PublicEventsView } from '@/components/views/PublicEventsView';
 import { InlineFooter } from '@/components/layout/Footer';
@@ -21,10 +22,10 @@ export default function PublicEventsPage() {
           <Link
             href="/"
             className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer group"
-            title="Home"
+            title={t('common.home')}
           >
             <Home size={18} className="group-hover:text-indigo-400 transition-colors" />
-            <span className="text-sm font-medium hidden sm:inline">Home</span>
+            <span className="text-sm font-medium hidden sm:inline">{t('common.home')}</span>
           </Link>
           <div className="flex items-center justify-end">
             {loading ? (
@@ -36,9 +37,12 @@ export default function PublicEventsPage() {
                 <GameSwitcher />
                 <div className="flex items-center gap-2 text-slate-300">
                   {profile?.discord_avatar ? (
-                    <img
+                    <Image
                       src={profile.discord_avatar}
                       alt={displayName}
+                      width={32}
+                      height={32}
+                      unoptimized
                       className="w-8 h-8 rounded-full ring-2 ring-slate-700"
                     />
                   ) : (
@@ -49,7 +53,7 @@ export default function PublicEventsPage() {
                 <Link
                   href="/settings"
                   className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-all cursor-pointer"
-                  title="Settings"
+                  title={t('common.settings')}
                 >
                   <Settings size={18} />
                 </Link>

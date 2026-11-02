@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2026-02-13T16:26:48.287Z",
+  "lastUpdated": "2026-05-20T22:45:28.004Z",
   "source": "https://robertsspaceindustries.com/ship-matrix/index",
-  "totalShips": 235,
+  "totalShips": 242,
   "ships": [
     {
       "id": "100i",
@@ -376,7 +376,7 @@
       "productionStatus": "flight-ready",
       "description": null,
       "url": "https://robertsspaceindustries.com/pledge/ships/anvil-ballista/Anvil-Ballista-Dunestalker",
-      "image": "/media/rjxw89rs3sk5wr/store_large/Ballista_Dunestalker-Min.jpg"
+      "image": "https://media.robertsspaceindustries.com/7lh198t7qfugb/store_large.jpg"
     },
     {
       "id": "anvil-ballista-snowblind",
@@ -401,7 +401,7 @@
       "productionStatus": "flight-ready",
       "description": null,
       "url": "https://robertsspaceindustries.com/pledge/ships/anvil-ballista/Anvil-Ballista-Snowblind",
-      "image": "/media/a5nzp9tgvq2i5r/store_large/Ballista_Snowblind-Min.jpg"
+      "image": "https://media.robertsspaceindustries.com/8anej6j9umet3/store_large.jpg"
     },
     {
       "id": "apollo-medivac",
@@ -601,7 +601,7 @@
       "productionStatus": "flight-ready",
       "description": "Single-handedly load and unload the biggest haulers with the power of Argo. The ATLS power suit’s unique exo-frame helps you work quickly, easily, and safely – whatever the task.",
       "url": "https://robertsspaceindustries.com/pledge/ships/atls/ATLS",
-      "image": "https://media.robertsspaceindustries.com/4pkysfhuqskp4/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/99ljbpzzczrae/store_large.jpg"
     },
     {
       "id": "atls-geo",
@@ -629,8 +629,8 @@
       "image": "https://media.robertsspaceindustries.com/rbkutfuffvdy7/store_large.jpg"
     },
     {
-      "id": "aurora-cl",
-      "name": "Aurora CL",
+      "id": "aurora-mk-i-cl",
+      "name": "Aurora Mk I CL",
       "manufacturer": "Roberts Space Industries",
       "manufacturerCode": "RSI",
       "role": "Light Freight",
@@ -650,12 +650,12 @@
       },
       "productionStatus": "flight-ready",
       "description": "Customized for mercantile and trading excursions, the Aurora Clipper is the perfect vessel for aspiring entrepreneurs and seasoned traders alike. Thanks to its expanded cargo capacity, the Clipper ups the ante for personal merchant craft.",
-      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-CL",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-CL",
       "image": "https://media.robertsspaceindustries.com/ycbkp9msgs8lm/store_large.jpg"
     },
     {
-      "id": "aurora-es",
-      "name": "Aurora ES",
+      "id": "aurora-mk-i-es",
+      "name": "Aurora Mk I ES",
       "manufacturer": "Roberts Space Industries",
       "manufacturerCode": "RSI",
       "role": "Starter / Pathfinder",
@@ -675,12 +675,12 @@
       },
       "productionStatus": "flight-ready",
       "description": "The Aurora is the modern-day descendant of the Roberts Space Industries X-7 spacecraft which tested the very first jump engines. Utilitarian to a T, the Aurora Essential is the perfect choice for new ship owners: versatile enough to tackle a myriad of challenges, yet with a straightforward and intuitive design.",
-      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-ES",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-ES",
       "image": "https://media.robertsspaceindustries.com/e1i4i2ixe6ouo/store_large.jpg"
     },
     {
-      "id": "aurora-ln",
-      "name": "Aurora LN",
+      "id": "aurora-mk-i-ln",
+      "name": "Aurora Mk I LN",
       "manufacturer": "Roberts Space Industries",
       "manufacturerCode": "RSI",
       "role": "Light Fighter",
@@ -700,12 +700,12 @@
       },
       "productionStatus": "flight-ready",
       "description": "With a more robust shield generator and a pair of additional weapon hard points, the Legionnaire is a dedicated combat fighter, built to handle any obstacle the universe can throw at you.",
-      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-LN",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-LN",
       "image": "https://media.robertsspaceindustries.com/dh60iu47yqqpj/store_large.jpg"
     },
     {
-      "id": "aurora-lx",
-      "name": "Aurora LX",
+      "id": "aurora-mk-i-lx",
+      "name": "Aurora Mk I LX",
       "manufacturer": "Roberts Space Industries",
       "manufacturerCode": "RSI",
       "role": "Pathfinder",
@@ -725,12 +725,12 @@
       },
       "productionStatus": "flight-ready",
       "description": "Be proud of your roots with the brand-new Aurora Deluxe, built for the discerning pilot who never forgets where he or she came from. The LX features patent leather interior to guarantee comfort for those long stretches in the deep black.",
-      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-LX",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-LX",
       "image": "https://media.robertsspaceindustries.com/28jsrvn7jb54w/store_large.jpg"
     },
     {
-      "id": "aurora-mr",
-      "name": "Aurora MR",
+      "id": "aurora-mk-i-mr",
+      "name": "Aurora Mk I MR",
       "manufacturer": "Roberts Space Industries",
       "manufacturerCode": "RSI",
       "role": "Light Fighter",
@@ -750,8 +750,58 @@
       },
       "productionStatus": "flight-ready",
       "description": "Perhaps you're looking for something that offers carrying capacity but has combat capabilities too? The Aurora Marque comes with a pair of Behring-quality lasers and a high quality gun cooler system.",
-      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-MR",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-MR",
       "image": "https://media.robertsspaceindustries.com/kinuf02r7s4oq/store_large.jpg"
+    },
+    {
+      "id": "aurora-mk-i-se",
+      "name": "Aurora Mk I SE",
+      "manufacturer": "Roberts Space Industries",
+      "manufacturerCode": "RSI",
+      "role": "Light Fighter",
+      "size": "small",
+      "length": 18.5,
+      "beam": 8.2,
+      "height": 4,
+      "mass": 25017,
+      "cargo": 6,
+      "crew": {
+        "min": 1,
+        "max": 1
+      },
+      "speed": {
+        "scm": 225,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "The culmination of the Aurora Mk I’s long legacy. With the versatility of the MR, the cargo capacity of the CL, the firepower of the LN, and the luxury of the LX, the Special Edition is the ultimate farewell to this beloved starter ship staple.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/rsi-aurora/Aurora-Mk-I-SE",
+      "image": "https://media.robertsspaceindustries.com/ungxvqb17gtre/store_large.jpg"
+    },
+    {
+      "id": "aurora-mk-ii",
+      "name": "Aurora Mk II",
+      "manufacturer": "Roberts Space Industries",
+      "manufacturerCode": "RSI",
+      "role": "Light Fighter",
+      "size": "small",
+      "length": 27.5,
+      "beam": 10.5,
+      "height": 5.5,
+      "mass": 68130,
+      "cargo": 2,
+      "crew": {
+        "min": 1,
+        "max": 1
+      },
+      "speed": {
+        "scm": 225,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "The continuation of a legacy, the Aurora is reimagined for the future. A signature starter ship for those making their first voyage into the stars, the Aurora Mk II prioritizes versatility with modular components for customizable performance.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/aurora-mk-ii/Aurora-Mk-II",
+      "image": "https://media.robertsspaceindustries.com/rh3zjmon4w468/store_large.jpg"
     },
     {
       "id": "avenger-stalker",
@@ -1401,7 +1451,7 @@
       "productionStatus": "flight-ready",
       "description": "The CSV-SM is the logistical lifeblood of any hangar or outpost operation. Move essential materials freely and easily.",
       "url": "https://robertsspaceindustries.com/pledge/ships/csv/CSV-SM",
-      "image": "https://media.robertsspaceindustries.com/yrzxl9cs9zhjy/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/xeksf2azf23mm/store_large.jpg"
     },
     {
       "id": "cutlass-black",
@@ -1801,7 +1851,7 @@
       "productionStatus": "flight-ready",
       "description": "The Drake Dragonfly is the perfect snub ship for anyone looking to live on the edge. With nothing separating the pilot from the dangers of space, the Dragonfly is as much an adventure as a ship! Dual-mode conversion allows the Dragonfly to operate on the ground or in space, and a rear-facing second seat means you can even take a passenger! This exclusive Yellowjacket version is available only for the concept sale.\n",
       "url": "https://robertsspaceindustries.com/pledge/ships/drake-dragonfly/Dragonfly-Yellowjacket",
-      "image": "/media/am12jusvbx8mqr/store_large/Dragonfly-Left.jpg"
+      "image": "https://media.robertsspaceindustries.com/olbkpbmk1sb8u/store_large.jpg"
     },
     {
       "id": "e1-spirit",
@@ -1926,7 +1976,7 @@
       "productionStatus": "flight-ready",
       "description": "A space combat legend of centuries past.",
       "url": "https://robertsspaceindustries.com/pledge/ships/anvil-hornet/F7A-Hornet-Mk-I",
-      "image": "/media/xbj9vlcjp8xl3r/store_large/NewHornet_screen28.jpg"
+      "image": "https://media.robertsspaceindustries.com/xbj9vlcjp8xl3/store_large.jpg"
     },
     {
       "id": "f7a-hornet-mk-ii",
@@ -2151,7 +2201,7 @@
       "productionStatus": "flight-ready",
       "description": "Formidable fighter with enhanced scanning capabilities.",
       "url": "https://robertsspaceindustries.com/pledge/ships/anvil-hornet-mkii/F7C-R-Hornet-Tracker-Mk-II",
-      "image": "https://media.robertsspaceindustries.com/g32clhfe0als7/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/76dfngh2320kc/store_large.jpg"
     },
     {
       "id": "f7c-s-hornet-ghost-mk-i",
@@ -2201,7 +2251,7 @@
       "productionStatus": "flight-ready",
       "description": "Low-signature fighter built for scouting and ambushing unaware foes.",
       "url": "https://robertsspaceindustries.com/pledge/ships/anvil-hornet-mkii/F7C-S-Hornet-Ghost-Mk-II",
-      "image": "https://media.robertsspaceindustries.com/s9fn6t5eird8p/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/thvu42fxnagbh/store_large.jpg"
     },
     {
       "id": "f8c-lightning",
@@ -2783,7 +2833,7 @@
       "name": "Hammerhead",
       "manufacturer": "Aegis Dynamics",
       "manufacturerCode": "AEGS",
-      "role": "Heavy Gun Ship",
+      "role": "Heavy Gunship",
       "size": "large",
       "length": 115,
       "beam": 75,
@@ -2920,7 +2970,7 @@
         "max": 1
       },
       "speed": {
-        "scm": 140,
+        "scm": 185,
         "afterburner": null
       },
       "productionStatus": "flight-ready",
@@ -2933,25 +2983,25 @@
       "name": "Hull B",
       "manufacturer": "MISC",
       "manufacturerCode": "MISC",
-      "role": "Heavy Freight",
+      "role": "Medium Hauler",
       "size": "medium",
-      "length": 49,
-      "beam": 15.5,
-      "height": 17,
-      "mass": 387500,
+      "length": 46,
+      "beam": 17,
+      "height": 8,
+      "mass": 47268,
       "cargo": 512,
       "crew": {
         "min": 1,
-        "max": 1
+        "max": 2
       },
       "speed": {
-        "scm": null,
+        "scm": 145,
         "afterburner": null
       },
-      "productionStatus": "in-concept",
-      "description": "The Hull B is a more rugged option most often compared to MISC’s own Freelancer. But where the Freelancer is equipped for long range exploration and other roles, the Hull B is a pure cargo transport. Hull B are often used as corporate support ships, and it is not uncommon to spot several in different liveries during a single flight.",
+      "productionStatus": "flight-ready",
+      "description": "The latest addition to MISC’s omnipresent Hull series, designed for haulers who value reliability and refinement in their growing cargo careers. The Hull B utilizes telescopic spindles exclusive to MISC to deliver a faster, more accessible loading experience, making it a valuable extension to any dedicated hauling endeavor.",
       "url": "https://robertsspaceindustries.com/pledge/ships/hull/Hull-B",
-      "image": "https://media.robertsspaceindustries.com/5r7g9f96lvwfz/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/k65brbo8a8wtc/store_large.jpg"
     },
     {
       "id": "hull-c",
@@ -3126,57 +3176,57 @@
       "productionStatus": "flight-ready",
       "description": "Versatile starter ship and light hauler built with true Crusader quality.\n\n",
       "url": "https://robertsspaceindustries.com/pledge/ships/intrepid/Intrepid",
-      "image": "https://media.robertsspaceindustries.com/9xtm6eh8sffuy/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/3vk6dnvwcm0rk/store_large.jpg"
     },
     {
       "id": "ironclad",
       "name": "Ironclad",
       "manufacturer": "Drake Interplanetary",
       "manufacturerCode": "DRAK",
-      "role": "Armored Freight",
+      "role": "Heavy Freight",
       "size": "large",
       "length": 120,
       "beam": 52,
       "height": 20,
-      "mass": null,
+      "mass": 853688,
       "cargo": 2204,
       "crew": {
         "min": 1,
-        "max": 6
+        "max": 7
       },
       "speed": {
-        "scm": null,
+        "scm": 110,
         "afterburner": null
       },
-      "productionStatus": "in-concept",
-      "description": "Run the skies with Drake’s mighty Ironclad, an armored freighter that takes the risks involved in deep-space traversal and transport seriously.",
+      "productionStatus": "flight-ready",
+      "description": "The Ironclad gives deep-space hauling the respect it deserves, preparing you for the inherent risks. Heavy-duty durability and deadly weapons protect a vast payload of open-roof and ramp-accessible cargo.",
       "url": "https://robertsspaceindustries.com/pledge/ships/ironclad/Ironclad",
-      "image": "https://media.robertsspaceindustries.com/gtz4uouxebp3u/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/g948zfjuiznu4/store_large.jpg"
     },
     {
       "id": "ironclad-assault",
       "name": "Ironclad Assault",
       "manufacturer": "Drake Interplanetary",
       "manufacturerCode": "DRAK",
-      "role": "Combined Arms Platform",
+      "role": "Heavy Dropship",
       "size": "large",
       "length": 120,
       "beam": 52,
       "height": 20,
-      "mass": null,
+      "mass": 858592,
       "cargo": 1440,
       "crew": {
         "min": 1,
-        "max": 6
+        "max": 9
       },
       "speed": {
-        "scm": null,
+        "scm": 130,
         "afterburner": null
       },
-      "productionStatus": "in-concept",
-      "description": "The ultimate combined arms platform, the Ironclad Assault safely carries heavy vehicles and squads of infantry, with daunting auxiliary turrets providing direct support.",
+      "productionStatus": "flight-ready",
+      "description": "With space for cargo, troops and small vehicles and ships, this Heavy Dropship brings more than just immense firepower and durability to the battlefield, it brings the ultimate combined arms platform.",
       "url": "https://robertsspaceindustries.com/pledge/ships/ironclad/Ironclad-Assault",
-      "image": "https://media.robertsspaceindustries.com/b1ahi2h8tnmsa/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/llaw71tcvmgmy/store_large.jpg"
     },
     {
       "id": "javelin",
@@ -3454,6 +3504,31 @@
       "image": "https://media.robertsspaceindustries.com/l7p21pakfkth2/store_large.png"
     },
     {
+      "id": "m80",
+      "name": "M80",
+      "manufacturer": "Origin Jumpworks",
+      "manufacturerCode": "ORIG",
+      "role": "Heavy Fighter",
+      "size": "small",
+      "length": 17.3,
+      "beam": 32,
+      "height": 6.4,
+      "mass": 135649,
+      "cargo": 2,
+      "crew": {
+        "min": 1,
+        "max": 1
+      },
+      "speed": {
+        "scm": 225,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "Origin’s first ever Heavy Fighter continues a legacy of beauty and elegance combined with high performance. Retractable weapons, missiles, and high durability furnish the M80 to dominate in sustained combat - a culmination of style and overwhelming force.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/m80/M80",
+      "image": "https://media.robertsspaceindustries.com/nledgsyyzmjov/store_large.jpg"
+    },
+    {
       "id": "mantis",
       "name": "Mantis",
       "manufacturer": "Roberts Space Industries",
@@ -3701,7 +3776,7 @@
       "productionStatus": "flight-ready",
       "description": "The MPUV Tractor features dual tractor beams for effortless cargo handling alongside the sturdy, reliable design you expect from Argo. Load and unload any size freighter with ease.",
       "url": "https://robertsspaceindustries.com/pledge/ships/argo/MPUV-Tractor",
-      "image": "https://media.robertsspaceindustries.com/i9guillde6qib/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/yld5zspxuczza/store_large.jpg"
     },
     {
       "id": "mtc",
@@ -3749,7 +3824,7 @@
         "afterburner": null
       },
       "productionStatus": "flight-ready",
-      "description": "The Drake Mule is your go-to workhorse for all sort of loading and hauling jobs, a six-wheeled beast of burden that’s always determined to execute the mission at hand. Whether you need to transport cargo over the roughest terrain possible or load it onto larger vessels and cargo decks, the Mule works. Plain and simple.",
+      "description": "The Drake Mule is your go-to workhorse for all sorts of loading and hauling jobs, a six-wheeled beast of burden that’s always determined to execute the mission at hand. Whether you need to transport cargo over the roughest terrain possible or load it onto larger vessels and cargo decks, the Mule works. Plain and simple.",
       "url": "https://robertsspaceindustries.com/pledge/ships/mule/Mule",
       "image": "https://media.robertsspaceindustries.com/kl5rmiujift5l/store_large.jpg"
     },
@@ -4151,7 +4226,7 @@
       "productionStatus": "flight-ready",
       "description": "Built with exacting precision and styled with urban sophistication in mind, this compact snub isn’t just for show. Fast and responsive, it’s the ideal chaperone for larger ship or the perfect partner for a solo sprint in-atmosphere. The Archimedes Emerald features an exclusive Stellar Fortuna skin, available for a limited time only. ",
       "url": "https://robertsspaceindustries.com/pledge/ships/p72-archimedes/P-72-Archimedes-Emerald",
-      "image": "/media/o94ip9isoyjmhr/store_large/Archimedes-Sku-Image-V3.jpg"
+      "image": "https://media.robertsspaceindustries.com/mib6i79az3zcr/store_large.jpg"
     },
     {
       "id": "paladin",
@@ -4227,6 +4302,31 @@
       "description": "After their auspicious debut with the Mustang, Consolidated Outland has gone and changed the game again with the reveal of the Pioneer. This self-contained mobile construction yard is capable of creating planetary modular structures, ushering a new wave of aspiring colonists to customize their new homes on the frontier.",
       "url": "https://robertsspaceindustries.com/pledge/ships/pioneer/Pioneer",
       "image": "https://media.robertsspaceindustries.com/vtodzxlks918l/store_large.jpeg"
+    },
+    {
+      "id": "pitbull",
+      "name": "Pitbull",
+      "manufacturer": "Drake Interplanetary",
+      "manufacturerCode": "DRAK",
+      "role": "Snub Fighter",
+      "size": "snub",
+      "length": 3.9,
+      "beam": 5.9,
+      "height": 3,
+      "mass": 10310,
+      "cargo": 0,
+      "crew": {
+        "min": 1,
+        "max": 1
+      },
+      "speed": {
+        "scm": 232,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "A snub fighter built for close-range skirmishes and vicious scraps. All engines and guns, this snub fighter uses speed and maneuverability to get in close for the kill. Small, simple, and seriously lethal.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/pitbull/Pitbull",
+      "image": "https://media.robertsspaceindustries.com/9jazkmawt8ggi/store_large.jpg"
     },
     {
       "id": "polaris",
@@ -4335,8 +4435,8 @@
       "manufacturerCode": "GRIN",
       "role": "Touring",
       "size": "vehicle",
-      "length": 32.2,
-      "beam": 2.1,
+      "length": 3,
+      "beam": 2,
       "height": 1.8,
       "mass": 1500,
       "cargo": 0,
@@ -4376,7 +4476,7 @@
       "productionStatus": "flight-ready",
       "description": "The Mirai Pulse redefines the hoverbike experience with its fusion of sleek design, integrated weaponry, and advanced thrusters for unmatched maneuverability. It's the ultimate choice for those seeking a blend of precision, speed, and combat readiness in challenging environments. ",
       "url": "https://robertsspaceindustries.com/pledge/ships/mirai-pulse/Pulse",
-      "image": "https://media.robertsspaceindustries.com/slp0u937q6i57/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/undl2onw5a826/store_large.jpg"
     },
     {
       "id": "pulse-lx",
@@ -4401,7 +4501,7 @@
       "productionStatus": "flight-ready",
       "description": "Take your racing experience to the next level with the Pulse LX, the leader of high-speed thrills. Engineered to dominate, the LX strips away weight and cuts drag, thrusting you to the forefront of every race. Experience every curve with crystal-clear responsiveness, making the Pulse LX a racing revelation.",
       "url": "https://robertsspaceindustries.com/pledge/ships/mirai-pulse/Pulse-LX",
-      "image": "https://media.robertsspaceindustries.com/27dan8ye13ujv/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/4a24kqwjx1x4a/store_large.jpg"
     },
     {
       "id": "raft",
@@ -4776,7 +4876,7 @@
       "productionStatus": "flight-ready",
       "description": "One of the UEE Navy’s most powerful warbirds, the Retaliator was designed from the ground up to take down enemy capital ships. A key component of the UEEN fleet, Retaliator squadrons have served with distinction across Humanity’s most pivotal campaigns. The base version of the Retaliator is customizable with additional modules to suit combat or utility.",
       "url": "https://robertsspaceindustries.com/pledge/ships/aegis-retaliator/Retaliator",
-      "image": "https://media.robertsspaceindustries.com/gssm088jbjzlm/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/29xzv1mq4fgt7/store_large.jpg"
     },
     {
       "id": "roc",
@@ -4901,7 +5001,7 @@
       "productionStatus": "flight-ready",
       "description": "A high-speed fighter specializing in rapid barrages from its bespoke missile array. Built to destroy threats before they can react, it’s equally at home heading out on long-range missions or scrambling to protect your base of operations. ",
       "url": "https://robertsspaceindustries.com/pledge/ships/sabre/Sabre-Firebird",
-      "image": "https://media.robertsspaceindustries.com/qsdmpnbnydypj/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/jf3l706gczrz9/store_large.jpg"
     },
     {
       "id": "sabre-peregrine",
@@ -4926,7 +5026,7 @@
       "productionStatus": "flight-ready",
       "description": "The fastest Sabre model yet conceived, the Peregrine takes the infamous military-born chassis and tunes it for pure unadulterated speed.",
       "url": "https://robertsspaceindustries.com/pledge/ships/sabre/Sabre-Peregrine",
-      "image": "https://media.robertsspaceindustries.com/k891tmei1g05k/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/9hyc1w8drlprn/store_large.jpg"
     },
     {
       "id": "sabre-raven",
@@ -4951,7 +5051,7 @@
       "productionStatus": "flight-ready",
       "description": "Part of Aegis Dynamics’ Phase Two of new ship models, the Sabre was designed as a space superiority fighter for those situations where you need to leave a lighter footprint. They have raised the bar yet again with their Raven variant, maintaining all the speed and maneuverability of its Sabre forebear, but with a lower ship signature, making it a fast, stealthy infiltrator.",
       "url": "https://robertsspaceindustries.com/pledge/ships/sabre/Sabre-Raven",
-      "image": "/media/3q1dirw16ezv5r/store_large/3_4_front_raven_blue_Enlarge_Crop.jpg"
+      "image": "https://media.robertsspaceindustries.com/x1a8n7to5l1rp/store_large.jpg"
     },
     {
       "id": "salvation",
@@ -5158,7 +5258,7 @@
       "name": "Starfarer",
       "manufacturer": "MISC",
       "manufacturerCode": "MISC",
-      "role": "Heavy Refuelling",
+      "role": "Heavy Refueling",
       "size": "large",
       "length": 101,
       "beam": 46.5,
@@ -5183,7 +5283,7 @@
       "name": "Starfarer Gemini",
       "manufacturer": "MISC",
       "manufacturerCode": "MISC",
-      "role": "Heavy Refuelling",
+      "role": "Heavy Refueling",
       "size": "large",
       "length": 101,
       "beam": 46.5,
@@ -5226,7 +5326,7 @@
       "productionStatus": "flight-ready",
       "description": "Forge better, safer, and more prosperous worlds with the MISC Starlancer. Taking freelance operators and commercial enterprises deeper into the stars, the Starlancer ventures beyond the limits to supply the frontiers of Humanity.",
       "url": "https://robertsspaceindustries.com/pledge/ships/starlancer/Starlancer-MAX",
-      "image": "https://media.robertsspaceindustries.com/z6riuxmnb045b/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/c59t62rz5xud9/store_large.jpg"
     },
     {
       "id": "starlancer-tac",
@@ -5252,6 +5352,31 @@
       "description": "Built for deep-space patrol, the TAC takes the robust Starlancer chassis and outfits it for serious offense and defense. Heavy weaponry, a dedicated snub hangar, medbeds, and eight military-spec jump seats mean you’re ready for anything. ",
       "url": "https://robertsspaceindustries.com/pledge/ships/starlancer/Starlancer-TAC",
       "image": "https://media.robertsspaceindustries.com/emx6dhzo9kbox/store_large.jpg"
+    },
+    {
+      "id": "starlite",
+      "name": "Starlite",
+      "manufacturer": "MISC",
+      "manufacturerCode": "MISC",
+      "role": "Light Refueler",
+      "size": "small",
+      "length": 32,
+      "beam": 19,
+      "height": 9,
+      "mass": 370190,
+      "cargo": 0,
+      "crew": {
+        "min": 1,
+        "max": 1
+      },
+      "speed": {
+        "scm": 150,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "Built on MISC’s legacy of reliability and purpose-driven design, the Starlite offers a helping hand to all pilots who need to reach further, stay longer, and make the return trip home. Singlehandedly refuel mid-air to provide a much-needed boost toward adventure.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/starlite/Starlite",
+      "image": "https://media.robertsspaceindustries.com/6cdv5u7nvigrn/store_large.jpg"
     },
     {
       "id": "stinger",
@@ -5476,7 +5601,32 @@
       "productionStatus": "flight-ready",
       "description": "Durable, heavily armored rescue ship that can take on any battlefield or environ.",
       "url": "https://robertsspaceindustries.com/pledge/ships/terrapin/Terrapin-Medic",
-      "image": "https://media.robertsspaceindustries.com/cr3q1voomewm7/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/hj0gxtjk6wd4h/store_large.jpg"
+    },
+    {
+      "id": "tiburon",
+      "name": "Tiburon",
+      "manufacturer": "Aegis Dynamics",
+      "manufacturerCode": "AEGS",
+      "role": "Heavy Gunship",
+      "size": "large",
+      "length": 121,
+      "beam": 68,
+      "height": 20,
+      "mass": 5439316,
+      "cargo": 40,
+      "crew": {
+        "min": 1,
+        "max": 7
+      },
+      "speed": {
+        "scm": 150,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "A ferocious and forward-facing force capable of eliminating the deadliest prey out there. Assemble a crew of military-minded recruits to discharge every weapon, gun, and missile the Tiburon has at its command as you circle your prey.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/tiburon/Tiburon",
+      "image": "https://media.robertsspaceindustries.com/yqgidk6parmtz/store_large.jpg"
     },
     {
       "id": "ursa",
@@ -5551,7 +5701,32 @@
       "productionStatus": "flight-ready",
       "description": "A frontline medical support vehicle built to endure the harshest environments - a beacon of hope bringing you back into action with its state-of-the-art Tier 3 medical bed. An indispensable asset for any team facing unpredictable challenges.",
       "url": "https://robertsspaceindustries.com/pledge/ships/ursa/Ursa-Medivac",
-      "image": "https://media.robertsspaceindustries.com/17ti5hv94jwy9/store_large.jpg"
+      "image": "https://media.robertsspaceindustries.com/opl9wsa1a3tvu/store_large.jpg"
+    },
+    {
+      "id": "utv",
+      "name": "UTV",
+      "manufacturer": "Greycat Industrial",
+      "manufacturerCode": "GRIN",
+      "role": "Transporter",
+      "size": "vehicle",
+      "length": 4,
+      "beam": 2.6,
+      "height": 2.2,
+      "mass": 2500,
+      "cargo": 1,
+      "crew": {
+        "min": 1,
+        "max": 2
+      },
+      "speed": {
+        "scm": null,
+        "afterburner": null
+      },
+      "productionStatus": "flight-ready",
+      "description": "All the reliability and resilience of Greycat in a compact two-seater. Embodying essential functionality, this no-nonsense rugged transporter gets you from A to B with 1 SCU of cargo and a weapons rack to keep you armed.",
+      "url": "https://robertsspaceindustries.com/pledge/ships/utv/UTV",
+      "image": "https://media.robertsspaceindustries.com/szj2zc8m5hair/store_large.jpg"
     },
     {
       "id": "valkyrie",

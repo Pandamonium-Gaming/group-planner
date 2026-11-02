@@ -4,6 +4,12 @@
   "002_comprehensive_rls_and_sc_support.sql",
   "003_fix_event_rsvps_policies.sql",
   "004_per_game_recruitment_settings.sql",
-  "005_discord_id_migration.sql",
-  "006_populate_discord_id_from_auth.sql"
+  "005_discord_id_schema_and_population.sql",
+  "006_discord_id_rls_policies.sql",
+  "007_game_rank_settings.sql",
+  "008_add_wow_forever_support.sql",
+  "009_add_wow_forever_faction.sql",
+  "010_add_wow_forever_profession_ranks.sql",
+  "011_add_character_transfer.sql",
+  "012_add_wow_forever_event_types.sql"
 ]

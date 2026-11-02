@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { Calendar, Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
-import { supabase } from '@/lib/supabase';
-import { EventWithRsvps } from '@/lib/events';
+import { Event, EventRsvp, GuestEventRsvp, EventWithRsvps } from '@/lib/events';
 import { EventCard } from '@/components/views/EventCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -24,31 +23,24 @@ export function PublicEventsView() {
   const [events, setEvents] = useState<EventWithClanInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPublicEvents();
-  }, []);
-
-  async function fetchPublicEvents() {
+  const fetchPublicEvents = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('events')
-        .select(
-          `
-          *,
-          event_rsvps(
-            *,
-            character:members(id, name),
-            user:users(id, display_name)
-          ),
-          guest_event_rsvps(*),
-          clan:group_id(id, name, slug)
-        `
-        )
-        .eq('is_public', true)
-        .order('starts_at', { ascending: true });
+      const response = await fetch('/api/events/public', { cache: 'no-store' });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to load public events (${response.status})`);
+      }
+
+      const payload = (await response.json()) as {
+        events?: Array<Event & {
+          event_rsvps?: EventRsvp[];
+          guest_event_rsvps?: GuestEventRsvp[];
+          clan?: EventWithClanInfo['clan'];
+        }>;
+      };
+      const data = payload.events || [];
 
       // Compute rsvp_counts and role_counts for each event
       const eventsWithCounts = (data || []).map(event => {
@@ -105,7 +97,15 @@ export function PublicEventsView() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      void fetchPublicEvents();
+    }, 0);
+
+    return () => clearTimeout(timerId);
+  }, []);
 
   // Group events by clan
   const eventsByClans = events.reduce((acc, event) => {
@@ -202,4 +202,3 @@ export function PublicEventsView() {
     </div>
   );
 }
-

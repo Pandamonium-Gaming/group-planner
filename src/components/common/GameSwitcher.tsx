@@ -31,7 +31,7 @@ export function GameSwitcher() {
               <button
                 key={game.id}
                 onClick={() => {
-                  setSelectedGame(game.id as any);
+                  setSelectedGame(game.id);
                   setIsOpen(false);
                 }}
                 className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${

@@ -5,7 +5,7 @@
  * No bot required - just paste the webhook URL from Discord.
  */
 
-import { Event, Announcement, EVENT_TYPES } from './events';
+import { Event, Announcement, getEventTypeForGame } from './events';
 import { Clan } from './types';
 import {
   getGameEventsWebhookUrl,
@@ -54,6 +54,11 @@ const EVENT_TYPE_COLORS: Record<string, number> = {
   farming_gear: COLORS.purple,
   farming_other: 0x84cc16,
   other: COLORS.cyan,
+  dungeon: COLORS.orange,
+  leveling: COLORS.green,
+  world_pvp: COLORS.red,
+  battleground_pvp: 0x3b82f6,
+  arena_pvp: COLORS.purple,
 };
 
 /**
@@ -79,7 +84,7 @@ export async function sendDiscordWebhook(
       body: JSON.stringify({
         webhookUrl,
         payload: {
-          username: payload.username || '⚔️ Guild Planner',
+          username: payload.username || '⚔️ Group Planner',
           avatar_url: payload.avatar_url,
           content: payload.content,
           embeds: payload.embeds,
@@ -111,10 +116,10 @@ export async function testDiscordWebhook(
   return sendDiscordWebhook(webhookUrl, {
     embeds: [{
       title: '✅ Webhook Connected!',
-      description: 'Your Discord webhook is working correctly. You will receive notifications for events and announcements from your guild.',
+      description: 'Your Discord webhook is working correctly. You will receive notifications for events and announcements from your group.',
       color: COLORS.green,
       footer: {
-        text: 'Guild Planner',
+        text: 'Group Planner',
       },
       timestamp: new Date().toISOString(),
     }],
@@ -131,7 +136,7 @@ export async function notifyNewEvent(
   groupSlug: string,
   roleId?: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const eventType = EVENT_TYPES[event.event_type];
+  const eventType = getEventTypeForGame(event.event_type, event.game_slug || 'aoc');
   const startsAt = new Date(event.starts_at);
   const endsAt = event.ends_at ? new Date(event.ends_at) : null;
   
@@ -282,7 +287,7 @@ export async function notifyEventReminder(
   groupName: string,
   minutesUntil: number
 ): Promise<{ success: boolean; error?: string }> {
-  const eventType = EVENT_TYPES[event.event_type];
+  const eventType = getEventTypeForGame(event.event_type, event.game_slug || 'aoc');
   const startsAt = new Date(event.starts_at);
 
   let timeText = '';
@@ -374,5 +379,4 @@ export async function notifyEventReminderForGame(
 
   return notifyEventReminder(webhookUrl, event, groupName, minutesUntil);
 }
-
 

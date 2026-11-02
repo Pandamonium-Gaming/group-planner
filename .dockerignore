@@ -1,0 +1,21 @@
+# Dependency and build output
+node_modules
+.next
+coverage
+
+# VCS and editor
+.git
+.gitignore
+.vscode
+
+# Local env and logs
+.env
+.env.*
+*.log
+
+# Local tooling and archives not required in image build context
+docker/archived
+
+# Misc
+README.md
+test-output.txt

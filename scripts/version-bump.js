@@ -4,7 +4,7 @@
  * Version Bump Script
  * 
  * Bumps the version in package.json and updates CHANGELOG.md
- * Usage: npm run version:bump [patch|minor|major] [--commit]
+ * Usage: yarn version:bump [patch|minor|major] [--commit]
  */
 
 const fs = require('fs');
@@ -168,5 +168,5 @@ if (autoCommit) {
   console.log('     git push && git push --tags');
   console.log('');
   console.log('💡 Or use --commit flag for automatic git operations:');
-  console.log(`   npm run version:${bumpType} -- --commit`);
+  console.log(`   yarn version:${bumpType} -- --commit`);
 }

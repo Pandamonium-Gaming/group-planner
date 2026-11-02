@@ -22,7 +22,7 @@ interface UseActivityReturn {
 export function useActivity(groupId: string | null): UseActivityReturn {
   const [activitySummaries, setActivitySummaries] = useState<MemberActivitySummary[]>([]);
   const [inactivityAlerts, setInactivityAlerts] = useState<InactivityAlert[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => groupId !== null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -64,7 +64,11 @@ export function useActivity(groupId: string | null): UseActivityReturn {
   }, [groupId]);
 
   useEffect(() => {
-    fetchData();
+    const timerId = setTimeout(() => {
+      void fetchData();
+    }, 0);
+
+    return () => clearTimeout(timerId);
   }, [fetchData]);
 
   const inactiveMemberCount = activitySummaries.filter((s) => s.is_inactive).length;

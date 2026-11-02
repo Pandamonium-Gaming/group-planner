@@ -26,14 +26,14 @@ ReferenceError: Request is not defined
 Choose one of these approaches to execute API route tests:
 
 1. **HTTP Integration Testing with Supertest** ⭐ Recommended
-   * Install: `npm install --save-dev supertest`
+   * Install: `yarn add -D supertest`
    * Effort: Low (2-4 hours)
    * Speed: Fast (not as fast as Jest unit tests, but acceptable)
    * Setup: Minimal - adapt test specifications below to HTTP requests
    * CI-friendly: Yes, runs alongside Jest
 
 2. **E2E Testing with Playwright**
-   * Install: `npm install --save-dev @playwright/test`
+   * Install: `yarn add -D @playwright/test`
    * Effort: Moderate (1-2 days)
    * Speed: Slower than Supertest (but catches full-stack issues)
    * Setup: Requires test server running
@@ -457,12 +457,12 @@ describe('GET /api/group/permissions', () => {
 
 When implementing Supertest tests:
 
-* \[ ] Add `supertest` dependency: `npm install --save-dev supertest`
+* \[ ] Add `supertest` dependency: `yarn add -D supertest`
 * \[ ] Import `request` from `supertest`
 * \[ ] Use `request(baseURL)` instead of `NextRequest`
 * \[ ] Replace test setup/mocks with real database fixtures or `@supabase/supabase-js` test client
 * \[ ] Consider setting up test database (separate Supabase project or local instance)
-* \[ ] Run full test suite with: `npm test -- --testTimeout=30000`
+* \[ ] Run full test suite with: `yarn test --testTimeout=30000`
 * \[ ] Add CI step to run integration tests after Jest
 
 ***

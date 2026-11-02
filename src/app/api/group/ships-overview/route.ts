@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { auth } from '@/auth';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,7 +22,6 @@ function getSupabaseAdmin() {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const groupId = searchParams.get('group_id');
-  const gameSlug = searchParams.get('game_slug') || 'aoc';
 
   if (!groupId) {
     return NextResponse.json({ error: 'Missing group_id' }, { status: 400 });
@@ -35,32 +35,59 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorised - no auth header' }, { status: 401 });
+    const nextAuthSession = await auth();
+    let userId = nextAuthSession?.user?.id || null;
+    const sessionDiscordId = nextAuthSession?.user?.discordId || null;
+    const resolvedUserIds = new Set<string>();
+
+    if (!userId) {
+      const authHeader = request.headers.get('authorization');
+      const token = authHeader?.replace('Bearer ', '');
+
+      if (!token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const userClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Unauthorised - invalid or expired token' }, { status: 401 });
+      }
+
+      userId = user.id;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorised - no token' }, { status: 401 });
+    if (userId) {
+      resolvedUserIds.add(userId);
     }
 
-    const userClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    if (sessionDiscordId) {
+      const { data: linkedUsers, error: linkedUsersError } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('discord_id', sessionDiscordId);
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorised - invalid or expired token' }, { status: 401 });
+      if (linkedUsersError) {
+        console.error('Error resolving linked users by discord_id:', linkedUsersError);
+      } else {
+        ((linkedUsers || []) as Array<{ id: string | null }>).forEach((linkedUser) => {
+          if (linkedUser?.id) {
+            resolvedUserIds.add(linkedUser.id);
+          }
+        });
+      }
     }
 
     const { data: membership } = await supabaseAdmin
       .from('group_members')
       .select('role')
       .eq('group_id', groupId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (!membership) {
@@ -69,9 +96,8 @@ export async function GET(request: NextRequest) {
 
     const { data: characters, error: charactersError } = await supabaseAdmin
       .from('members')
-      .select('id, group_id, user_id, name, race, primary_archetype, secondary_archetype, level, is_main, created_at')
+      .select('id, group_id, user_id, discord_id, game_slug, name, race, primary_archetype, secondary_archetype, level, is_main, created_at')
       .eq('group_id', groupId)
-      .eq('game_slug', gameSlug)
       .order('is_main', { ascending: false })
       .order('name');
 
@@ -84,6 +110,14 @@ export async function GET(request: NextRequest) {
       ...char,
       professions: [],
     }));
+
+    const ownCharacterIds = charactersWithProfessions
+      .filter((char) => {
+        const byResolvedUserId = !!char.user_id && resolvedUserIds.has(char.user_id);
+        const byDiscordId = !!sessionDiscordId && char.discord_id === sessionDiscordId;
+        return byResolvedUserId || byDiscordId;
+      })
+      .map((char) => char.id);
 
     const characterIds = charactersWithProfessions.map((char) => char.id);
 
@@ -105,6 +139,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       characters: charactersWithProfessions,
       ships,
+      ownCharacterIds,
     });
   } catch (error) {
     console.error('Error fetching ships overview:', error);

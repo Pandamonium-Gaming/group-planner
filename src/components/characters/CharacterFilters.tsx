@@ -1,11 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 import { RACES, ARCHETYPES, RaceId, ArchetypeId } from '@/lib/characters';
 import { getClassById, ROR_CLASSES, ROR_ROLE_CONFIG } from '@/games/returnofreckooning/config';
 import { getGameConfig } from '@/config';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { WOW_FOREVER_CLASSES, WOW_FOREVER_PROFESSIONS } from '@/games/wowforever/config';
+import { getProfessionLabelKey } from '@/lib/professionCoverage';
+
+interface GameRoleOption {
+  id: string;
+  name: string;
+}
 
 export interface CharacterFilters {
   search: string;
@@ -23,6 +30,8 @@ export interface CharacterFilters {
   rorRole: string | ''; // ror role derived from class (e.g., 'tank', 'healer')
   // Universal filters
   characterType: 'all' | 'main' | 'alt'; // filter by main/alt characters
+  wowClasses?: string[];
+  wowProfessions?: string[];
 }
 
 interface CharacterFiltersProps {
@@ -46,6 +55,8 @@ export const DEFAULT_FILTERS: CharacterFilters = {
   rorClass: '',
   rorRole: '',
   characterType: 'all',
+  wowClasses: [],
+  wowProfessions: [],
 };
 
 export function CharacterFiltersBar({
@@ -60,7 +71,7 @@ export function CharacterFiltersBar({
   
   // Get game-specific roles
   const gameConfig = getGameConfig(gameSlug);
-  const gameRoles = (gameConfig as any)?.roles || [];
+  const gameRoles = ((gameConfig as { roles?: GameRoleOption[] }).roles || []);
   
   const hasActiveFilters = 
     filters.search !== '' || 
@@ -74,7 +85,9 @@ export function CharacterFiltersBar({
     filters.rorFaction !== '' ||
     filters.rorClass !== '' ||
     filters.rorRole !== '' ||
-    filters.characterType !== 'all';
+    filters.characterType !== 'all' ||
+    (filters.wowClasses?.length || 0) > 0 ||
+    (filters.wowProfessions?.length || 0) > 0;
 
   const clearFilters = () => {
     onChange(DEFAULT_FILTERS);
@@ -117,7 +130,7 @@ export function CharacterFiltersBar({
           }`}
         >
           <Filter size={16} />
-          <span className="hidden sm:inline">Filters</span>
+          <span className="hidden sm:inline">{t('filters.title')}</span>
           {hasActiveFilters && (
             <span className="text-xs bg-orange-500 text-white px-1.5 rounded-full">!</span>
           )}
@@ -127,7 +140,39 @@ export function CharacterFiltersBar({
 
       {/* Expanded filters */}
       {isExpanded && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-800">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${gameSlug === 'wowforever' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-3 pt-3 border-t border-slate-800`}>
+          {gameSlug === 'wowforever' && (
+            <>
+              <fieldset className="min-w-0 rounded-lg border border-slate-700 p-3">
+                <legend className="px-1 text-xs text-slate-400">{t('wowForever.class')}</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {WOW_FOREVER_CLASSES.map(wowClass => (
+                    <label key={wowClass.id} className="flex min-w-0 items-start gap-2 text-sm text-slate-300">
+                      <input type="checkbox" className="mt-1 shrink-0" checked={(filters.wowClasses || []).includes(wowClass.id)}
+                        onChange={event => onChange({ ...filters, wowClasses: event.target.checked
+                          ? [...(filters.wowClasses || []), wowClass.id]
+                          : (filters.wowClasses || []).filter(id => id !== wowClass.id) })} />
+                      <span className="min-w-0 break-words">{wowClass.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="min-w-0 rounded-lg border border-slate-700 p-3">
+                <legend className="px-1 text-xs text-slate-400">{t('professionOverview.title')}</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {WOW_FOREVER_PROFESSIONS.map(profession => (
+                    <label key={profession} className="flex min-w-0 items-start gap-2 text-sm text-slate-300">
+                      <input type="checkbox" className="mt-1 shrink-0" checked={(filters.wowProfessions || []).includes(profession)}
+                        onChange={event => onChange({ ...filters, wowProfessions: event.target.checked
+                          ? [...(filters.wowProfessions || []), profession]
+                          : (filters.wowProfessions || []).filter(name => name !== profession) })} />
+                      <span className="min-w-0 break-words">{t(getProfessionLabelKey(profession))}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
+          )}
           {/* Race filter - AoC only */}
           {gameSlug === 'aoc' && (
             <div>
@@ -215,15 +260,15 @@ export function CharacterFiltersBar({
           {/* Star Citizen role filter */}
           {gameSlug === 'starcitizen' && (
             <div>
-              <label htmlFor="filter-sc-role" className="text-xs text-slate-400 mb-1 block">Role</label>
+              <label htmlFor="filter-sc-role" className="text-xs text-slate-400 mb-1 block">{t('filters.role')}</label>
               <select
                 id="filter-sc-role"
                 value={filters.scRole}
                 onChange={(e) => onChange({ ...filters, scRole: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
               >
-                <option value="">All Roles</option>
-                {gameRoles.map((role: any) => (
+                <option value="">{t('filters.allRoles')}</option>
+                {gameRoles.map((role) => (
                   <option key={role.id} value={role.id}>{role.name}</option>
                 ))}
               </select>
@@ -233,16 +278,16 @@ export function CharacterFiltersBar({
           {/* Return of Reckoning faction filter */}
           {gameSlug === 'ror' && (
             <div>
-              <label htmlFor="filter-ror-faction" className="text-xs text-slate-400 mb-1 block">Faction</label>
+              <label htmlFor="filter-ror-faction" className="text-xs text-slate-400 mb-1 block">{t('filters.faction')}</label>
               <select
                 id="filter-ror-faction"
                 value={filters.rorFaction}
                 onChange={(e) => onChange({ ...filters, rorFaction: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
               >
-                <option value="">All Factions</option>
-                <option value="destruction">Destruction</option>
-                <option value="order">Order</option>
+                <option value="">{t('filters.allFactions')}</option>
+                <option value="destruction">{t('filters.destruction')}</option>
+                <option value="order">{t('filters.order')}</option>
               </select>
             </div>
           )}
@@ -250,14 +295,14 @@ export function CharacterFiltersBar({
           {/* Return of Reckoning class filter */}
           {gameSlug === 'ror' && (
             <div>
-              <label htmlFor="filter-ror-class" className="text-xs text-slate-400 mb-1 block">Class</label>
+              <label htmlFor="filter-ror-class" className="text-xs text-slate-400 mb-1 block">{t('filters.class')}</label>
               <select
                 id="filter-ror-class"
                 value={filters.rorClass}
                 onChange={(e) => onChange({ ...filters, rorClass: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
               >
-                <option value="">All Classes</option>
+                <option value="">{t('filters.allClasses')}</option>
                 {ROR_CLASSES.map((rorClass) => (
                   <option key={rorClass.id} value={rorClass.id}>{rorClass.name}</option>
                 ))}
@@ -268,14 +313,14 @@ export function CharacterFiltersBar({
           {/* Return of Reckoning role filter */}
           {gameSlug === 'ror' && (
             <div>
-              <label htmlFor="filter-ror-role" className="text-xs text-slate-400 mb-1 block">Role</label>
+              <label htmlFor="filter-ror-role" className="text-xs text-slate-400 mb-1 block">{t('filters.role')}</label>
               <select
                 id="filter-ror-role"
                 value={filters.rorRole}
                 onChange={(e) => onChange({ ...filters, rorRole: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
               >
-                <option value="">All Roles</option>
+                <option value="">{t('filters.allRoles')}</option>
                 {Object.entries(ROR_ROLE_CONFIG).map(([roleKey, roleConfig]) => (
                   <option key={roleKey} value={roleKey}>{roleConfig.label}</option>
                 ))}
@@ -286,32 +331,32 @@ export function CharacterFiltersBar({
           {/* Star Citizen subscriber status filter */}
           {gameSlug === 'starcitizen' && (
             <div>
-              <label htmlFor="filter-subscriber" className="text-xs text-slate-400 mb-1 block">Subscriber Status</label>
+              <label htmlFor="filter-subscriber" className="text-xs text-slate-400 mb-1 block">{t('filters.subscriberStatus')}</label>
               <select
                 id="filter-subscriber"
                 value={filters.subscriberTier}
                 onChange={(e) => onChange({ ...filters, subscriberTier: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
               >
-                <option value="">All</option>
-                <option value="centurion">Centurion</option>
-                <option value="imperator">Imperator</option>
+                <option value="">{t('common.all')}</option>
+                <option value="centurion">{t('filters.centurion')}</option>
+                <option value="imperator">{t('filters.imperator')}</option>
               </select>
             </div>
           )}
 
           {/* Main / Alt filter - all games */}
           <div>
-            <label htmlFor="filter-char-type" className="text-xs text-slate-400 mb-1 block">Character Type</label>
+            <label htmlFor="filter-char-type" className="text-xs text-slate-400 mb-1 block">{t('filters.characterType')}</label>
             <select
               id="filter-char-type"
               value={filters.characterType}
               onChange={(e) => onChange({ ...filters, characterType: e.target.value as 'all' | 'main' | 'alt' })}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
             >
-              <option value="all">All</option>
-              <option value="main">Main Characters</option>
-              <option value="alt">Alts</option>
+              <option value="all">{t('filters.allCharacterTypes')}</option>
+              <option value="main">{t('filters.mainCharacters')}</option>
+              <option value="alt">{t('filters.alts')}</option>
             </select>
           </div>
         </div>
@@ -352,6 +397,9 @@ export function filterCharacters<T extends {
   subscriber_tier?: string | null;
   ror_faction?: string | null;
   ror_class?: string | null;
+  wow_class?: string | null;
+  wow_profession_1?: string | null;
+  wow_profession_2?: string | null;
   rank?: string | null;
 }>(
   characters: T[],
@@ -370,6 +418,9 @@ export function filterCharacters<T extends {
   }
   
   return characters.filter(char => {
+    if (filters.wowClasses?.length && !filters.wowClasses.includes(char.wow_class || '')) return false;
+    if (filters.wowProfessions?.length && !filters.wowProfessions.some(profession =>
+      profession === char.wow_profession_1 || profession === char.wow_profession_2)) return false;
     // Search filter - include character if:
     // 1. Name matches search, OR
     // 2. Has user_id and that user_id had a character that matched search
@@ -450,4 +501,3 @@ export function filterCharacters<T extends {
     return true;
   });
 }
-

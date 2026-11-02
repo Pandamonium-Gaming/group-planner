@@ -13,7 +13,7 @@ import {
   EventWithRsvps, 
   RsvpStatus, 
   EventRole,
-  EVENT_TYPES, 
+  getEventTypeForGame,
   EVENT_ROLES,
   RSVP_STATUSES,
   formatEventTime,
@@ -123,7 +123,7 @@ export function EventCard({
     }
   };
   
-  const eventType = EVENT_TYPES[event.event_type];
+  const eventType = getEventTypeForGame(event.event_type, event.game_slug || 'aoc');
   const isPast = isEventPast(event.starts_at);
   const isNow = isEventNow(event.starts_at, event.ends_at);
   const userRsvp = event.user_rsvp;
@@ -915,4 +915,3 @@ export function EventCard({
     </div>
   );
 }
-
