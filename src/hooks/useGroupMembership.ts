@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserRole, applyToGroup, getGroupMembership } from '@/lib/auth';
 import { GroupRole } from '@/lib/permissions';
 import { getClientAuthStack } from '@/lib/authStack';
+import { sendDiscordWebhook } from '@/lib/discord';
 
 interface ClanMember {
   id: string;
@@ -397,17 +398,10 @@ export function useGroupMembership(groupId: string | null, userId: string | null
         welcomeMessage = `⚔️ <@${discordId}> Your request to join **${groupName}** warband has been approved!`;
       }
       
-      fetch('/api/discord', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webhookUrl,
-          payload: {
-            content: welcomeMessage,
-            embeds: [embed],
-          },
-        }),
-      });
+      const result = await sendDiscordWebhook(webhookUrl, {
+        content: welcomeMessage, embeds: [embed],
+      }, { groupId: groupIdForWebhook, gameSlug, kind: 'welcome', subjectId: membershipId });
+      if (!result.success) console.error('Member approved, but Discord welcome failed:', result.error);
     }
 
     await refresh();

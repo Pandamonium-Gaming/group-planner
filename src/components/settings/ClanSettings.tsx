@@ -346,7 +346,7 @@ export function ClanSettings({
     setTestResult(null);
 
     try {
-      const result = await testDiscordWebhook(webhookToTest.trim());
+      const result = await testDiscordWebhook(webhookToTest.trim(), { groupId, gameSlug, kind: 'test' });
       setTestResult({
         success: result.success,
         message: result.success 

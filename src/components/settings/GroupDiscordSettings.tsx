@@ -172,7 +172,7 @@ export function GroupDiscordSettings({
     setTestResult(null);
 
     try {
-      const result = await testDiscordWebhook(webhookToTest);
+      const result = await testDiscordWebhook(webhookToTest, { groupId, kind: 'test' });
       setTestResult({
         success: result.success,
         message: result.success 

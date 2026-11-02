@@ -25,11 +25,18 @@ interface DiscordEmbed {
   url?: string;
 }
 
-interface DiscordWebhookPayload {
+export interface DiscordWebhookPayload {
   content?: string;
   username?: string;
   avatar_url?: string;
   embeds?: DiscordEmbed[];
+}
+
+export interface WebhookContext {
+  groupId: string;
+  gameSlug?: string;
+  kind: 'event' | 'repost' | 'announcement' | 'reminder' | 'test' | 'welcome';
+  subjectId?: string;
 }
 
 // Color palette for Discord embeds (decimal format)
@@ -66,7 +73,8 @@ const EVENT_TYPE_COLORS: Record<string, number> = {
  */
 export async function sendDiscordWebhook(
   webhookUrl: string,
-  payload: DiscordWebhookPayload
+  payload: DiscordWebhookPayload,
+  context: WebhookContext
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Validate URL format
@@ -76,13 +84,13 @@ export async function sendDiscordWebhook(
     }
 
     // Use our API proxy to avoid CORS issues
+    const { webhookHeaders } = await import('./webhookClient');
     const response = await fetch('/api/discord', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: await webhookHeaders(),
       body: JSON.stringify({
         webhookUrl,
+        context,
         payload: {
           username: payload.username || '⚔️ Group Planner',
           avatar_url: payload.avatar_url,
@@ -111,7 +119,8 @@ export async function sendDiscordWebhook(
  * Test a Discord webhook URL
  */
 export async function testDiscordWebhook(
-  webhookUrl: string
+  webhookUrl: string,
+  context: WebhookContext
 ): Promise<{ success: boolean; error?: string }> {
   return sendDiscordWebhook(webhookUrl, {
     embeds: [{
@@ -123,7 +132,7 @@ export async function testDiscordWebhook(
       },
       timestamp: new Date().toISOString(),
     }],
-  });
+  }, context);
 }
 
 /**
@@ -134,7 +143,8 @@ export async function notifyNewEvent(
   event: Event,
   groupName: string,
   groupSlug: string,
-  roleId?: string | null
+  roleId?: string | null,
+  send: typeof sendDiscordWebhook = sendDiscordWebhook
 ): Promise<{ success: boolean; error?: string }> {
   const eventType = getEventTypeForGame(event.event_type, event.game_slug || 'aoc');
   const startsAt = new Date(event.starts_at);
@@ -142,7 +152,7 @@ export async function notifyNewEvent(
   
   // Build direct link to event
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-  const eventUrl = `${baseUrl}/${groupSlug}/events#event-${event.id}`;
+  const eventUrl = `${baseUrl}/${groupSlug}/${event.game_slug || 'aoc'}/events#event-${event.id}`;
   
   // Build content with role ping if provided
   let content = '🆕 **New Event Created!**';
@@ -225,7 +235,7 @@ export async function notifyNewEvent(
     });
   }
 
-  return sendDiscordWebhook(webhookUrl, {
+  return send(webhookUrl, {
     content,
     embeds: [{
       title: `${eventType.icon} ${event.title}`,
@@ -238,7 +248,7 @@ export async function notifyNewEvent(
       },
       timestamp: new Date().toISOString(),
     }],
-  });
+  }, { groupId: event.group_id, gameSlug: event.game_slug, kind: 'event', subjectId: event.id });
 }
 
 /**
@@ -246,10 +256,11 @@ export async function notifyNewEvent(
  */
 export async function notifyAnnouncement(
   webhookUrl: string,
-  announcement: Announcement,
+  announcement: Announcement & { game_slug?: string },
   groupName: string,
   groupSlug: string,
-  roleId?: string | null
+  roleId?: string | null,
+  send: typeof sendDiscordWebhook = sendDiscordWebhook
 ): Promise<{ success: boolean; error?: string }> {
   // Build content with role ping if provided
   let content = announcement.is_pinned ? '📌 **Pinned Announcement**' : '📢 **New Announcement**';
@@ -259,9 +270,9 @@ export async function notifyAnnouncement(
 
   // Build direct link to announcement
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-  const announcementUrl = `${baseUrl}/${groupSlug}/events#announcement-${announcement.id}`;
+  const announcementUrl = `${baseUrl}/${groupSlug}/${announcement.game_slug || 'aoc'}/events#announcement-${announcement.id}`;
 
-  return sendDiscordWebhook(webhookUrl, {
+  return send(webhookUrl, {
     content,
     embeds: [{
       title: announcement.title,
@@ -275,7 +286,7 @@ export async function notifyAnnouncement(
       },
       timestamp: new Date().toISOString(),
     }],
-  });
+  }, { groupId: announcement.group_id, gameSlug: announcement.game_slug, kind: 'announcement', subjectId: announcement.id });
 }
 
 /**
@@ -313,7 +324,7 @@ export async function notifyEventReminder(
         text: groupName,
       },
     }],
-  });
+  }, { groupId: event.group_id, gameSlug: event.game_slug, kind: 'reminder', subjectId: event.id });
 }
 
 /**
@@ -379,4 +390,3 @@ export async function notifyEventReminderForGame(
 
   return notifyEventReminder(webhookUrl, event, groupName, minutesUntil);
 }
-

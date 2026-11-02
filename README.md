@@ -62,6 +62,28 @@ A comprehensive group management and planning tool supporting multiple MMOs.
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for full instructions.
 
+### Discord delivery and webhook logs
+
+Apply [migration 013](./supabase/migrations/013_add_discord_webhook_logs.sql)
+before deploying the webhook logging feature, separately in each environment.
+The server requires `SUPABASE_SERVICE_ROLE_KEY` to write delivery records.
+
+Event notifications use the game's events webhook, then its general webhook,
+then the group webhook. Both authentication stacks use the same server endpoint.
+Saving an event or announcement still succeeds if Discord delivery fails;
+the warning does not mean another copy should be created.
+Event creators and members with permission to edit any event can use
+**Repost to Discord**. Reposts respect the group's notification switch.
+
+Group administrators can open **Group settings → Discord webhook logs** for
+paginated delivery history across games, including events, reposts,
+announcements, tests, reminders and member welcomes. Logging covers future
+attempts only; it does not reconstruct past failures or schedule reminders.
+Records contain delivery metadata, HTTP status and sanitised diagnostics,
+never webhook URLs, tokens or message payloads. A pending record means the
+final delivery status is unknown: check the channel before retrying.
+If the log cannot be created, delivery is stopped rather than sent untracked.
+
 Vercel runs installation and builds through Corepack, using the Yarn version
 declared in `package.json`. Installation is immutable so deployments use the
 committed `yarn.lock` rather than resolving newer dependency versions.

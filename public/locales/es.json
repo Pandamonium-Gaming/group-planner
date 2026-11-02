@@ -1,4 +1,36 @@
 {
+  "webhooks": {
+    "repost": "Volver a publicar en Discord",
+    "sending": "Enviando...",
+    "reposted": "Evento publicado de nuevo en Discord.",
+    "repostFailed": "No se pudo volver a publicar en Discord. Revisa los registros y el canal antes de reintentar.",
+    "savedWarning": "Se ha guardado, pero ha fallado la notificación de Discord. No crees otra copia. Revisa los registros y Discord antes de volver a publicar.",
+    "skippedNotice": "Se ha omitido la notificación de Discord porque están desactivadas o el evento está cancelado.",
+    "logs": "Registros de webhooks de Discord",
+    "logDescription": "Historial de envíos de todos los juegos, solo para administradores. Solo incluye intentos posteriores a la activación del registro. Pendiente significa que se desconoce el resultado; revisa Discord antes de reintentar. No se guardan las URL ni el contenido de los mensajes.",
+    "refresh": "Actualizar",
+    "loadFailed": "No se pueden cargar los registros. Se requiere acceso de administrador y la migración de la base de datos de registros.",
+    "empty": "No hay intentos de envío registrados.",
+    "groupWide": "Todo el grupo",
+    "viewSubject": "Ver evento o anuncio",
+    "pagination": "Páginas de registros de webhooks",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "kinds": {
+      "event": "Nuevo evento",
+      "repost": "Evento republicado",
+      "announcement": "Anuncio",
+      "reminder": "Recordatorio de evento",
+      "test": "Prueba de webhook",
+      "welcome": "Bienvenida a miembro"
+    },
+    "statuses": {
+      "pending": "Pendiente / desconocido",
+      "sent": "Enviado",
+      "failed": "Fallido",
+      "skipped": "Omitido"
+    }
+  },
   "characterTransfer": {
     "title": "Transferencia de datos para administradores",
     "description": "Exporta el juego actual del grupo a un archivo JSON e impórtalo en el entorno de destino. Sin sincronización directa de bases de datos.",

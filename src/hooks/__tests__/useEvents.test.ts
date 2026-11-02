@@ -6,10 +6,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useEvents } from '../useEvents';
 
-jest.mock('@/lib/discord', () => ({
-  notifyNewEvent: jest.fn(),
-  notifyAnnouncement: jest.fn(),
+jest.mock('@/lib/webhookClient', () => ({
+  postEventNotification: jest.fn(),
+  postAnnouncementNotification: jest.fn(),
 }));
+jest.mock('@/contexts/ToastContext', () => ({ useToast: () => ({ showToast: mockShowToast }) }));
+jest.mock('@/contexts/LanguageContext', () => ({ useLanguage: () => ({ t: (key: string) => key }) }));
+jest.mock('@/lib/authStack', () => ({ getClientAuthStack: jest.fn(() => 'v1') }));
+const mockShowToast = jest.fn();
 
 jest.mock('@/lib/supabase', () => ({
   supabase: {
@@ -18,7 +22,8 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 import { supabase } from '@/lib/supabase';
-import { notifyNewEvent } from '@/lib/discord';
+import { postEventNotification, postAnnouncementNotification } from '@/lib/webhookClient';
+import { getClientAuthStack } from '@/lib/authStack';
 
 const buildEventsQuery = (data: any, error: any = null) => ({
   select: jest.fn().mockReturnValue({
@@ -49,6 +54,10 @@ const mockSupabase = jest.mocked(supabase);
 describe('useEvents Hook - Phase 2', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSupabase.from.mockReset();
+    jest.mocked(getClientAuthStack).mockReturnValue('v1');
+    jest.mocked(postEventNotification).mockResolvedValue({ success: true });
+    jest.mocked(postAnnouncementNotification).mockResolvedValue({ success: true });
   });
 
   it('fetches events and announcements with computed counts', async () => {
@@ -91,7 +100,10 @@ describe('useEvents Hook - Phase 2', () => {
     expect(event.user_rsvp?.user_id).toBe('user-1');
   });
 
-  it('creates an event and sends Discord notification when enabled', async () => {
+  it.each([
+    ['v1', true, false], ['v1', false, false], ['v1', true, true],
+    ['v2', true, false], ['v2', false, false], ['v2', true, true],
+  ] as const)('creates one event under %s, notify=%s, Discord fails=%s', async (stack, notify, fails) => {
     const createdEvent = {
       id: 'event-1',
       group_id: 'group-123',
@@ -140,30 +152,18 @@ describe('useEvents Hook - Phase 2', () => {
       }),
     };
 
-    const groupsQuery = {
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: {
-              name: 'Test Group',
-              slug: 'test-group',
-              group_webhook_url: 'https://discord.example',
-              notify_on_events: true,
-              discord_announcement_role_id: 'role-1',
-            },
-            error: null,
-          }),
-        }),
-      }),
-    };
-
     mockSupabase.from
       .mockReturnValueOnce(eventsFetchQuery)
       .mockReturnValueOnce(announcementsQuery)
       .mockReturnValueOnce(eventsInsertQuery)
-      .mockReturnValueOnce(groupsQuery)
       .mockReturnValueOnce(eventsFetchQuery);
 
+    jest.mocked(getClientAuthStack).mockReturnValue(stack);
+    if (fails) jest.mocked(postEventNotification).mockRejectedValueOnce(new Error('Discord unavailable'));
+    const fetchMock = jest.fn().mockImplementation((_url, options) => Promise.resolve({
+      ok: true, json: async () => options?.method === 'POST' ? { event: createdEvent } : { events: [], announcements: [] },
+    }));
+    global.fetch = fetchMock;
     const { result } = renderHook(() => useEvents('group-123', 'user-1', 'aoc', 'group-slug'));
 
     await waitFor(() => {
@@ -203,17 +203,36 @@ describe('useEvents Hook - Phase 2', () => {
           is_public: false,
           allow_allied_signups: false,
         },
-        true
+        notify
       );
     });
 
-    expect(notifyNewEvent).toHaveBeenCalledWith(
-      'https://discord.example',
-      createdEvent,
-      'Test Group',
-      'group-slug',
-      'role-1'
-    );
+    if (notify) expect(postEventNotification).toHaveBeenCalledWith(createdEvent.id);
+    else expect(postEventNotification).not.toHaveBeenCalled();
+    if (fails) expect(mockShowToast).toHaveBeenCalledWith('warning', 'webhooks.savedWarning', 10000);
+    if (stack === 'v1') expect(eventsInsertQuery.insert).toHaveBeenCalledTimes(1);
+    else expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);
+  });
+
+  it.each(['v1', 'v2'] as const)('sends and handles failed announcement notifications under %s', async stack => {
+    jest.mocked(getClientAuthStack).mockReturnValue(stack);
+    const announcement = { group_id: 'group-123', created_by: 'user-1', title: 'Guild news', content: 'News', is_pinned: false };
+    const insert = jest.fn().mockReturnValue({ select: () => ({ single: async () => ({ data: { ...announcement, id: 'ann-1' }, error: null }) }) });
+    mockSupabase.from
+      .mockReturnValueOnce(buildEventsQuery([]))
+      .mockReturnValueOnce(buildAnnouncementsQuery([]))
+      .mockReturnValueOnce({ insert })
+      .mockReturnValueOnce(buildAnnouncementsQuery([]));
+    global.fetch = jest.fn().mockImplementation((_url, options) => Promise.resolve({
+      ok: true, json: async () => options?.method === 'POST'
+        ? { announcement: { ...announcement, id: 'ann-1' } } : { events: [], announcements: [] },
+    }));
+    jest.mocked(postAnnouncementNotification).mockRejectedValueOnce(new Error('Delivery failed'));
+    const { result } = renderHook(() => useEvents('group-123', 'user-1', 'wowforever'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => { await result.current.createAnnouncement(announcement, true); });
+    expect(postAnnouncementNotification).toHaveBeenCalledWith('ann-1');
+    expect(mockShowToast).toHaveBeenCalledWith('warning', 'webhooks.savedWarning', 10000);
   });
 
   it('upserts RSVP and refreshes events', async () => {
