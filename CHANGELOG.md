@@ -44,6 +44,8 @@
 
 ### Fixed
 
+* Made the event form keyboard-modal with focus restoration, visible error announcements, mobile keyboard-aware sizing and whole-form scrolling at extreme zoom.
+
 * Fixed event forms being obscured by bottom navigation or extending beyond the viewport; fields now scroll independently of the header and action buttons.
 
 * Fixed profession summary counts and faction restrictions showing untranslated interpolation placeholders.

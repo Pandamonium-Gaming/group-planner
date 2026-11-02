@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar } from 'lucide-react';
 import { Event, EventType, EventRole, EVENT_ROLES, utcToLocal, getEventTypesForGame, getCanonicalEventType, isEventTypeAllowedForGame } from '@/lib/events';
@@ -93,6 +93,40 @@ export function EventForm({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [viewport, setViewport] = useState<{ height: number; width: number; top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    const updateViewport = () => setViewport({
+      height: visualViewport?.height ?? window.innerHeight,
+      width: visualViewport?.width ?? window.innerWidth,
+      top: visualViewport?.offsetTop ?? 0,
+      left: visualViewport?.offsetLeft ?? 0,
+    });
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('scroll', updateViewport);
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
+
+  const scrollWholeDialog = viewport !== null && viewport.height < 280;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,9 +192,21 @@ export function EventForm({
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div role="dialog" aria-modal="true" aria-labelledby="event-form-title"
-        className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
+      <dialog ref={dialogRef} aria-labelledby="event-form-title"
+        onCancel={event => { event.preventDefault(); onCancel(); }}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+        style={viewport ? {
+          top: viewport.top + viewport.height / 2,
+          left: viewport.left + viewport.width / 2,
+          width: Math.max(0, viewport.width - 32),
+          maxHeight: Math.max(0, viewport.height - 32),
+        } : undefined}
+        className={`fixed m-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-sm ${scrollWholeDialog ? 'block overflow-y-auto' : 'flex flex-col overflow-hidden'}`}>
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between p-4 border-b border-slate-700">
           <h2 id="event-form-title" className="text-lg font-semibold text-white flex items-center gap-2">
@@ -177,8 +223,8 @@ export function EventForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-          <div className="min-h-0 overflow-y-auto p-4 space-y-4">
+        <form onSubmit={handleSubmit} className={scrollWholeDialog ? 'block' : 'flex min-h-0 flex-col'}>
+          <div className={`${scrollWholeDialog ? '' : 'min-h-0 overflow-y-auto'} p-4 space-y-4`}>
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -190,7 +236,6 @@ export function EventForm({
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
               placeholder="e.g., Weekly Dungeon Run"
-              autoFocus
             />
           </div>
 
@@ -622,34 +667,34 @@ export function EventForm({
             </label>
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
           </div>
 
           {/* Actions */}
-          <div className="flex shrink-0 gap-3 p-4 border-t border-slate-700">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Event'}
-            </button>
+          <div className="shrink-0 p-4 border-t border-slate-700 space-y-3">
+            {error && (
+              <div role="alert" className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                {error}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Event'}
+              </button>
+            </div>
           </div>
         </form>
-      </div>
-    </div>,
+      </dialog>,
     document.body
   );
 }
