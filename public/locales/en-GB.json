@@ -149,6 +149,21 @@
     "novice": "Novice",
     "linkToMain": "Link to Main Character"
   },
+  "wowForever": {
+    "race": "Race",
+    "class": "Class",
+    "mainSpec": "Main Spec",
+    "secondarySpec": "Secondary Spec",
+    "firstProfession": "1st Profession",
+    "secondProfession": "2nd Profession",
+    "selectRace": "Select race...",
+    "selectClass": "Select class...",
+    "selectSpec": "Select spec...",
+    "selectProfession": "Select profession...",
+    "factionRestriction": "This race/class combination is restricted to {faction}.",
+    "requiredFieldsError": "Race, class, and main spec are required for WoW Forever.",
+    "invalidCombinationError": "Choose a valid race, class, and specialization combination."
+  },
   "party": {
     "createParty": "Create Party",
     "editParty": "Edit Party",
@@ -1104,4 +1119,3 @@
     }
   }
 }
-

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 import { UserRole, applyToGroup, getGroupMembership } from '@/lib/auth';
 import { GroupRole } from '@/lib/permissions';
 import { getClientAuthStack } from '@/lib/authStack';
@@ -64,10 +63,80 @@ export function useGroupMembership(groupId: string | null, userId: string | null
     return () => clearTimeout(timerId);
   }, [groupId, userId]);
 
+  const transformMembers = useCallback((rows: Array<Record<string, unknown>>) => {
+    return rows.map((row) => ({
+      id: String(row.id),
+      user_id: String(row.user_id),
+      role: row.role as UserRole,
+      guild_rank: typeof row.guild_rank === 'string' ? row.guild_rank : null,
+      is_creator: Boolean(row.is_creator),
+      applied_at: String(row.applied_at || ''),
+      approved_at: typeof row.approved_at === 'string' ? row.approved_at : null,
+      user: (() => {
+        const users = row.users as Array<Record<string, unknown>> | Record<string, unknown> | null | undefined;
+        const user = Array.isArray(users) ? users[0] : users;
+        if (!user) return null;
+
+        return {
+          display_name: typeof user.display_name === 'string' ? user.display_name : null,
+          discord_username: typeof user.discord_username === 'string' ? user.discord_username : null,
+          discord_avatar: typeof user.discord_avatar === 'string' ? user.discord_avatar : null,
+        };
+      })(),
+    })) as ClanMember[];
+  }, []);
+
+  const fetchMembersViaApi = useCallback(async (includePending: boolean) => {
+    if (!groupId || !userId) {
+      return null;
+    }
+
+    const response = await fetch(
+      `/api/group/members?group_id=${encodeURIComponent(groupId)}&game_slug=${encodeURIComponent(gameSlug)}&view=memberships&include_pending=${includePending ? 'true' : 'false'}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      }
+    );
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+      throw new Error(payload.details || payload.error || `Failed to fetch members (${response.status})`);
+    }
+
+    const payload = (await response.json()) as { members?: Array<Record<string, unknown>> };
+    return transformMembers(payload.members || []);
+  }, [gameSlug, groupId, transformMembers, userId]);
+
+  const applyMemberLists = useCallback((allMembers: ClanMember[]) => {
+    const approved = allMembers.filter((member) => member.role !== 'pending');
+    const pending = allMembers.filter((member) => member.role === 'pending');
+
+    setMembers(approved);
+    setPendingMembers(pending);
+
+    if (!userId) {
+      setMembership(null);
+      return;
+    }
+
+    const current = allMembers.find((member) => member.user_id === userId) || null;
+    setMembership(current ? {
+      role: current.role,
+      isCreator: current.is_creator,
+      isApproved: current.role !== 'pending',
+    } : null);
+  }, [userId]);
+
   const fetchMembership = useCallback(async () => {
     if (!groupId || !userId) {
       setMembership(null);
       setLoading(false);
+      return;
+    }
+
+    if (getClientAuthStack() === 'v2') {
       return;
     }
 
@@ -91,8 +160,12 @@ export function useGroupMembership(groupId: string | null, userId: string | null
   const fetchMembers = useCallback(async () => {
     if (!groupId) return;
 
+    if (getClientAuthStack() === 'v2') {
+      return;
+    }
+
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (await import('@/lib/supabase')).supabase
         .from('group_members')
         .select(`
           id,
@@ -128,6 +201,26 @@ export function useGroupMembership(groupId: string | null, userId: string | null
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
+      if (getClientAuthStack() === 'v2') {
+        const apiMembers = await fetchMembersViaApi(true).catch(async (error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          if (message.includes('403')) {
+            return await fetchMembersViaApi(false);
+          }
+          throw error;
+        });
+
+        if (!apiMembers) {
+          setMembership(null);
+          setMembers([]);
+          setPendingMembers([]);
+          return;
+        }
+
+        applyMemberLists(apiMembers);
+        return;
+      }
+
       await Promise.all([fetchMembership(), fetchMembers()]);
     } catch (e) {
       console.error('Error refreshing clan membership:', e);
@@ -135,7 +228,7 @@ export function useGroupMembership(groupId: string | null, userId: string | null
     } finally {
       setLoading(false);
     }
-  }, [fetchMembership, fetchMembers]);
+  }, [applyMemberLists, fetchMembership, fetchMembers, fetchMembersViaApi]);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -213,8 +306,31 @@ export function useGroupMembership(groupId: string | null, userId: string | null
   const acceptMember = async (membershipId: string) => {
     if (!userId) throw new Error('Not authenticated');
 
+    if (getClientAuthStack() === 'v2') {
+      const response = await fetch('/api/group/members', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'accept_member',
+          group_id: groupId,
+          membership_id: membershipId,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to accept member (${response.status})`);
+      }
+
+      await refresh();
+      return;
+    }
+
+    const { supabase } = await import('@/lib/supabase');
+
     // Get the member info (to get user_id, discord_username, and discord_id for mentions)
-    const { data: memberData, error: memberFetchError } = await supabase
+    const { data: memberData, error: memberFetchError } = await (await import('@/lib/supabase')).supabase
       .from('group_members')
       .select('user_id, group_id, users!group_members_user_id_fkey(discord_username, discord_id)')
       .eq('id', membershipId)
@@ -256,7 +372,7 @@ export function useGroupMembership(groupId: string | null, userId: string | null
     let welcomeEnabled = true;
     let groupName = 'the group';
     try {
-      const group = await supabase
+      const group = await (await import('@/lib/supabase')).supabase
         .from('groups')
         .select('name, group_welcome_webhook_url, group_webhook_url, aoc_welcome_enabled, sc_welcome_enabled')
         .eq('id', groupIdForWebhook)
@@ -298,24 +414,63 @@ export function useGroupMembership(groupId: string | null, userId: string | null
   };
 
   const rejectMember = async (membershipId: string) => {
-    const { error } = await supabase
-      .from('group_members')
-      .delete()
-      .eq('id', membershipId)
-      .select();
+    if (getClientAuthStack() === 'v2') {
+      const response = await fetch('/api/group/members', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject_member',
+          group_id: groupId,
+          membership_id: membershipId,
+        }),
+      });
 
-    if (error) throw error;
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to reject member (${response.status})`);
+      }
+    } else {
+      const { error } = await (await import('@/lib/supabase')).supabase
+        .from('group_members')
+        .delete()
+        .eq('id', membershipId)
+        .select();
+
+      if (error) throw error;
+    }
+
     await refresh();
   };
 
   const updateRole = async (membershipId: string, role: GroupRole) => {
-    const { error } = await supabase
-      .from('group_members')
-      .update({ role })
-      .eq('id', membershipId)
-      .select();
+    if (getClientAuthStack() === 'v2') {
+      const response = await fetch('/api/group/members', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_role',
+          group_id: groupId,
+          membership_id: membershipId,
+          role,
+        }),
+      });
 
-    if (error) throw error;
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to update role (${response.status})`);
+      }
+    } else {
+      const { error } = await (await import('@/lib/supabase')).supabase
+        .from('group_members')
+        .update({ role })
+        .eq('id', membershipId)
+        .select();
+
+      if (error) throw error;
+    }
+
     await refresh();
   };
 
@@ -344,7 +499,7 @@ export function useGroupMembership(groupId: string | null, userId: string | null
         throw new Error(payload.details || payload.error || `Failed to update rank (${response.status})`);
       }
     } else {
-      const { error } = await supabase
+      const { error } = await (await import('@/lib/supabase')).supabase
         .from('group_members')
         .update({ guild_rank: rank })
         .eq('id', membershipId)
@@ -357,6 +512,27 @@ export function useGroupMembership(groupId: string | null, userId: string | null
   };
 
   const removeMember = async (membershipId: string) => {
+    if (getClientAuthStack() === 'v2') {
+      const response = await fetch('/api/group/members', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'remove_member',
+          group_id: groupId,
+          membership_id: membershipId,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to remove member (${response.status})`);
+      }
+
+      await refresh();
+      return;
+    }
+
     await rejectMember(membershipId);
   };
 
@@ -385,4 +561,3 @@ export function useGroupMembership(groupId: string | null, userId: string | null
     canManageRoles,
   };
 }
-

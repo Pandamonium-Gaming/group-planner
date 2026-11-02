@@ -72,16 +72,17 @@ export default function Home() {
     async function fetchPublicGroups() {
       setPublicGroupsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('groups')
-          .select('id, slug, name, group_icon_url, public_description, recruitment_open')
-          .eq('is_public', true)
-          .order('name');
+        const response = await fetch('/api/groups/public', { cache: 'no-store' });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to load public groups (${response.status})`);
+        }
+
+        const payload = (await response.json()) as { groups?: PublicGroup[] };
 
         if (isMounted) {
-          setPublicGroups((data || []) as PublicGroup[]);
+          setPublicGroups((payload.groups || []) as PublicGroup[]);
         }
       } catch (err) {
         console.error('Error fetching public groups:', err);

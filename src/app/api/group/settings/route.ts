@@ -137,27 +137,36 @@ const ALLOWED_GROUP_FIELDS = new Set([
   'sc_events_webhook_url',
   'ror_webhook_url',
   'ror_events_webhook_url',
+  'wowforever_webhook_url',
+  'wowforever_events_webhook_url',
   'aoc_announcement_role_id',
   'aoc_events_role_id',
   'sc_announcement_role_id',
   'sc_events_role_id',
   'ror_announcement_role_id',
   'ror_events_role_id',
+  'wowforever_announcement_role_id',
+  'wowforever_events_role_id',
   'aoc_recruitment_open',
   'sc_recruitment_open',
   'ror_recruitment_open',
+  'wowforever_recruitment_open',
   'aoc_recruitment_message',
   'sc_recruitment_message',
   'ror_recruitment_message',
+  'wowforever_recruitment_message',
   'aoc_public_description',
   'sc_public_description',
   'ror_public_description',
+  'wowforever_public_description',
   'aoc_ranks_enabled',
   'sc_ranks_enabled',
   'ror_ranks_enabled',
+  'wowforever_ranks_enabled',
   'aoc_custom_ranks',
   'sc_custom_ranks',
   'ror_custom_ranks',
+  'wowforever_custom_ranks',
 ]);
 
 const RECRUITMENT_FIELDS = new Set([
@@ -189,6 +198,119 @@ type SettingsMutationPayload =
       application_id: string;
       status: 'accepted' | 'rejected';
     };
+
+export async function GET(request: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Server missing Supabase service credentials' }, { status: 500 });
+  }
+
+  const userContext = await resolveRequestUserContext(request, supabaseAdmin);
+  if (userContext.candidateUserIds.length === 0) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const groupId = searchParams.get('group_id');
+  const view = searchParams.get('view');
+
+  if (!groupId) {
+    return NextResponse.json({ error: 'Missing group_id' }, { status: 400 });
+  }
+
+  try {
+    const membership = await requireGroupMembership(supabaseAdmin, groupId, userContext.candidateUserIds);
+    if (!membership) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (view === 'recruitment_overview') {
+      const { data: settings, error: settingsError } = await supabaseAdmin
+        .from('groups')
+        .select('is_public, recruitment_open, recruitment_message, public_description, approval_required, default_role')
+        .eq('id', groupId)
+        .maybeSingle();
+
+      if (settingsError) {
+        return NextResponse.json({ error: 'Failed to load recruitment settings', details: settingsError.message }, { status: 500 });
+      }
+
+      const canManageRecruitment = roleHasPermission(membership.role, 'recruitment_manage');
+      let applications: Array<Record<string, unknown>> = [];
+
+      if (canManageRecruitment) {
+        const { data: appsData, error: appsError } = await supabaseAdmin
+          .from('recruitment_applications')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false });
+
+        if (appsError) {
+          return NextResponse.json({ error: 'Failed to load recruitment applications', details: appsError.message }, { status: 500 });
+        }
+
+        applications = (appsData || []) as Array<Record<string, unknown>>;
+      }
+
+      return NextResponse.json({
+        settings: settings || null,
+        applications,
+        can_manage_recruitment: canManageRecruitment,
+      });
+    }
+
+    if (view === 'group_fields') {
+      const fieldsParam = searchParams.get('fields') || '';
+      const requestedFields = fieldsParam
+        .split(',')
+        .map((field) => field.trim())
+        .filter((field) => field.length > 0);
+
+      if (requestedFields.length === 0) {
+        return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+      }
+
+      const allowedFields = requestedFields.filter((field) => ALLOWED_GROUP_FIELDS.has(field));
+      if (allowedFields.length === 0) {
+        return NextResponse.json({ error: 'No allowed fields requested' }, { status: 400 });
+      }
+
+      const hasRecruitmentFields = allowedFields.some((field) => RECRUITMENT_FIELDS.has(field));
+      const hasNonRecruitmentFields = allowedFields.some((field) => !RECRUITMENT_FIELDS.has(field));
+
+      if (hasRecruitmentFields && !roleHasPermission(membership.role, 'recruitment_manage')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (
+        hasNonRecruitmentFields &&
+        !roleHasPermission(membership.role, 'settings_edit') &&
+        !roleHasPermission(membership.role, 'settings_edit_roles')
+      ) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const { data: settings, error: settingsError } = await supabaseAdmin
+        .from('groups')
+        .select(allowedFields.join(', '))
+        .eq('id', groupId)
+        .maybeSingle();
+
+      if (settingsError) {
+        return NextResponse.json({ error: 'Failed to load requested group fields', details: settingsError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ fields: settings || {} });
+    }
+
+    return NextResponse.json({ error: 'Unsupported view' }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin();

@@ -45,11 +45,86 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
     return () => clearTimeout(timerId);
   }, [groupId, gameSlug]);
 
+  const fetchEventsViaApi = useCallback(async () => {
+    if (!groupId) {
+      throw new Error('Group is required to load events');
+    }
+
+    const response = await fetch(
+      `/api/group/events?group_id=${encodeURIComponent(groupId)}&game_slug=${encodeURIComponent(gameSlug || 'aoc')}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      }
+    );
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+      throw new Error(payload.details || payload.error || `Failed to load events (${response.status})`);
+    }
+
+    const payload = (await response.json()) as {
+      events?: Array<Event & { event_rsvps?: EventRsvp[]; guest_event_rsvps?: any[] }>;
+      announcements?: Announcement[];
+    };
+
+    const eventsWithRsvps: EventWithRsvps[] = (payload.events || []).map((event) => {
+      const rsvps = event.event_rsvps || [];
+      const guestRsvps = event.guest_event_rsvps || [];
+      return {
+        ...event,
+        rsvps,
+        guest_rsvps: guestRsvps,
+        rsvp_counts: {
+          attending: rsvps.filter((r: EventRsvp) => r.status === 'attending').length + guestRsvps.length,
+          maybe: rsvps.filter((r: EventRsvp) => r.status === 'maybe').length,
+          declined: rsvps.filter((r: EventRsvp) => r.status === 'declined').length,
+        },
+        role_counts: {
+          tank: {
+            attending: rsvps.filter((r: EventRsvp) => r.role === 'tank' && r.status === 'attending').length +
+                       guestRsvps.filter((g: any) => g.role === 'tank').length,
+            maybe: rsvps.filter((r: EventRsvp) => r.role === 'tank' && r.status === 'maybe').length,
+          },
+          cleric: {
+            attending: rsvps.filter((r: EventRsvp) => r.role === 'cleric' && r.status === 'attending').length +
+                       guestRsvps.filter((g: any) => g.role === 'cleric').length,
+            maybe: rsvps.filter((r: EventRsvp) => r.role === 'cleric' && r.status === 'maybe').length,
+          },
+          bard: {
+            attending: rsvps.filter((r: EventRsvp) => r.role === 'bard' && r.status === 'attending').length +
+                       guestRsvps.filter((g: any) => g.role === 'bard').length,
+            maybe: rsvps.filter((r: EventRsvp) => r.role === 'bard' && r.status === 'maybe').length,
+          },
+          ranged_dps: {
+            attending: rsvps.filter((r: EventRsvp) => r.role === 'ranged_dps' && r.status === 'attending').length +
+                       guestRsvps.filter((g: any) => g.role === 'ranged_dps').length,
+            maybe: rsvps.filter((r: EventRsvp) => r.role === 'ranged_dps' && r.status === 'maybe').length,
+          },
+          melee_dps: {
+            attending: rsvps.filter((r: EventRsvp) => r.role === 'melee_dps' && r.status === 'attending').length +
+                       guestRsvps.filter((g: any) => g.role === 'melee_dps').length,
+            maybe: rsvps.filter((r: EventRsvp) => r.role === 'melee_dps' && r.status === 'maybe').length,
+          },
+        },
+        user_rsvp: userId ? rsvps.find((r: EventRsvp) => r.user_id === userId) || null : null,
+      };
+    });
+
+    return {
+      events: eventsWithRsvps,
+      announcements: payload.announcements || [],
+    };
+  }, [gameSlug, groupId, userId]);
+
   // Fetch all events with RSVPs
   const fetchEvents = useCallback(async () => {
     if (!groupId) return;
 
     if (getClientAuthStack() === 'v2') {
+      const { events: eventsWithRsvps } = await fetchEventsViaApi();
+      setEvents(eventsWithRsvps);
       return;
     }
 
@@ -128,6 +203,8 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
     if (!groupId) return;
 
     if (getClientAuthStack() === 'v2') {
+      const { announcements: apiAnnouncements } = await fetchEventsViaApi();
+      setAnnouncements(apiAnnouncements);
       return;
     }
 
@@ -145,7 +222,7 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
     } catch (err) {
       console.error('Error fetching announcements:', err);
     }
-  }, [groupId]);
+  }, [fetchEventsViaApi, groupId]);
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -154,70 +231,9 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
 
     if (groupId && getClientAuthStack() === 'v2') {
       try {
-        const response = await fetch(
-          `/api/group/events?group_id=${encodeURIComponent(groupId)}&game_slug=${encodeURIComponent(gameSlug || 'aoc')}`,
-          {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store',
-          }
-        );
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
-          throw new Error(payload.details || payload.error || `Failed to load events (${response.status})`);
-        }
-
-        const payload = (await response.json()) as {
-          events?: Array<Event & { event_rsvps?: EventRsvp[]; guest_event_rsvps?: any[] }>;
-          announcements?: Announcement[];
-        };
-
-        const eventsWithRsvps: EventWithRsvps[] = (payload.events || []).map((event) => {
-          const rsvps = event.event_rsvps || [];
-          const guestRsvps = event.guest_event_rsvps || [];
-          return {
-            ...event,
-            rsvps,
-            guest_rsvps: guestRsvps,
-            rsvp_counts: {
-              attending: rsvps.filter((r: EventRsvp) => r.status === 'attending').length + guestRsvps.length,
-              maybe: rsvps.filter((r: EventRsvp) => r.status === 'maybe').length,
-              declined: rsvps.filter((r: EventRsvp) => r.status === 'declined').length,
-            },
-            role_counts: {
-              tank: {
-                attending: rsvps.filter((r: EventRsvp) => r.role === 'tank' && r.status === 'attending').length +
-                           guestRsvps.filter((g: any) => g.role === 'tank').length,
-                maybe: rsvps.filter((r: EventRsvp) => r.role === 'tank' && r.status === 'maybe').length,
-              },
-              cleric: {
-                attending: rsvps.filter((r: EventRsvp) => r.role === 'cleric' && r.status === 'attending').length +
-                           guestRsvps.filter((g: any) => g.role === 'cleric').length,
-                maybe: rsvps.filter((r: EventRsvp) => r.role === 'cleric' && r.status === 'maybe').length,
-              },
-              bard: {
-                attending: rsvps.filter((r: EventRsvp) => r.role === 'bard' && r.status === 'attending').length +
-                           guestRsvps.filter((g: any) => g.role === 'bard').length,
-                maybe: rsvps.filter((r: EventRsvp) => r.role === 'bard' && r.status === 'maybe').length,
-              },
-              ranged_dps: {
-                attending: rsvps.filter((r: EventRsvp) => r.role === 'ranged_dps' && r.status === 'attending').length +
-                           guestRsvps.filter((g: any) => g.role === 'ranged_dps').length,
-                maybe: rsvps.filter((r: EventRsvp) => r.role === 'ranged_dps' && r.status === 'maybe').length,
-              },
-              melee_dps: {
-                attending: rsvps.filter((r: EventRsvp) => r.role === 'melee_dps' && r.status === 'attending').length +
-                           guestRsvps.filter((g: any) => g.role === 'melee_dps').length,
-                maybe: rsvps.filter((r: EventRsvp) => r.role === 'melee_dps' && r.status === 'maybe').length,
-              },
-            },
-            user_rsvp: userId ? rsvps.find((r: EventRsvp) => r.user_id === userId) || null : null,
-          } as EventWithRsvps;
-        });
-
-        setEvents(eventsWithRsvps);
-        setAnnouncements(payload.announcements || []);
+        const payload = await fetchEventsViaApi();
+        setEvents(payload.events);
+        setAnnouncements(payload.announcements);
       } catch (err) {
         console.error('Error fetching events via API:', err);
         setError(err instanceof Error ? err.message : 'Failed to load events');
@@ -800,4 +816,3 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
     refresh: fetchData,
   };
 }
-

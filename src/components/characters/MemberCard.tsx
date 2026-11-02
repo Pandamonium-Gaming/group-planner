@@ -13,6 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getGameConfig } from '@/config';
 import { Clan } from '@/lib/types';
 import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRankSettings';
+import { getWowForeverClass, getWowForeverRaceFaction } from '@/games/wowforever/config';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -89,6 +90,10 @@ export function CharacterCard({
   const rorFaction = character.ror_faction ? ROR_FACTIONS[character.ror_faction as keyof typeof ROR_FACTIONS] : null;
   const rorClass = character.ror_class ? ROR_CLASSES.find(c => c.id === character.ror_class) : null;
   const rorRole = rorClass ? ROR_ROLE_CONFIG[rorClass.role] : null;
+  const wowClass = character.wow_class ? getWowForeverClass(character.wow_class) : null;
+  const wowFaction = character.wow_race && character.wow_class
+    ? getWowForeverRaceFaction(character.wow_race, character.wow_class)
+    : null;
 
   const handleSave = async () => {
     if (editName.trim() && editName !== character.name) {
@@ -230,6 +235,26 @@ export function CharacterCard({
                     <span className="text-slate-300">{rorClass.name}</span>
                   </div>
                 )}
+                {gameSlug === 'wowforever' && (
+                  <div className="mt-0.5 text-sm">
+                    <div className="flex items-center gap-2">
+                      {character.wow_race && <span className="text-slate-400">{character.wow_race}</span>}
+                      {character.wow_race && wowClass && <span className="text-slate-600">•</span>}
+                      {wowClass && <span className="text-slate-300">{wowClass.name}</span>}
+                      {wowFaction && <span className="text-slate-500">({wowFaction})</span>}
+                    </div>
+                    {(character.wow_main_spec || character.wow_secondary_spec) && (
+                      <div className="text-xs text-slate-400 mt-1">
+                        {[character.wow_main_spec, character.wow_secondary_spec].filter(Boolean).join(' / ')}
+                      </div>
+                    )}
+                    {(character.wow_profession_1 || character.wow_profession_2) && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        {[character.wow_profession_1, character.wow_profession_2].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Main/Alt relationship */}
                 {mainCharacterName && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
@@ -354,6 +379,28 @@ export function CharacterCard({
               <div>readOnly: {String(readOnly)}</div>
             </div>
           )}
+
+        </div>
+      )}
+
+      {isExpanded && gameSlug === 'wowforever' && (
+        <div className="border-t border-slate-800 p-4 space-y-2 text-sm">
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.mainSpec')}:</span>{' '}
+            {character.wow_main_spec || '—'}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.secondarySpec')}:</span>{' '}
+            {character.wow_secondary_spec || '—'}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.firstProfession')}:</span>{' '}
+            {character.wow_profession_1 || '—'}
+          </div>
+          <div className="text-slate-300">
+            <span className="text-slate-500">{t('wowForever.secondProfession')}:</span>{' '}
+            {character.wow_profession_2 || '—'}
+          </div>
         </div>
       )}
 
@@ -464,4 +511,3 @@ export function CharacterCard({
 
 // Legacy alias for backward compatibility
 export { CharacterCard as MemberCard };
-

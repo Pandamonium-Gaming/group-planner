@@ -56,7 +56,7 @@ export default function SettingsPage() {
       <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
         <h2 className="text-xl font-bold text-white mb-2">{t('settings.gameSettingsTitle') || `${gameSlug.toUpperCase()} Settings`}</h2>
         <p className="text-sm text-slate-400 mb-3">
-          Configure game-specific settings for {gameSlug === 'aoc' ? 'Ashes of Creation' : gameSlug === 'sc' || gameSlug === 'starcitizen' ? 'Star Citizen' : gameSlug === 'ror' ? 'Return of Reckoning' : gameSlug.toUpperCase()}.
+          Configure game-specific settings for {gameSlug === 'aoc' ? 'Ashes of Creation' : gameSlug === 'sc' || gameSlug === 'starcitizen' ? 'Star Citizen' : gameSlug === 'ror' ? 'Return of Reckoning' : gameSlug === 'wowforever' ? 'WoW Forever' : gameSlug.toUpperCase()}.
         </p>
         <Link 
           href={`/${groupSlug}/settings`}
@@ -102,12 +102,16 @@ export default function SettingsPage() {
           currentScEventsWebhookUrl={group.sc_events_webhook_url || ''}
           currentRorWebhookUrl={group.ror_webhook_url || ''}
           currentRorEventsWebhookUrl={group.ror_events_webhook_url || ''}
+          currentWowForeverWebhookUrl={group.wowforever_webhook_url || ''}
+          currentWowForeverEventsWebhookUrl={group.wowforever_events_webhook_url || ''}
           aocAnnouncementRoleId={group.aoc_announcement_role_id || ''}
           aocEventsRoleId={group.aoc_events_role_id || ''}
           scAnnouncementRoleId={group.sc_announcement_role_id || ''}
           scEventsRoleId={group.sc_events_role_id || ''}
           rorAnnouncementRoleId={group.ror_announcement_role_id || ''}
           rorEventsRoleId={group.ror_events_role_id || ''}
+          wowForeverAnnouncementRoleId={group.wowforever_announcement_role_id || ''}
+          wowForeverEventsRoleId={group.wowforever_events_role_id || ''}
         />
       )}
 

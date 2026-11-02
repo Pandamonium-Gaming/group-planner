@@ -4,6 +4,30 @@
 
 ### Added
 
+* Added WoW Forever game support with race/class compatibility, Skyborne Mage/Shaman faction restrictions, class specializations, two profession fields, main/alt roster display, and Characters, Events, Parties, Alliances, and Manage tabs.
+
+* **PR-06A BC-safe runtime decoupling slice**
+  * Added app-owned public-group listing route at `src/app/api/groups/public/route.ts`
+  * Added app-owned group lookup by slug route at `src/app/api/groups/by-slug/route.ts`
+  * Added app-owned public events route at `src/app/api/events/public/route.ts` and routed `PublicEventsView` through it
+  * Added app-owned builds route at `src/app/api/group/builds/route.ts` for list, mutation, like, copy, and comment operations
+  * Added app-owned recruitment overview read path in `src/app/api/group/settings/route.ts` and moved `RecruitmentSettings` v2 reads to it
+  * Added app-owned allowed field-read view in `src/app/api/group/settings/route.ts` and moved `GameRecruitmentSettings` v2 reads to it
+  * Added v2 app-owned read refreshes for `GroupDiscordSettings` and `ClanSettings` via `GET /api/group/settings?view=group_fields` with prop/v1 fallbacks preserved
+  * Extended `src/app/api/group/members/route.ts` with character/profession mutation actions and moved `useGroupData` v2 character create/update/delete + profession rank writes through app-owned APIs with Supabase fallback retained
+  * Added `sync_subscriber_tier` action to `src/app/api/group/members/route.ts` and moved `useGroupData` v2 Star Citizen subscriber ship sync/removal side-effects through app-owned APIs with fallback retained
+  * Updated `CharacterForm` subscriber ship re-sync to use app-owned `sync_subscriber_tier` in v2 (with force-resync support) and keep direct Supabase utility fallback
+  * Hardened settings v2 write paths (`RecruitmentSettings`, `GameRecruitmentSettings`, `GameRankSettings`, `GroupDiscordSettings`, `ClanSettings`) with fetch-availability guards to preserve Supabase fallback in test/non-browser contexts
+  * Added PATCH support for profile updates in `src/app/api/me/profile/route.ts`
+  * Routed homepage public-group loading and settings saves through API-backed paths while preserving v1 Supabase fallbacks
+  * Added BC-safe membership list/mutation support to `src/app/api/group/members/route.ts` and moved `useGroupMembership` v2 reads/writes to the API
+  * Updated `useGroupData` to resolve v2 group details and role checks via app-owned APIs with compatibility fallbacks
+  * Updated `useBuilds` so v2 reads/writes flow through app-owned APIs while v1 Supabase fallback remains available
+
+* **Production-like app + db compose overlay**
+  * Added `docker-compose.prod.stack.yml` to combine the production app override with a local Postgres container for self-hosted prod-style validation
+  * Added production stack command examples to `README.md`
+
 * **Customizable game rank settings per group**
   * Added group-level rank settings storage columns and migration: `supabase/migrations/007_game_rank_settings.sql`
   * Added `GameRankSettings` to game settings pages for:

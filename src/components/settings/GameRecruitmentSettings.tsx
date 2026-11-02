@@ -24,6 +24,7 @@ export function GameRecruitmentSettings({ groupId, gameSlug }: GameRecruitmentSe
   const [localLoading, setLocalLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const canManageRecruitment = hasPermission('recruitment_manage');
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
 
   // Map game slug to column names
   const getColumnNames = () => {
@@ -41,6 +42,7 @@ export function GameRecruitmentSettings({ groupId, gameSlug }: GameRecruitmentSe
       sc: 'Star Citizen',
       starcitizen: 'Star Citizen',
       ror: 'Return of Reckoning',
+      wowforever: 'WoW Forever',
     };
     return names[gameSlug] || gameSlug.toUpperCase();
   };
@@ -54,11 +56,40 @@ export function GameRecruitmentSettings({ groupId, gameSlug }: GameRecruitmentSe
       setError(null);
       try {
         const columns = getColumnNames();
-        const { data: groupData, error: groupError } = await supabase
-          .from('groups')
-          .select(`${columns.recruitmentOpen}, ${columns.recruitmentMessage}, ${columns.publicDescription}`)
-          .eq('id', groupId)
-          .single();
+        let groupData: Record<string, any> | null = null;
+        let groupError: Error | null = null;
+
+        if (canUseV2Api) {
+          const fields = [columns.recruitmentOpen, columns.recruitmentMessage, columns.publicDescription]
+            .map(encodeURIComponent)
+            .join(',');
+
+          const response = await fetch(
+            `/api/group/settings?group_id=${encodeURIComponent(groupId)}&view=group_fields&fields=${fields}`,
+            {
+              method: 'GET',
+              credentials: 'include',
+              cache: 'no-store',
+            }
+          );
+
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+            throw new Error(payload.details || payload.error || `Failed to load settings (${response.status})`);
+          }
+
+          const payload = (await response.json()) as { fields?: Record<string, unknown> };
+          groupData = (payload.fields || {}) as Record<string, any>;
+        } else {
+          const result = await supabase
+            .from('groups')
+            .select(`${columns.recruitmentOpen}, ${columns.recruitmentMessage}, ${columns.publicDescription}`)
+            .eq('id', groupId)
+            .single();
+
+          groupData = (result.data as Record<string, any> | null) || null;
+          groupError = result.error as Error | null;
+        }
         
         if (!isMounted) return;
         if (groupError) {
@@ -85,7 +116,7 @@ export function GameRecruitmentSettings({ groupId, gameSlug }: GameRecruitmentSe
     return () => {
       isMounted = false;
     };
-  }, [groupId, gameSlug]);
+  }, [groupId, gameSlug, canUseV2Api]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -99,7 +130,7 @@ export function GameRecruitmentSettings({ groupId, gameSlug }: GameRecruitmentSe
         [columns.publicDescription]: publicDescription.trim() || null,
       };
 
-      if (getClientAuthStack() === 'v2') {
+      if (canUseV2Api) {
         const response = await fetch('/api/group/settings', {
           method: 'POST',
           credentials: 'include',

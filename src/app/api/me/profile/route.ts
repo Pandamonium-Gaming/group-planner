@@ -108,3 +108,62 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const authContext = await resolveAuthContext(request);
+    if (!authContext.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = (await request.json()) as {
+      timezone?: string;
+      display_name?: string | null;
+    };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseServiceRole) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceRole);
+    const updatePayload: Record<string, unknown> = {};
+
+    if (typeof body.timezone === 'string') {
+      updatePayload.timezone = body.timezone;
+    }
+
+    if (body.display_name !== undefined) {
+      updatePayload.display_name = body.display_name?.trim() || null;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
+    }
+
+    const { error } = await adminClient
+      .from('users')
+      .update(updatePayload)
+      .eq('id', authContext.userId);
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update profile', details: error.message }, { status: 500 });
+    }
+
+    const profile = await findOrCreateUserProfileById(authContext.userId, {
+      discordId: authContext.discordId,
+      discordUsername: authContext.discordUsername,
+      discordAvatar: authContext.discordAvatar,
+      displayName: body.display_name ?? authContext.displayName,
+      timezone: typeof body.timezone === 'string' ? body.timezone : 'UTC',
+    });
+
+    return NextResponse.json({ profile });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Server error' },
+      { status: 500 }
+    );
+  }
+}

@@ -24,6 +24,7 @@ export const GAME_TAB_ALLOWLIST: Record<string, Tab[]> = {
   'aoc': ['characters', 'events', 'matrix', 'manage', 'parties', 'siege', 'economy', 'achievements', 'alliances', 'builds'],
   'starcitizen': ['characters', 'events', 'matrix', 'manage', 'ships'],
   'ror': ['characters', 'events', 'manage', 'parties', 'alliances'],
+  'wowforever': ['characters', 'events', 'manage', 'parties', 'alliances'],
 };
 
 // Tab icons and purposes for different games
@@ -37,4 +38,5 @@ export const GAME_TAB_CUSTOMIZATION: Record<string, Partial<Record<Tab, string>>
 export const GAME_TAB_EXCLUSIONS: Record<string, Tab[]> = {
   'starcitizen': ['economy', 'achievements', 'alliances', 'builds', 'parties', 'siege'],
   'ror': ['economy', 'matrix', 'achievements', 'builds', 'siege', 'fleet', 'ships'],
+  'wowforever': ['economy', 'matrix', 'achievements', 'builds', 'siege', 'fleet', 'ships'],
 };

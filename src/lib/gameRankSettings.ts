@@ -11,9 +11,10 @@ function isOpaqueRankToken(value: string): boolean {
   return /^[a-z0-9_-]{1,24}$/i.test(value);
 }
 
-export function normalizeGameId(gameSlug: string): 'aoc' | 'sc' | 'ror' {
+export function normalizeGameId(gameSlug: string): 'aoc' | 'sc' | 'ror' | 'wowforever' {
   if (gameSlug === 'starcitizen' || gameSlug === 'star-citizen') return 'sc';
   if (gameSlug === 'ror' || gameSlug === 'returnofreckoning' || gameSlug === 'return-of-reckoning') return 'ror';
+  if (gameSlug === 'wowforever') return 'wowforever';
   return 'aoc';
 }
 
@@ -34,6 +35,13 @@ export function getRankColumnNames(gameSlug: string): {
     return {
       enabledColumn: 'ror_ranks_enabled',
       customRanksColumn: 'ror_custom_ranks',
+    };
+  }
+
+  if (gameId === 'wowforever') {
+    return {
+      enabledColumn: 'wowforever_ranks_enabled',
+      customRanksColumn: 'wowforever_custom_ranks',
     };
   }
 
@@ -81,7 +89,7 @@ function normalizeRanks(ranks: unknown[]): GameRank[] {
 export function getDefaultGameRanks(gameSlug: string): GameRank[] {
   // RoR does not currently define static rank defaults in config.
   // Use custom ranks only when configured at group level.
-  if (normalizeGameId(gameSlug) === 'ror') {
+  if (normalizeGameId(gameSlug) === 'ror' || normalizeGameId(gameSlug) === 'wowforever') {
     return [];
   }
 

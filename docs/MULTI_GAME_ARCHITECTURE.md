@@ -4,7 +4,7 @@ This document describes the architecture for supporting multiple games in the Gr
 
 ## Overview
 
-The application has been refactored to support multiple games (Ashes of Creation, Star Citizen, and more in the future) while maintaining a shared authentication, group management, and organizational structure.
+The application supports Ashes of Creation, Star Citizen, Return of Reckoning, and WoW Forever while maintaining shared authentication, group management, and organizational structure.
 
 ## Directory Structure
 
@@ -27,6 +27,11 @@ src/
 │       │   └── roles.json
 │       └── hooks/
 │           └── (game-specific hooks)
+│
+│   └── wowforever/
+│       └── config/
+│           ├── index.ts          # Races, class/spec combinations, and professions
+│           └── game.ts          # Game registry entry
 │
 ├── lib/
 │   ├── games.ts                   # Game registry and utilities
@@ -88,6 +93,8 @@ A new migration (`034_add_game_support.sql`) adds:
 * `game` column to `clans` table (tracks which game each clan belongs to)
 * `game_types` table (reference table for game definitions)
 * `user_games` table (tracks which games a user participates in)
+
+WoW Forever characters store race, class, main/secondary specialization, and two professions in game-specific member fields. Current race/class options follow the Wowhead WoW: Forever guide; the class specialization and profession lists are maintained from the supplied game data.
 
 ## User Flow
 

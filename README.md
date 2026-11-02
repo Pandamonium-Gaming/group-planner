@@ -118,6 +118,9 @@ Remove stack including database volume:
 docker compose -f docker-compose.stack.yml down -v
 ```
 
+Use this profile when you are validating migration behavior, data export/import, or endpoint parity.
+It keeps the app and Postgres local and is the right choice for PR-06 rehearsal work.
+
 ### Production-like Compose profile
 
 ```powershell
@@ -132,6 +135,26 @@ This profile adds:
 * container healthcheck
 * production env-file (`.env.production`)
 * resource limits/reservations metadata for orchestrated deployments
+
+### Production-like app + db stack
+
+Use this when you want the production app settings plus a local Postgres container:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.prod.stack.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.prod.stack.yml ps
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.prod.stack.yml logs -f app
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.prod.stack.yml down
+```
+
+This profile combines:
+
+* production app settings from `docker-compose.prod.yml`
+* local Postgres from `docker-compose.prod.stack.yml`
+* the same app + db wiring used for migration rehearsal, but with prod compose metadata applied to the app container
+
+Use this profile when you want to validate the production app settings against a local Postgres container.
+If you are actively rehearsing Supabase exit migration steps, prefer the plain stack profile instead.
 
 ## PR-02 Auth.js Local Validation
 

@@ -23,6 +23,12 @@ export interface CharacterData {
   rank?: string | null;
   ror_faction?: string | null;
   ror_class?: string | null;
+  wow_race?: string | null;
+  wow_class?: string | null;
+  wow_main_spec?: string | null;
+  wow_secondary_spec?: string | null;
+  wow_profession_1?: string | null;
+  wow_profession_2?: string | null;
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -51,9 +57,31 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
   const [characters, setCharacters] = useState<CharacterWithProfessions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
+
+  const callMembersApi = useCallback(
+    async <T>(body: Record<string, unknown>, defaultError: string): Promise<T> => {
+      const response = await fetch('/api/group/members', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `${defaultError} (${response.status})`);
+      }
+
+      return (await response.json()) as T;
+    },
+    []
+  );
 
   const resolveCurrentUserId = useCallback(async (): Promise<string | null> => {
-    if (getClientAuthStack() === 'v2') {
+    if (getClientAuthStack() === 'v2' && typeof fetch === 'function') {
       try {
         const response = await fetch('/api/auth/session', {
           method: 'GET',
@@ -90,6 +118,36 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     return null;
   }, []);
 
+  const resolveCurrentGroupRole = useCallback(async (groupId: string, currentUserId: string): Promise<GroupRole> => {
+    if (getClientAuthStack() === 'v2' && typeof fetch === 'function') {
+      try {
+        const response = await fetch(`/api/groups/${encodeURIComponent(groupId)}/permissions`, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (response.ok) {
+          const payload = (await response.json()) as { role?: GroupRole };
+          return (payload.role || 'member') as GroupRole;
+        }
+      } catch (err) {
+        console.error('[useGroupData] Failed to resolve v2 group role via API:', err);
+      }
+
+      return 'member';
+    }
+
+    const { data: membershipData } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', currentUserId)
+      .maybeSingle();
+
+    return (membershipData?.role || 'member') as GroupRole;
+  }, []);
+
   // Reset state when groupSlug or gameSlug changes (prevent stale data on route transition)
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -104,6 +162,22 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
   // Fetch clan (no longer auto-creates - that's handled by UI)
   const fetchClan = useCallback(async (): Promise<Clan | null> => {
     try {
+      if (getClientAuthStack() === 'v2' && typeof fetch === 'function') {
+        const response = await fetch(`/api/groups/by-slug?slug=${encodeURIComponent(groupSlug)}`, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (response.ok) {
+          const payload = (await response.json()) as { group?: Clan | null };
+          return payload.group || null;
+        }
+
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+        throw new Error(payload.details || payload.error || `Failed to load group (${response.status})`);
+      }
+
       const { data: existingClan, error: fetchError } = await supabase
         .from('groups')
         .select('*')
@@ -137,7 +211,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
 
       let charactersData: CharacterWithProfessions[] = [];
 
-      if (getClientAuthStack() === 'v2') {
+      if (canUseV2Api) {
         try {
           const response = await fetch(
             `/api/group/members?group_id=${encodeURIComponent(groupData.id)}&game_slug=${encodeURIComponent(gameSlug || 'aoc')}`,
@@ -207,7 +281,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     } finally {
       setLoading(false);
     }
-  }, [fetchClan]);
+  }, [canUseV2Api, fetchClan]);
 
   // Initial fetch
   useEffect(() => {
@@ -223,38 +297,68 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     if (!group) return;
 
     const currentUserId = await resolveCurrentUserId();
-
-    // If setting as main, first unmark any other main characters for this user
-    const targetUserId = data.user_id !== undefined ? data.user_id : (currentUserId || null);
     const targetGameSlug = gameSlug || 'aoc';
-    if (data.is_main && targetUserId) {
-      await supabase
-        .from('members')
-        .update({ is_main: false })
-        .eq('group_id', group.id)
-        .eq('user_id', targetUserId)
-        .eq('game_slug', targetGameSlug)
-        .eq('is_main', true);
+    const targetUserId = data.user_id !== undefined ? data.user_id : (currentUserId || null);
+    let insertedData: Array<{ id: string }> | null = null;
+
+    if (canUseV2Api) {
+      try {
+        const payload = await callMembersApi<{ character?: { id?: string } }>(
+          {
+            action: 'create_character',
+            group_id: group.id,
+            game_slug: targetGameSlug,
+            character: {
+              ...buildMemberUpdate(data as Partial<CharacterData> & Record<string, unknown>, targetGameSlug),
+              user_id: targetUserId,
+              name: data.name,
+              level: data.level || 1,
+              is_main: data.is_main || false,
+            },
+          },
+          'Failed to create character'
+        );
+
+        if (payload.character?.id) {
+          insertedData = [{ id: payload.character.id }];
+        }
+      } catch (apiError) {
+        console.error('[useGroupData] Falling back to direct Supabase create character:', apiError);
+      }
     }
 
-    const insertPayload = {
-      ...buildMemberUpdate(data as Partial<CharacterData> & Record<string, unknown>, gameSlug || 'aoc'),
-      group_id: group.id,
-      user_id: data.user_id !== undefined ? data.user_id : (currentUserId || null),
-      name: data.name,
-      level: data.level || 1,
-      is_main: data.is_main || false,
-      game_slug: gameSlug || 'aoc',
-    };
+    if (!insertedData) {
+      if (data.is_main && targetUserId) {
+        await supabase
+          .from('members')
+          .update({ is_main: false })
+          .eq('group_id', group.id)
+          .eq('user_id', targetUserId)
+          .eq('game_slug', targetGameSlug)
+          .eq('is_main', true);
+      }
 
-    const { data: insertedData, error: insertError } = await supabase
-      .from('members')
-      .insert(insertPayload)
-      .select();
+      const insertPayload = {
+        ...buildMemberUpdate(data as Partial<CharacterData> & Record<string, unknown>, targetGameSlug),
+        group_id: group.id,
+        user_id: targetUserId,
+        name: data.name,
+        level: data.level || 1,
+        is_main: data.is_main || false,
+        game_slug: targetGameSlug,
+      };
 
-    if (insertError) {
-      setError(handleAsyncError(insertError, 'Failed to add character', { context: 'addCharacter', gameSlug: targetGameSlug }));
-      throw insertError;
+      const { data: insertedRows, error: insertError } = await supabase
+        .from('members')
+        .insert(insertPayload)
+        .select();
+
+      if (insertError) {
+        setError(handleAsyncError(insertError, 'Failed to add character', { context: 'addCharacter', gameSlug: targetGameSlug }));
+        throw insertError;
+      }
+
+      insertedData = (insertedRows || []) as Array<{ id: string }>;
     }
 
     // Handle subscriber tier for Star Citizen new character creation
@@ -262,16 +366,36 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       try {
         const characterId = insertedData[0].id;
 
-        const { getCurrentMonthKey } = await import('@/games/starcitizen/config/subscriber-ships');
-        const currentMonth = getCurrentMonthKey();
-        
-        await syncSubscriberShips(supabase, characterId, data.subscriber_tier);
-        
-        // Set the subscriber_ships_month to track which month's ships we have
-        await supabase
-          .from('members')
-          .update({ subscriber_ships_month: currentMonth })
-          .eq('id', characterId);
+        let syncedViaApi = false;
+        if (canUseV2Api) {
+          try {
+            await callMembersApi<{ success: boolean }>(
+              {
+                action: 'sync_subscriber_tier',
+                group_id: group.id,
+                character_id: characterId,
+                old_tier: null,
+                new_tier: data.subscriber_tier,
+              },
+              'Failed to sync subscriber ships'
+            );
+            syncedViaApi = true;
+          } catch (apiError) {
+            console.error('[useGroupData] Falling back to direct Supabase subscriber sync on create:', apiError);
+          }
+        }
+
+        if (!syncedViaApi) {
+          const { getCurrentMonthKey } = await import('@/games/starcitizen/config/subscriber-ships');
+          const currentMonth = getCurrentMonthKey();
+
+          await syncSubscriberShips(supabase, characterId, data.subscriber_tier);
+
+          await supabase
+            .from('members')
+            .update({ subscriber_ships_month: currentMonth })
+            .eq('id', characterId);
+        }
       } catch (err) {
         console.error('Error syncing subscriber ships for new character:', err);
         // Don't throw - character was created successfully
@@ -305,6 +429,19 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       if ('ror_class' in data) payload.ror_class = data.ror_class ?? null;
     }
 
+    if (effectiveGame === 'wowforever') {
+      [
+        'wow_race',
+        'wow_class',
+        'wow_main_spec',
+        'wow_secondary_spec',
+        'wow_profession_1',
+        'wow_profession_2',
+      ].forEach((field) => {
+        if (field in data) payload[field] = data[field] ?? null;
+      });
+    }
+
     if (effectiveGame === 'starcitizen') {
       if ('subscriber_tier' in data) payload.subscriber_tier = data.subscriber_tier ?? null;
       if ('subscriber_since' in data) payload.subscriber_since = data.subscriber_since ?? null;
@@ -333,19 +470,12 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       throw new Error('Group not found');
     }
 
-    const { data: membershipData } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', group.id)
-      .eq('user_id', currentUserId)
-      .maybeSingle();
-
-    const userRole = (membershipData?.role || 'member') as GroupRole;
+    const userRole = await resolveCurrentGroupRole(group.id, currentUserId);
 
     // Check if user can edit this character
     if (!canEditCharacter(userRole, character.user_id, currentUserId)) {
       // If officer trying to edit another user's character, check that target user is a member
-      if (userRole === 'officer' && character.user_id !== currentUserId) {
+      if (getClientAuthStack() !== 'v2' && userRole === 'officer' && character.user_id !== currentUserId) {
         const { data: targetMembership } = await supabase
           .from('group_members')
           .select('role')
@@ -364,7 +494,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     }
 
     // If setting as main, first unmark any other main characters for the target user
-    if (data.is_main === true) {
+    if (data.is_main === true && !canUseV2Api) {
       const targetUserId = (data as any).user_id ?? character.user_id;
       const targetGameSlug = (character as any)?.game_slug || gameSlug || (data as any).game_slug || 'aoc';
       if (targetUserId) {
@@ -426,16 +556,39 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from('members')
-      .update(memberData)
-      .eq('id', id)
-      .select();
+    if (Object.keys(memberData).length > 0) {
+      let updatedViaApi = false;
 
-    if (updateError) {
-      console.error('Error updating character:', updateError);
-      setError(updateError.message);
-      throw updateError;
+      if (canUseV2Api) {
+        try {
+          await callMembersApi<{ success: boolean }>(
+            {
+              action: 'update_character',
+              group_id: group.id,
+              character_id: id,
+              changes: memberData,
+            },
+            'Failed to update character'
+          );
+          updatedViaApi = true;
+        } catch (apiError) {
+          console.error('[useGroupData] Falling back to direct Supabase character update:', apiError);
+        }
+      }
+
+      if (!updatedViaApi) {
+        const { error: updateError } = await supabase
+          .from('members')
+          .update(memberData)
+          .eq('id', id)
+          .select();
+
+        if (updateError) {
+          console.error('Error updating character:', updateError);
+          setError(updateError.message);
+          throw updateError;
+        }
+      }
     }
 
     // Keep character modal rank changes aligned with member rank management data.
@@ -491,22 +644,40 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       if (newTier && newTier !== oldTier) {
         // User selected a subscriber tier
         try {
-          const { getCurrentMonthKey } = await import('@/games/starcitizen/config/subscriber-ships');
-          const currentMonth = getCurrentMonthKey();
-
-          if (oldTier) {
-            // Tier changed
-            await updateSubscriberTier(supabase, id, oldTier as any, newTier);
-          } else {
-            // New tier assignment
-            await syncSubscriberShips(supabase, id, newTier);
+          let syncedViaApi = false;
+          if (canUseV2Api && group?.id) {
+            try {
+              await callMembersApi<{ success: boolean }>(
+                {
+                  action: 'sync_subscriber_tier',
+                  group_id: group.id,
+                  character_id: id,
+                  old_tier: oldTier ?? null,
+                  new_tier: newTier,
+                },
+                'Failed to sync subscriber ships'
+              );
+              syncedViaApi = true;
+            } catch (apiError) {
+              console.error('[useGroupData] Falling back to direct Supabase subscriber tier sync:', apiError);
+            }
           }
 
-          // Update subscriber_ships_month to track which month's ships we have
-          await supabase
-            .from('members')
-            .update({ subscriber_ships_month: currentMonth })
-            .eq('id', id);
+          if (!syncedViaApi) {
+            const { getCurrentMonthKey } = await import('@/games/starcitizen/config/subscriber-ships');
+            const currentMonth = getCurrentMonthKey();
+
+            if (oldTier) {
+              await updateSubscriberTier(supabase, id, oldTier as any, newTier);
+            } else {
+              await syncSubscriberShips(supabase, id, newTier);
+            }
+
+            await supabase
+              .from('members')
+              .update({ subscriber_ships_month: currentMonth })
+              .eq('id', id);
+          }
         } catch (err) {
           console.error('Error syncing subscriber ships:', err);
           // Don't throw - let the update succeed even if ship sync fails
@@ -514,18 +685,38 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       } else if (!newTier && oldTier) {
         // Tier was removed - remove subscriber ships
         try {
-          const { getSubscriberShips } = await import('@/games/starcitizen/config/subscriber-ships');
-          const { removeSubscriberShips } = await import('@/lib/subscriberShips');
-          const shipsToRemove = getSubscriberShips(oldTier);
-          if (shipsToRemove && shipsToRemove.length > 0) {
-            await removeSubscriberShips(supabase, id, shipsToRemove);
+          let syncedViaApi = false;
+          if (canUseV2Api && group?.id) {
+            try {
+              await callMembersApi<{ success: boolean }>(
+                {
+                  action: 'sync_subscriber_tier',
+                  group_id: group.id,
+                  character_id: id,
+                  old_tier: oldTier,
+                  new_tier: null,
+                },
+                'Failed to clear subscriber ships'
+              );
+              syncedViaApi = true;
+            } catch (apiError) {
+              console.error('[useGroupData] Falling back to direct Supabase subscriber tier removal:', apiError);
+            }
           }
 
-          // Clear subscriber_ships_month
-          await supabase
-            .from('members')
-            .update({ subscriber_ships_month: null })
-            .eq('id', id);
+          if (!syncedViaApi) {
+            const { getSubscriberShips } = await import('@/games/starcitizen/config/subscriber-ships');
+            const { removeSubscriberShips } = await import('@/lib/subscriberShips');
+            const shipsToRemove = getSubscriberShips(oldTier);
+            if (shipsToRemove && shipsToRemove.length > 0) {
+              await removeSubscriberShips(supabase, id, shipsToRemove);
+            }
+
+            await supabase
+              .from('members')
+              .update({ subscriber_ships_month: null })
+              .eq('id', id);
+          }
         } catch (err) {
           console.error('Error removing subscriber ships:', err);
           // Don't throw - let the update succeed
@@ -555,19 +746,12 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       throw new Error('Group not found');
     }
 
-    const { data: membershipData } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', group.id)
-      .eq('user_id', currentUserId)
-      .maybeSingle();
-
-    const userRole = (membershipData?.role || 'member') as GroupRole;
+    const userRole = await resolveCurrentGroupRole(group.id, currentUserId);
 
     // Check if user can delete this character
     if (!canDeleteCharacter(userRole, character.user_id, currentUserId)) {
       // If officer trying to delete another user's character, check that target user is a member
-      if (userRole === 'officer' && character.user_id !== currentUserId) {
+      if (getClientAuthStack() !== 'v2' && userRole === 'officer' && character.user_id !== currentUserId) {
         const { data: targetMembership } = await supabase
           .from('group_members')
           .select('role')
@@ -585,15 +769,34 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       }
     }
 
-    const { error: deleteError } = await supabase
-      .from('members')
-      .delete()
-      .eq('id', id)
-      .select();
+    let deletedViaApi = false;
+    if (canUseV2Api) {
+      try {
+        await callMembersApi<{ success: boolean }>(
+          {
+            action: 'delete_character',
+            group_id: group.id,
+            character_id: id,
+          },
+          'Failed to delete character'
+        );
+        deletedViaApi = true;
+      } catch (apiError) {
+        console.error('[useGroupData] Falling back to direct Supabase character delete:', apiError);
+      }
+    }
 
-    if (deleteError) {
-      setError(handleAsyncError(deleteError, 'Failed to delete character', { context: 'deleteCharacter', characterId: id }));
-      throw deleteError;
+    if (!deletedViaApi) {
+      const { error: deleteError } = await supabase
+        .from('members')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (deleteError) {
+        setError(handleAsyncError(deleteError, 'Failed to delete character', { context: 'deleteCharacter', characterId: id }));
+        throw deleteError;
+      }
     }
 
     await fetchData();
@@ -649,31 +852,55 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
 
     // Persist to database in background
     try {
-      if (rank === null) {
-        const { error: deleteError } = await supabase
-          .from('member_professions')
-          .delete()
-          .eq('member_id', characterId)
-          .eq('profession', professionId)
-          .select();
+      let persistedViaApi = false;
 
-        if (deleteError) throw deleteError;
-      } else {
-        const { error: upsertError } = await supabase
-          .from('member_professions')
-          .upsert(
-            { 
-              member_id: characterId, 
-              profession: professionId, 
+      if (canUseV2Api && group?.id) {
+        try {
+          await callMembersApi<{ success: boolean }>(
+            {
+              action: 'set_profession_rank',
+              group_id: group.id,
+              character_id: characterId,
+              profession_id: professionId,
               rank,
-              artisan_level: level,
-              quality_score: quality
+              level,
+              quality,
             },
-            { onConflict: 'member_id,profession' }
-          )
-          .select();
+            'Failed to update profession rank'
+          );
+          persistedViaApi = true;
+        } catch (apiError) {
+          console.error('[useGroupData] Falling back to direct Supabase profession update:', apiError);
+        }
+      }
 
-        if (upsertError) throw upsertError;
+      if (!persistedViaApi) {
+        if (rank === null) {
+          const { error: deleteError } = await supabase
+            .from('member_professions')
+            .delete()
+            .eq('member_id', characterId)
+            .eq('profession', professionId)
+            .select();
+
+          if (deleteError) throw deleteError;
+        } else {
+          const { error: upsertError } = await supabase
+            .from('member_professions')
+            .upsert(
+              {
+                member_id: characterId,
+                profession: professionId,
+                rank,
+                artisan_level: level,
+                quality_score: quality
+              },
+              { onConflict: 'member_id,profession' }
+            )
+            .select();
+
+          if (upsertError) throw upsertError;
+        }
       }
     } catch (err) {
       console.error('Error setting profession rank:', err);
@@ -705,4 +932,3 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     deleteMember,
   };
 }
-

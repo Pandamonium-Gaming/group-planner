@@ -42,7 +42,13 @@ function toSavedRanks(ranks: GameRank[]): GameRank[] {
 
 export function GameRankSettings({ groupId, gameSlug, group, onSaved }: GameRankSettingsProps) {
   const gameId = normalizeGameId(gameSlug);
-  const gameName = gameId === 'sc' ? 'Star Citizen' : gameId === 'ror' ? 'Return of Reckoning' : 'Ashes of Creation';
+  const gameName = gameId === 'sc'
+    ? 'Star Citizen'
+    : gameId === 'ror'
+      ? 'Return of Reckoning'
+      : gameId === 'wowforever'
+        ? 'WoW Forever'
+        : 'Ashes of Creation';
 
   const initialRanksDesc = useMemo(() => {
     return getConfiguredGameRanks(group, gameSlug)
@@ -55,6 +61,7 @@ export function GameRankSettings({ groupId, gameSlug, group, onSaved }: GameRank
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
 
   const moveRank = (index: number, direction: -1 | 1) => {
     const nextIndex = index + direction;
@@ -135,7 +142,7 @@ export function GameRankSettings({ groupId, gameSlug, group, onSaved }: GameRank
         [customRanksColumn]: toSavedRanks(sanitized),
       };
 
-      if (getClientAuthStack() === 'v2') {
+      if (canUseV2Api) {
         const response = await fetch('/api/group/settings', {
           method: 'POST',
           credentials: 'include',

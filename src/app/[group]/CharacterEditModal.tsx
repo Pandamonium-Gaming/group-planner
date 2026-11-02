@@ -24,6 +24,12 @@ export function CharacterEditModal({ editingCharacter, onSubmit, onCancel }: Cha
         subscriber_ships_month: editingCharacter.subscriber_ships_month || null,
         ror_faction: editingCharacter.ror_faction || null,
         ror_class: editingCharacter.ror_class || null,
+        wow_race: editingCharacter.wow_race || null,
+        wow_class: editingCharacter.wow_class || null,
+        wow_main_spec: editingCharacter.wow_main_spec || null,
+        wow_secondary_spec: editingCharacter.wow_secondary_spec || null,
+        wow_profession_1: editingCharacter.wow_profession_1 || null,
+        wow_profession_2: editingCharacter.wow_profession_2 || null,
         preferred_role: editingCharacter.preferred_role || [],
         rank: editingCharacter.rank || null,
       }}
@@ -36,4 +42,3 @@ export function CharacterEditModal({ editingCharacter, onSubmit, onCancel }: Cha
     />
   );
 }
-

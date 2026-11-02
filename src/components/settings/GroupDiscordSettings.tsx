@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Webhook, Bell, BellOff, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { testDiscordWebhook } from '@/lib/discord';
@@ -34,6 +34,74 @@ export function GroupDiscordSettings({
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const { t } = useLanguage();
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncFromProps = () => {
+      if (!isMounted) return;
+      setWebhookUrl(currentWebhookUrl);
+      setWelcomeWebhookUrl(currentWelcomeWebhookUrl);
+      setEventsEnabled(notifyOnEvents);
+      setAnnouncementsEnabled(notifyOnAnnouncements);
+    };
+
+    syncFromProps();
+
+    async function refreshFromApi() {
+      if (!canUseV2Api) {
+        return;
+      }
+
+      try {
+        const fields = [
+          'group_webhook_url',
+          'group_welcome_webhook_url',
+          'notify_on_events',
+          'notify_on_announcements',
+        ].join(',');
+
+        const response = await fetch(
+          `/api/group/settings?group_id=${encodeURIComponent(groupId)}&view=group_fields&fields=${encodeURIComponent(fields)}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          }
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { fields?: Record<string, unknown> };
+        const apiFields = payload.fields || {};
+
+        if (!isMounted) return;
+
+        setWebhookUrl((apiFields.group_webhook_url as string | null) || '');
+        setWelcomeWebhookUrl((apiFields.group_welcome_webhook_url as string | null) || '');
+        setEventsEnabled((apiFields.notify_on_events as boolean | undefined) ?? true);
+        setAnnouncementsEnabled((apiFields.notify_on_announcements as boolean | undefined) ?? true);
+      } catch (refreshError) {
+        console.error('[GroupDiscordSettings] Failed to refresh settings from API:', refreshError);
+      }
+    }
+
+    void refreshFromApi();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    canUseV2Api,
+    currentWebhookUrl,
+    currentWelcomeWebhookUrl,
+    groupId,
+    notifyOnAnnouncements,
+    notifyOnEvents,
+  ]);
 
   const isValidWebhookUrl = (url: string) => {
     return !url || 
@@ -55,7 +123,7 @@ export function GroupDiscordSettings({
         notify_on_announcements: announcementsEnabled,
       };
 
-      if (getClientAuthStack() === 'v2') {
+      if (canUseV2Api) {
         const response = await fetch('/api/group/settings', {
           method: 'POST',
           credentials: 'include',

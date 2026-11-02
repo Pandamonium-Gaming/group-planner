@@ -3,27 +3,27 @@ name: guild-planner-stack
 services:
   db:
     image: postgres:16
-    container_name: guild-planner-db
+    container_name: group-planner-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: guild_planner
+      POSTGRES_DB: group_planner
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d guild_planner"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d group_planner"]
       interval: 10s
       timeout: 5s
       retries: 10
     volumes:
-      - guild_planner_db_data:/var/lib/postgresql/data
+      - group_planner_db_data:/var/lib/postgresql/data
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: guild-planner-app-stack
+    container_name: group-planner-app-stack
     restart: unless-stopped
     depends_on:
       db:
@@ -34,8 +34,8 @@ services:
       - .env.stack
     environment:
       NODE_ENV: production
-      AUTH_DATABASE_URL: postgresql://postgres:postgres@db:5432/guild_planner
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/guild_planner
+      AUTH_DATABASE_URL: postgresql://postgres:postgres@db:5432/group_planner
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/group_planner
 
 volumes:
-  guild_planner_db_data:
+  group_planner_db_data:

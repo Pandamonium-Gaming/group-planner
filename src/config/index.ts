@@ -11,10 +11,12 @@
 import aocGameData from './games/aoc.json';
 import starCitizenGameData from './games/star-citizen.json';
 import itemRaritiesData from './itemRarities.json';
+import { WOW_FOREVER_CONFIG } from '@/games/wowforever/config/game';
 
 // Re-export game configs
 export const aocConfig = aocGameData;
 export const starCitizenConfig = starCitizenGameData;
+export const wowForeverConfig = WOW_FOREVER_CONFIG;
 
 // Legacy exports for backward compatibility (map to AoC game config)
 export const professionsConfig = aocGameData.professions;
@@ -33,6 +35,8 @@ export function getGameConfig(gameSlug: string) {
     case 'starcitizen':
     case 'star-citizen':
       return starCitizenConfig;
+    case 'wowforever':
+      return wowForeverConfig;
     default:
       return aocConfig; // fallback to AoC
   }
@@ -76,4 +80,3 @@ export function getSupplyChainForProfession(professionId: string) {
     chain.flow.includes(professionId)
   );
 }
-

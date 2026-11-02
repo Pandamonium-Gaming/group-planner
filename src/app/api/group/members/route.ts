@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
 import type { GroupRole } from '@/lib/permissions';
+import { getCurrentMonthKey, getSubscriberShips } from '@/games/starcitizen/config/subscriber-ships';
+import { removeSubscriberShips, syncSubscriberShips, updateSubscriberTier, type SubscriberTier } from '@/lib/subscriberShips';
+import { isValidWowForeverSelection } from '@/games/wowforever/config';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,6 +27,23 @@ type MemberMutationPayload = {
   membership_id: string;
   rank: string | null;
 } | {
+  action: 'update_role';
+  group_id: string;
+  membership_id: string;
+  role: GroupRole;
+} | {
+  action: 'accept_member';
+  group_id: string;
+  membership_id: string;
+} | {
+  action: 'reject_member';
+  group_id: string;
+  membership_id: string;
+} | {
+  action: 'remove_member';
+  group_id: string;
+  membership_id: string;
+} | {
   action: 'update_user_rank';
   group_id: string;
   target_user_id: string;
@@ -33,7 +53,110 @@ type MemberMutationPayload = {
   group_id: string;
   character_id: string;
   rank: string | null;
+} | {
+  action: 'create_character';
+  group_id: string;
+  game_slug?: string;
+  character: Record<string, unknown>;
+} | {
+  action: 'update_character';
+  group_id: string;
+  character_id: string;
+  changes: Record<string, unknown>;
+} | {
+  action: 'delete_character';
+  group_id: string;
+  character_id: string;
+} | {
+  action: 'set_profession_rank';
+  group_id: string;
+  character_id: string;
+  profession_id: string;
+  rank: string | null;
+  level?: number;
+  quality?: number;
+} | {
+  action: 'sync_subscriber_tier';
+  group_id: string;
+  character_id: string;
+  old_tier?: SubscriberTier;
+  new_tier?: SubscriberTier;
+  force?: boolean;
 };
+
+const MANAGED_USER_ROLES = new Set<GroupRole>(['member', 'trial']);
+
+function isAdminOrOfficer(role: GroupRole) {
+  return role === 'admin' || role === 'officer';
+}
+
+async function resolveTargetRole(
+  supabaseAdmin: SupabaseClient,
+  groupId: string,
+  userId: string
+): Promise<GroupRole | null> {
+  const { data, error } = await supabaseAdmin
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to resolve target role: ${error.message}`);
+  }
+
+  return (data?.role || null) as GroupRole | null;
+}
+
+function buildMemberPayload(data: Record<string, unknown>, effectiveGame: string) {
+  const payload: Record<string, unknown> = {};
+
+  const baseFields = ['name', 'level', 'is_main', 'user_id', 'preferred_role'];
+  baseFields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      payload[field] = data[field];
+    }
+  });
+
+  if (Object.prototype.hasOwnProperty.call(data, 'rank')) {
+    payload.rank = data.rank;
+  }
+
+  if (effectiveGame === 'aoc') {
+    ['race', 'primary_archetype', 'secondary_archetype'].forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(data, field)) {
+        payload[field] = data[field] ?? null;
+      }
+    });
+  }
+
+  if (effectiveGame === 'ror') {
+    ['ror_faction', 'ror_class'].forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(data, field)) {
+        payload[field] = data[field] ?? null;
+      }
+    });
+  }
+
+  if (effectiveGame === 'wowforever') {
+    ['wow_race', 'wow_class', 'wow_main_spec', 'wow_secondary_spec', 'wow_profession_1', 'wow_profession_2'].forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(data, field)) {
+        payload[field] = data[field] ?? null;
+      }
+    });
+  }
+
+  if (effectiveGame === 'starcitizen') {
+    ['subscriber_tier', 'subscriber_since', 'subscriber_ships_month'].forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(data, field)) {
+        payload[field] = data[field] ?? null;
+      }
+    });
+  }
+
+  return payload;
+}
 
 async function resolveRequestUserContext(
   request: NextRequest,
@@ -115,6 +238,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const groupId = searchParams.get('group_id');
   const gameSlug = searchParams.get('game_slug') || 'aoc';
+  const view = searchParams.get('view') || 'characters';
+  const includePending = searchParams.get('include_pending') === 'true';
 
   if (!groupId) {
     return NextResponse.json({ error: 'Missing group_id' }, { status: 400 });
@@ -147,6 +272,41 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  if (includePending && membership.role !== 'admin' && membership.role !== 'officer') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  if (view === 'memberships') {
+    if (includePending && membership.role !== 'admin' && membership.role !== 'officer') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { data: membershipRows, error: membershipsError } = await supabaseAdmin
+      .from('group_members')
+      .select(`
+        id,
+        user_id,
+        role,
+        guild_rank,
+        is_creator,
+        applied_at,
+        approved_at,
+        users!group_members_user_id_fkey(display_name, discord_username, discord_avatar)
+      `)
+      .eq('group_id', groupId)
+      .order('role');
+
+    if (membershipsError) {
+      return NextResponse.json({ error: 'Failed to load memberships', details: membershipsError.message }, { status: 500 });
+    }
+
+    const filteredMemberships = includePending
+      ? membershipRows
+      : (membershipRows || []).filter((row) => row.role !== 'pending');
+
+    return NextResponse.json({ members: filteredMemberships || [] });
+  }
+
   const { data: characters, error: charactersError } = await supabaseAdmin
     .from('members')
     .select(`
@@ -174,7 +334,20 @@ export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as MemberMutationPayload;
 
-    if (payload.action !== 'update_rank' && payload.action !== 'update_user_rank' && payload.action !== 'update_character_rank') {
+    if (
+      payload.action !== 'update_rank' &&
+      payload.action !== 'update_user_rank' &&
+      payload.action !== 'update_character_rank' &&
+      payload.action !== 'update_role' &&
+      payload.action !== 'accept_member' &&
+      payload.action !== 'reject_member' &&
+      payload.action !== 'remove_member' &&
+      payload.action !== 'create_character' &&
+      payload.action !== 'update_character' &&
+      payload.action !== 'delete_character' &&
+      payload.action !== 'set_profession_rank' &&
+      payload.action !== 'sync_subscriber_tier'
+    ) {
       return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
     }
 
@@ -186,11 +359,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    if ((payload.action === 'update_role' || payload.action === 'accept_member' || payload.action === 'reject_member' || payload.action === 'remove_member') && !payload.membership_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
     if (payload.action === 'update_user_rank' && !payload.target_user_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     if (payload.action === 'update_character_rank' && !payload.character_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (payload.action === 'create_character' && !payload.character) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if ((payload.action === 'update_character' || payload.action === 'delete_character' || payload.action === 'set_profession_rank' || payload.action === 'sync_subscriber_tier') && !payload.character_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (payload.action === 'set_profession_rank' && !payload.profession_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -209,8 +398,372 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (payload.action === 'create_character') {
+      const effectiveGame = payload.game_slug || 'aoc';
+      const characterData = payload.character || {};
+      if (
+        effectiveGame === 'wowforever' &&
+        !isValidWowForeverSelection({
+          race: characterData.wow_race as string | null | undefined,
+          classId: characterData.wow_class as string | null | undefined,
+          mainSpec: characterData.wow_main_spec as string | null | undefined,
+          secondarySpec: characterData.wow_secondary_spec as string | null | undefined,
+          profession1: characterData.wow_profession_1 as string | null | undefined,
+          profession2: characterData.wow_profession_2 as string | null | undefined,
+        })
+      ) {
+        return NextResponse.json({ error: 'Invalid WoW Forever character selection' }, { status: 400 });
+      }
+
+      const requestedUserId =
+        typeof characterData.user_id === 'string' && characterData.user_id.length > 0
+          ? characterData.user_id
+          : null;
+      const targetUserId = requestedUserId || actorMembership.user_id;
+
+      if (targetUserId !== actorMembership.user_id && !isAdminOrOfficer(actorMembership.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (targetUserId !== actorMembership.user_id && actorMembership.role === 'officer') {
+        const targetRole = await resolveTargetRole(supabaseAdmin, payload.group_id, targetUserId);
+        if (targetRole && !MANAGED_USER_ROLES.has(targetRole)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+
+      const insertPayload = {
+        ...buildMemberPayload(characterData, effectiveGame),
+        group_id: payload.group_id,
+        game_slug: effectiveGame,
+        user_id: targetUserId,
+        name: (characterData.name as string | undefined) || 'Unnamed Character',
+        level: (characterData.level as number | undefined) || 1,
+        is_main: (characterData.is_main as boolean | undefined) || false,
+      };
+
+      if (insertPayload.is_main && targetUserId) {
+        await supabaseAdmin
+          .from('members')
+          .update({ is_main: false })
+          .eq('group_id', payload.group_id)
+          .eq('user_id', targetUserId)
+          .eq('game_slug', effectiveGame)
+          .eq('is_main', true);
+      }
+
+      const { data: inserted, error: insertError } = await supabaseAdmin
+        .from('members')
+        .insert(insertPayload)
+        .select('*')
+        .single();
+
+      if (insertError) {
+        return NextResponse.json({ error: 'Failed to create character', details: insertError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ character: inserted });
+    }
+
+    if (payload.action === 'update_character' || payload.action === 'delete_character' || payload.action === 'set_profession_rank' || payload.action === 'sync_subscriber_tier') {
+      const { data: targetCharacter, error: targetCharacterError } = await supabaseAdmin
+        .from('members')
+        .select('id, group_id, user_id, game_slug, wow_race, wow_class, wow_main_spec, wow_secondary_spec, wow_profession_1, wow_profession_2')
+        .eq('id', payload.character_id)
+        .eq('group_id', payload.group_id)
+        .maybeSingle();
+
+      if (targetCharacterError) {
+        return NextResponse.json({ error: 'Failed to resolve character', details: targetCharacterError.message }, { status: 500 });
+      }
+
+      if (!targetCharacter) {
+        return NextResponse.json({ error: 'Character not found' }, { status: 404 });
+      }
+
+      const isOwnCharacter = !!targetCharacter.user_id && userContext.candidateUserIds.includes(targetCharacter.user_id);
+      if (!isOwnCharacter && !isAdminOrOfficer(actorMembership.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (!isOwnCharacter && actorMembership.role === 'officer' && targetCharacter.user_id) {
+        const targetRole = await resolveTargetRole(supabaseAdmin, payload.group_id, targetCharacter.user_id);
+        if (targetRole && !MANAGED_USER_ROLES.has(targetRole)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+
+      if (payload.action === 'delete_character') {
+        const { error: deleteError } = await supabaseAdmin
+          .from('members')
+          .delete()
+          .eq('id', payload.character_id)
+          .eq('group_id', payload.group_id);
+
+        if (deleteError) {
+          return NextResponse.json({ error: 'Failed to delete character', details: deleteError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+      }
+
+      if (payload.action === 'set_profession_rank') {
+        const normalizedRank = payload.rank && payload.rank.trim().length > 0 ? payload.rank.trim() : null;
+
+        if (normalizedRank === null) {
+          const { error: deleteProfessionError } = await supabaseAdmin
+            .from('member_professions')
+            .delete()
+            .eq('member_id', payload.character_id)
+            .eq('profession', payload.profession_id);
+
+          if (deleteProfessionError) {
+            return NextResponse.json({ error: 'Failed to remove profession rank', details: deleteProfessionError.message }, { status: 500 });
+          }
+
+          return NextResponse.json({ success: true });
+        }
+
+        const { error: upsertError } = await supabaseAdmin
+          .from('member_professions')
+          .upsert(
+            {
+              member_id: payload.character_id,
+              profession: payload.profession_id,
+              rank: normalizedRank,
+              artisan_level: payload.level ?? 1,
+              quality_score: payload.quality ?? 0,
+            },
+            { onConflict: 'member_id,profession' }
+          );
+
+        if (upsertError) {
+          return NextResponse.json({ error: 'Failed to upsert profession rank', details: upsertError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+      }
+
+      if (payload.action === 'sync_subscriber_tier') {
+        const oldTier = payload.old_tier ?? null;
+        const newTier = payload.new_tier ?? null;
+        const force = payload.force === true;
+
+        if ((targetCharacter.game_slug as string) !== 'starcitizen') {
+          return NextResponse.json({ success: true });
+        }
+
+        if (force && newTier) {
+          const result = await syncSubscriberShips(supabaseAdmin, payload.character_id, newTier);
+          if (!result.success) {
+            return NextResponse.json({ error: result.error || 'Failed to sync subscriber ships' }, { status: 500 });
+          }
+
+          await supabaseAdmin
+            .from('members')
+            .update({ subscriber_ships_month: getCurrentMonthKey() })
+            .eq('id', payload.character_id)
+            .eq('group_id', payload.group_id);
+
+          return NextResponse.json({ success: true });
+        }
+
+        if (newTier && newTier !== oldTier) {
+          if (oldTier) {
+            const result = await updateSubscriberTier(supabaseAdmin, payload.character_id, oldTier, newTier);
+            if (!result.success) {
+              return NextResponse.json({ error: result.error || 'Failed to sync subscriber ships' }, { status: 500 });
+            }
+          } else {
+            const result = await syncSubscriberShips(supabaseAdmin, payload.character_id, newTier);
+            if (!result.success) {
+              return NextResponse.json({ error: result.error || 'Failed to sync subscriber ships' }, { status: 500 });
+            }
+          }
+
+          await supabaseAdmin
+            .from('members')
+            .update({ subscriber_ships_month: getCurrentMonthKey() })
+            .eq('id', payload.character_id)
+            .eq('group_id', payload.group_id);
+
+          return NextResponse.json({ success: true });
+        }
+
+        if (!newTier && oldTier) {
+          const shipsToRemove = getSubscriberShips(oldTier);
+          if (shipsToRemove.length > 0) {
+            const removeResult = await removeSubscriberShips(supabaseAdmin, payload.character_id, shipsToRemove);
+            if (!removeResult.success) {
+              return NextResponse.json({ error: removeResult.error || 'Failed to remove subscriber ships' }, { status: 500 });
+            }
+          }
+
+          await supabaseAdmin
+            .from('members')
+            .update({ subscriber_ships_month: null })
+            .eq('id', payload.character_id)
+            .eq('group_id', payload.group_id);
+
+          return NextResponse.json({ success: true });
+        }
+
+        return NextResponse.json({ success: true });
+      }
+
+      const changes = payload.changes || {};
+      const effectiveGame = (targetCharacter.game_slug as string) || 'aoc';
+      if (effectiveGame === 'wowforever') {
+        const mergedCharacter = { ...targetCharacter, ...changes };
+        if (!isValidWowForeverSelection({
+          race: mergedCharacter.wow_race as string | null | undefined,
+          classId: mergedCharacter.wow_class as string | null | undefined,
+          mainSpec: mergedCharacter.wow_main_spec as string | null | undefined,
+          secondarySpec: mergedCharacter.wow_secondary_spec as string | null | undefined,
+          profession1: mergedCharacter.wow_profession_1 as string | null | undefined,
+          profession2: mergedCharacter.wow_profession_2 as string | null | undefined,
+        })) {
+          return NextResponse.json({ error: 'Invalid WoW Forever character selection' }, { status: 400 });
+        }
+      }
+      const updatePayload = buildMemberPayload(changes, effectiveGame);
+
+      if (!targetCharacter.user_id && actorMembership.user_id) {
+        updatePayload.user_id = actorMembership.user_id;
+      }
+
+      if ((changes.is_main as boolean | undefined) === true) {
+        const targetUserId = (updatePayload.user_id as string | undefined) || targetCharacter.user_id;
+        if (targetUserId) {
+          await supabaseAdmin
+            .from('members')
+            .update({ is_main: false })
+            .eq('group_id', payload.group_id)
+            .eq('user_id', targetUserId)
+            .eq('game_slug', effectiveGame)
+            .eq('is_main', true)
+            .neq('id', payload.character_id);
+        }
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from('members')
+        .update(updatePayload)
+        .eq('id', payload.character_id)
+        .eq('group_id', payload.group_id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to update character', details: updateError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
     if (actorMembership.role !== 'admin' && actorMembership.role !== 'officer') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (payload.action === 'accept_member') {
+      const { data: targetMembership, error: targetError } = await supabaseAdmin
+        .from('group_members')
+        .select('id, user_id, role')
+        .eq('id', payload.membership_id)
+        .eq('group_id', payload.group_id)
+        .maybeSingle();
+
+      if (targetError) {
+        return NextResponse.json({ error: 'Failed to resolve target member', details: targetError.message }, { status: 500 });
+      }
+
+      if (!targetMembership) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      }
+
+      const { data: groupData, error: groupError } = await supabaseAdmin
+        .from('groups')
+        .select('default_role')
+        .eq('id', payload.group_id)
+        .maybeSingle();
+
+      if (groupError) {
+        return NextResponse.json({ error: 'Failed to load group defaults', details: groupError.message }, { status: 500 });
+      }
+
+      const defaultRole = groupData?.default_role || 'trial';
+
+      const { error: updateError } = await supabaseAdmin
+        .from('group_members')
+        .update({
+          role: defaultRole,
+          approved_at: new Date().toISOString(),
+          approved_by: userContext.candidateUserIds[0],
+        })
+        .eq('id', targetMembership.id)
+        .eq('group_id', payload.group_id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to accept member', details: updateError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (payload.action === 'reject_member' || payload.action === 'remove_member') {
+      const { data: targetMembership, error: targetError } = await supabaseAdmin
+        .from('group_members')
+        .select('id, user_id, role')
+        .eq('id', payload.membership_id)
+        .eq('group_id', payload.group_id)
+        .maybeSingle();
+
+      if (targetError) {
+        return NextResponse.json({ error: 'Failed to resolve target member', details: targetError.message }, { status: 500 });
+      }
+
+      if (!targetMembership) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      }
+
+      const { error: deleteError } = await supabaseAdmin
+        .from('group_members')
+        .delete()
+        .eq('id', targetMembership.id)
+        .eq('group_id', payload.group_id);
+
+      if (deleteError) {
+        return NextResponse.json({ error: 'Failed to remove member', details: deleteError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (payload.action === 'update_role') {
+      const { data: targetMembership, error: targetError } = await supabaseAdmin
+        .from('group_members')
+        .select('id, user_id, role')
+        .eq('id', payload.membership_id)
+        .eq('group_id', payload.group_id)
+        .maybeSingle();
+
+      if (targetError) {
+        return NextResponse.json({ error: 'Failed to resolve target member', details: targetError.message }, { status: 500 });
+      }
+
+      if (!targetMembership) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from('group_members')
+        .update({ role: payload.role })
+        .eq('id', targetMembership.id)
+        .eq('group_id', payload.group_id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to update member role', details: updateError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
     }
 
     if (payload.action === 'update_character_rank') {

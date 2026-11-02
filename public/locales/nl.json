@@ -149,6 +149,21 @@
     "novice": "Beginner",
     "linkToMain": "Koppelen aan hoofdpersonage"
   },
+  "wowForever": {
+    "race": "Ras",
+    "class": "Klasse",
+    "mainSpec": "Hoofdspecialisatie",
+    "secondarySpec": "Tweede specialisatie",
+    "firstProfession": "Eerste beroep",
+    "secondProfession": "Tweede beroep",
+    "selectRace": "Selecteer ras...",
+    "selectClass": "Selecteer klasse...",
+    "selectSpec": "Selecteer specialisatie...",
+    "selectProfession": "Selecteer beroep...",
+    "factionRestriction": "Deze ras/klasse-combinatie is beperkt tot {faction}.",
+    "requiredFieldsError": "Ras, klasse en hoofdspecialisatie zijn verplicht voor WoW Forever.",
+    "invalidCombinationError": "Kies een geldige combinatie van ras, klasse en specialisatie."
+  },
   "party": {
     "createParty": "Groep aanmaken",
     "editParty": "Groep bewerken",
@@ -1104,4 +1119,3 @@
     }
   }
 }
-

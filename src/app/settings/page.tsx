@@ -8,6 +8,7 @@ import { useLanguage, LANGUAGES } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { COMMON_TIMEZONES } from '@/lib/events';
 import { InlineFooter } from '@/components/layout/Footer';
+import { getClientAuthStack } from '@/lib/authStack';
 
 export default function SettingsPage() {
   const { user, profile, loading } = useAuthContext();
@@ -45,16 +46,35 @@ export default function SettingsPage() {
     setSaved(false);
 
     try {
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ 
-          timezone,
-          display_name: displayName.trim() || null
-        })
-        .eq('id', user.id)
-        .select();
+      if (getClientAuthStack() === 'v2') {
+        const response = await fetch('/api/me/profile', {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timezone,
+            display_name: displayName.trim() || null,
+          }),
+        });
 
-      if (updateError) throw updateError;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string; details?: string };
+          throw new Error(payload.details || payload.error || `Failed to save settings (${response.status})`);
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            timezone,
+            display_name: displayName.trim() || null,
+          })
+          .eq('id', user.id)
+          .select();
+
+        if (updateError) throw updateError;
+      }
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

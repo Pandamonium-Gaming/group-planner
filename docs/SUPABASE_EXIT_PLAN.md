@@ -363,26 +363,124 @@ Priority extraction buckets for PR-06:
      * `src/hooks/useCaravans.ts`
      * `src/hooks/useFreeholds.ts`
 
-### PR-06 Implementation Sequence
+### PR-06 Tracking Table
+
+| Slice | Status | Primary owner | Supporting owners | Evidence / notes |
+| --- | --- | --- | --- | --- |
+| PR-06A Runtime decoupling | In progress | `@api-owner` | `@auth-owner`, `@qa-owner` | Priority hooks and settings/event/member surfaces |
+| PR-06B Containerized Postgres rehearsal | Not started | `@data-owner` | `@api-owner`, `@qa-owner` | `docker-compose.stack.yml`, `.env.stack.example` |
+| PR-06C Data migration + naming compatibility | Not started | `@data-owner` | `@api-owner`, `@qa-owner` | File-based dump/restore + `group` canonical naming |
+| PR-06D App cutover to canonical contracts | Not started | `@api-owner` | `@auth-owner`, `@data-owner`, `@qa-owner` | Read-first cutover, then writes, then stabilization |
+
+### PR-06A First Work Slice (Wave 1 - Locked)
+
+Wave 1 target files:
+
+1. `src/app/page.tsx`
+2. `src/app/settings/page.tsx`
+3. `src/hooks/useEvents.ts`
+4. `src/hooks/useGroupData.ts`
+5. `src/hooks/useGroupMembership.ts`
+6. `src/hooks/useBuilds.ts`
+7. `src/components/settings/RecruitmentSettings.tsx`
+8. `src/components/settings/GroupDiscordSettings.tsx`
+9. `src/components/settings/ClanSettings.tsx`
+10. `src/components/views/PublicEventsView.tsx`
+
+Current inventory evidence (captured 2026-05-24):
+
+* Hooks with direct `@/lib/supabase` imports: 15
+* Settings components with direct imports: 5
+* App pages with direct imports: 3
+* View components with direct imports: 5
+
+Wave 1 acceptance checks:
+
+* Wave 1 files no longer use direct `@/lib/supabase` imports for runtime paths.
+* Equivalent API-backed read/write behaviors are validated for events/settings/member/group surfaces.
+* `yarn lint` and `yarn test --runInBand --silent` pass before moving to Wave 2.
+
+### PR-06A: Runtime decoupling (priority hooks/surfaces)
+
+Implementation sequence:
 
 1. Create API-first contract list for each priority bucket.
 2. Migrate auth/session calls to API session endpoints only.
 3. Migrate group/member/event/settings mutation paths to API-only calls.
-4. Add a containerized `app + db` runtime profile and baseline env template.
-5. Add Supabase -> containerized Postgres migration runbook steps (dump to file, restore from file).
-6. Add or extend integration tests for migrated endpoints.
-7. Remove obsolete direct Supabase imports in touched surfaces.
-8. Re-run gate checks and record parity outcomes.
+4. Remove obsolete direct Supabase imports in touched surfaces.
+5. Add or extend integration tests for migrated endpoints.
 
-### PR-06 Exit Checklist
+Acceptance checks:
 
-* \[ ] Priority auth/session surfaces no longer call `supabase.auth.*` on client.
-* \[ ] Priority mutation surfaces use API routes only under v2 path.
-* \[ ] Endpoint parity tests updated and passing.
-* \[ ] Containerized stack profile (`app + db`) runs end-to-end.
-* \[ ] Supabase -> containerized Postgres migration runbook is documented and validated on sample data.
-* \[ ] Build, lint, translations, and changelog checks pass.
-* \[ ] Rollout notes updated in `docs/PHASE1_CHECKLIST.md` (or follow-on phase tracker).
+* Priority auth/session surfaces no longer call `supabase.auth.*` on client.
+* Priority mutation surfaces use API routes only under v2 path.
+* Endpoint parity tests are updated and passing.
+
+Rollback:
+
+* Keep `AUTH_STACK=v1|v2` feature-flag fallback available for staged rollback.
+* On regression, revert runtime flag to `v1`, redeploy, and record parity deltas before retry.
+
+### PR-06B: Containerized Postgres rehearsal
+
+Implementation sequence:
+
+1. Validate stack artifacts (`docker-compose.stack.yml` and `.env.stack.example`) as canonical local setup.
+2. Run app + db together in Compose and execute smoke checks for auth/session/profile/permissions.
+3. Document reproducible bootstrap steps for contributors.
+
+Acceptance checks:
+
+* Containerized stack profile (`app + db`) runs end-to-end.
+* Smoke checks pass without ad hoc local patches.
+
+Rollback:
+
+* If stack stability fails, pause cutover activities and keep traffic on Supabase-backed runtime.
+
+Profile guidance:
+
+* Use `docker-compose.stack.yml` for migration rehearsal and parity checks.
+* Use `docker-compose.prod.stack.yml` only when you want the production app override layered onto the local Postgres stack.
+
+### PR-06C: Data migration + naming compatibility layer
+
+Implementation sequence:
+
+1. Execute Supabase -> containerized Postgres file-based migration (dump to file, restore from file).
+2. Introduce canonical `group/groups` naming in migration target structures.
+3. Add compatibility views/aliases for legacy `clan/guild` contracts used by current app paths.
+4. Validate parity using row counts, FK/unique checks, and representative domain queries.
+
+Acceptance checks:
+
+* Migration runbook is documented and validated on sample data.
+* Canonical naming is available without breaking existing consumers.
+* Parity checks pass for groups, members, events, permissions, and builds domains.
+
+Rollback:
+
+* Rebuild containerized DB from previous dump snapshot and keep compatibility layer active.
+
+### PR-06D: App cutover to canonical contracts
+
+Implementation sequence:
+
+1. Migrate app reads to canonical contracts first.
+2. Migrate writes after read-path parity is stable.
+3. Re-run gate checks and record parity outcomes.
+4. Defer removal of compatibility views/aliases to a follow-up stabilization PR.
+
+Acceptance checks:
+
+* No direct `@/lib/supabase` usage remains in priority PR-06 buckets.
+* `yarn build`, `yarn lint`, and `yarn test --runInBand --silent` pass.
+* Rollout notes updated in `docs/PHASE1_CHECKLIST.md` (or follow-on tracker).
+
+Rollback:
+
+* Re-enable compatibility contract paths and staged auth fallback as needed.
+* Capture failed gate criteria and corrective actions before re-entry.
 
 ### Containerized Migration Runbook (PR-06)
 

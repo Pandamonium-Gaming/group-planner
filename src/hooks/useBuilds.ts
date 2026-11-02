@@ -47,8 +47,41 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const canUseV2Api = getClientAuthStack() === 'v2' && typeof fetch === 'function';
+
+  const callBuildsApi = useCallback(
+    async <T>(
+      path: string,
+      init?: RequestInit,
+      defaultError = 'Request failed'
+    ): Promise<T> => {
+      const response = await fetch(path, {
+        credentials: 'include',
+        cache: 'no-store',
+        ...init,
+      });
+
+      if (!response.ok) {
+        let message = defaultError;
+        try {
+          const payload = (await response.json()) as { error?: string };
+          if (payload.error) {
+            message = payload.error;
+          }
+        } catch {
+          // Ignore parse failures and keep default message
+        }
+
+        throw new Error(message);
+      }
+
+      return (await response.json()) as T;
+    },
+    []
+  );
+
   const resolveCurrentUserId = useCallback(async (): Promise<string | null> => {
-    if (getClientAuthStack() === 'v2') {
+    if (canUseV2Api) {
       try {
         const response = await fetch('/api/auth/session', {
           method: 'GET',
@@ -82,13 +115,25 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
       console.error('Error resolving v1 session for builds:', err);
       return null;
     }
-  }, []);
+  }, [canUseV2Api]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      if (canUseV2Api) {
+        const query = groupId ? `?group_id=${encodeURIComponent(groupId)}` : '';
+        const payload = await callBuildsApi<{ builds: BuildWithDetails[] }>(
+          `/api/group/builds${query}`,
+          { method: 'GET' },
+          'Failed to load builds'
+        );
+
+        setBuilds(payload.builds || []);
+        return;
+      }
+
       const currentUserId = await resolveCurrentUserId();
 
       // Build query for visible builds
@@ -136,7 +181,7 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
     } finally {
       setLoading(false);
     }
-  }, [groupId, resolveCurrentUserId]);
+  }, [canUseV2Api, callBuildsApi, groupId, resolveCurrentUserId]);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -151,6 +196,25 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   const publicBuilds = builds.filter((b) => b.visibility === 'public');
 
   const createBuild = async (data: BuildData): Promise<string> => {
+    if (canUseV2Api) {
+      const payload = await callBuildsApi<{ build?: { id?: string } }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create', group_id: groupId, data }),
+        },
+        'Failed to create build'
+      );
+
+      if (!payload.build?.id) {
+        throw new Error('Failed to create build');
+      }
+
+      await fetchData();
+      return payload.build.id;
+    }
+
     const currentUserId = await resolveCurrentUserId();
     if (!currentUserId) throw new Error('Not authenticated');
 
@@ -170,6 +234,20 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const updateBuild = async (id: string, data: Partial<BuildData>) => {
+    if (canUseV2Api) {
+      await callBuildsApi<{ success: boolean }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update', id, data }),
+        },
+        'Failed to update build'
+      );
+      await fetchData();
+      return;
+    }
+
     const { error: updateError } = await supabase
       .from('builds')
       .update({ ...data, updated_at: new Date().toISOString() })
@@ -180,6 +258,20 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const deleteBuild = async (id: string) => {
+    if (canUseV2Api) {
+      await callBuildsApi<{ success: boolean }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id }),
+        },
+        'Failed to delete build'
+      );
+      await fetchData();
+      return;
+    }
+
     const { error: deleteError } = await supabase
       .from('builds')
       .delete()
@@ -190,6 +282,25 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const copyBuild = async (id: string): Promise<string> => {
+    if (canUseV2Api) {
+      const payload = await callBuildsApi<{ build?: { id?: string } }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'copy', id, group_id: groupId }),
+        },
+        'Failed to copy build'
+      );
+
+      if (!payload.build?.id) {
+        throw new Error('Failed to copy build');
+      }
+
+      await fetchData();
+      return payload.build.id;
+    }
+
     const original = builds.find((b) => b.id === id);
     if (!original) throw new Error('Build not found');
 
@@ -229,6 +340,21 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const likeBuild = async (id: string) => {
+    if (canUseV2Api) {
+      await callBuildsApi<{ success: boolean }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'like', id }),
+        },
+        'Failed to like build'
+      );
+
+      await fetchData();
+      return;
+    }
+
     const currentUserId = await resolveCurrentUserId();
     if (!currentUserId) throw new Error('Not authenticated');
 
@@ -251,6 +377,21 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const unlikeBuild = async (id: string) => {
+    if (canUseV2Api) {
+      await callBuildsApi<{ success: boolean }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'unlike', id }),
+        },
+        'Failed to unlike build'
+      );
+
+      await fetchData();
+      return;
+    }
+
     const currentUserId = await resolveCurrentUserId();
     if (!currentUserId) throw new Error('Not authenticated');
 
@@ -274,6 +415,24 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const addComment = async (buildId: string, content: string, parentId?: string) => {
+    if (canUseV2Api) {
+      await callBuildsApi<{ success: boolean }>(
+        '/api/group/builds',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'add_comment',
+            build_id: buildId,
+            content,
+            parent_id: parentId,
+          }),
+        },
+        'Failed to add comment'
+      );
+      return;
+    }
+
     const currentUserId = await resolveCurrentUserId();
     if (!currentUserId) throw new Error('Not authenticated');
 
@@ -290,6 +449,16 @@ export function useBuilds(groupId: string | null): UseBuildsReturn {
   };
 
   const getComments = async (buildId: string): Promise<BuildComment[]> => {
+    if (canUseV2Api) {
+      const query = `?comments_for=${encodeURIComponent(buildId)}`;
+      const payload = await callBuildsApi<{ comments: BuildComment[] }>(
+        `/api/group/builds${query}`,
+        { method: 'GET' },
+        'Failed to load comments'
+      );
+      return payload.comments || [];
+    }
+
     const { data, error: fetchError } = await supabase
       .from('build_comments')
       .select(`

@@ -149,6 +149,21 @@
     "novice": "Novato",
     "linkToMain": "Vincular al Personaje Principal"
   },
+  "wowForever": {
+    "race": "Raza",
+    "class": "Clase",
+    "mainSpec": "Especialización principal",
+    "secondarySpec": "Especialización secundaria",
+    "firstProfession": "1.ª profesión",
+    "secondProfession": "2.ª profesión",
+    "selectRace": "Seleccionar raza...",
+    "selectClass": "Seleccionar clase...",
+    "selectSpec": "Seleccionar especialización...",
+    "selectProfession": "Seleccionar profesión...",
+    "factionRestriction": "Esta combinación de raza y clase está restringida a {faction}.",
+    "requiredFieldsError": "La raza, la clase y la especialización principal son obligatorias para WoW Forever.",
+    "invalidCombinationError": "Elige una combinación válida de raza, clase y especialización."
+  },
   "party": {
     "createParty": "Crear Grupo",
     "editParty": "Editar Grupo",
@@ -1098,4 +1113,3 @@
     }
   }
 }
-
