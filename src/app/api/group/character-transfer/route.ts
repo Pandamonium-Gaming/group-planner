@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
+import { getServerAuthStack } from '@/lib/authStack';
 import { createCharacterTransfer, validateCharacterTransfer, TRANSFER_MAX_BYTES, TRANSFER_MAX_CHARACTERS } from '@/lib/characterTransfer';
 
 async function authorize(request: NextRequest, groupId: string, gameSlug: string) {
@@ -8,7 +9,7 @@ async function authorize(request: NextRequest, groupId: string, gameSlug: string
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Server missing Supabase service credentials');
   const client = createClient(url, key);
-  const session = await auth();
+  const session = getServerAuthStack() === 'v2' ? await auth() : null;
   let userId = session?.user?.id;
   if (!userId) {
     const token = request.headers.get('authorization')?.replace(/^Bearer /, '');
