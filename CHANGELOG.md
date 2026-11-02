@@ -6,6 +6,10 @@
 
 * Integrated main's subscriber ship fixes into develop and prepared the 0.3.0 release.
 
+### Fixed
+
+* Made the pre-push build log work with separate Git working trees and preserved failed build exit codes.
+
 ## \[0.3.0] - 2026-11-02
 
 ### Fixed
