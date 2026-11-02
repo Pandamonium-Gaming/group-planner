@@ -24,10 +24,16 @@ describe('Permission System', () => {
   it.each([['en-GB', enGB], ['es', es], ['nl', nl]] as const)(
     'has a translated name and description for every permission in %s',
     (_language, translations) => {
-      const labels: Record<string, { name: string; description: string }> = translations.permissions;
+      const labels: Record<string, string | { name: string; description: string }> = translations.permissions;
       for (const permission of Object.values(PERMISSIONS)) {
-        expect(labels[permission.id]?.name).toEqual(expect.stringMatching(/\S/));
-        expect(labels[permission.id]?.description).toEqual(expect.stringMatching(/\S/));
+        const label = labels[permission.id];
+        expect(label).toBeDefined();
+        expect(typeof label).toBe('object');
+        if (typeof label !== 'object' || label === null) {
+          throw new Error(`Missing permission labels for ${permission.id}`);
+        }
+        expect(label.name).toEqual(expect.stringMatching(/\S/));
+        expect(label.description).toEqual(expect.stringMatching(/\S/));
       }
     }
   );
@@ -340,7 +346,6 @@ describe('Permission System', () => {
     });
   });
 });
-
 
 
 
