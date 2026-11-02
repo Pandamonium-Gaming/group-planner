@@ -27,8 +27,9 @@ export async function POST(request: NextRequest) {
       (event.created_by !== userId && !roleHasPermission(membership.role as GroupRole, announcement ? 'announcements_edit' : 'events_edit_any'))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    const game = event.game_slug === 'starcitizen' ? 'sc' : event.game_slug || 'aoc';
-    if (!Object.prototype.hasOwnProperty.call(GAME_DISCORD_COLUMNS, game)) {
+    const gameSlug = announcement ? body.game_slug || 'aoc' : event.game_slug || 'aoc';
+    const game = gameSlug === 'starcitizen' ? 'sc' : gameSlug;
+    if (typeof gameSlug !== 'string' || !Object.prototype.hasOwnProperty.call(GAME_DISCORD_COLUMNS, game)) {
       return NextResponse.json({ error: 'Unsupported event game' }, { status: 400 });
     }
     const gameId = game as GameId;
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (groupError || !group) throw new Error(`Failed to load notification settings: ${groupError?.message || 'Group not found'}`);
     const config = { ...group, group_announcement_role_id: group.discord_announcement_role_id };
     const webhook = announcement ? group.group_webhook_url : getGameEventsWebhookUrl(gameId, config);
-    const context: WebhookContext = { groupId: event.group_id, gameSlug: event.game_slug,
+    const context: WebhookContext = { groupId: event.group_id, gameSlug,
       kind: announcement ? 'announcement' : body.repost === true ? 'repost' : 'event', subjectId: event.id };
     const disabled = announcement ? group.notify_on_announcements === false : group.notify_on_events === false;
     const skipReason = disabled ? 'Notifications disabled in group settings' : !announcement && event.is_cancelled ? 'Event cancelled' : undefined;
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     const send: typeof import('@/lib/discord').sendDiscordWebhook = (destination, payload) =>
       deliverWebhook(client, userId, context, destination, payload);
     const result = announcement
-      ? await notifyAnnouncement(webhook, event, group.name, group.slug, group.discord_announcement_role_id, send)
+      ? await notifyAnnouncement(webhook, { ...event, game_slug: gameSlug }, group.name, group.slug, group.discord_announcement_role_id, send)
       : await notifyNewEvent(webhook, event, group.name, group.slug, getGameEventsRoleId(gameId, config), send);
     if (!result.success) throw new Error(result.error || 'Discord notification failed');
     return NextResponse.json({ success: true });

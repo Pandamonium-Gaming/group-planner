@@ -16,11 +16,11 @@ export async function postEventNotification(eventId: string, repost = false) {
   return postNotification({ event_id: eventId, repost });
 }
 
-export async function postAnnouncementNotification(announcementId: string) {
-  return postNotification({ announcement_id: announcementId });
+export async function postAnnouncementNotification(announcementId: string, gameSlug: string) {
+  return postNotification({ announcement_id: announcementId, game_slug: gameSlug });
 }
 
-async function postNotification(body: { event_id: string; repost: boolean } | { announcement_id: string }) {
+async function postNotification(body: { event_id: string; repost: boolean } | { announcement_id: string; game_slug: string }) {
   const response = await fetch('/api/group/events/notify', {
     method: 'POST', credentials: 'include', headers: await webhookHeaders(),
     body: JSON.stringify(body),

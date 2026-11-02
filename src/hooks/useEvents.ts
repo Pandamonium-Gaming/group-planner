@@ -324,7 +324,7 @@ export function useEvents(groupId: string | null, userId: string | null, gameSlu
 
   const notifySaved = async (id: string, announcement = false) => {
     try {
-      const result = await (announcement ? postAnnouncementNotification(id) : postEventNotification(id));
+      const result = await (announcement ? postAnnouncementNotification(id, gameSlug || 'aoc') : postEventNotification(id));
       if (result.skipped) showToast('info', t('webhooks.skippedNotice'));
     } catch (error) {
       console.error('Discord notification failed after saving:', error);

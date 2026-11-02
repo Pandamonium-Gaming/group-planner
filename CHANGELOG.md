@@ -46,6 +46,7 @@
 ### Fixed
 
 * Fixed missing WoW and v2 event notifications by using authenticated server-side game webhook and role fallbacks. Notification failures now warn without treating saved events or announcements as unsaved.
+* Kept Discord announcement links and webhook log references in the game from which they were posted.
 
 * Prevented shared API session checks from invoking Auth.js on the legacy Supabase authentication stack, including group permission requests.
 

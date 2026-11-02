@@ -231,7 +231,7 @@ describe('useEvents Hook - Phase 2', () => {
     const { result } = renderHook(() => useEvents('group-123', 'user-1', 'wowforever'));
     await waitFor(() => expect(result.current.loading).toBe(false));
     await act(async () => { await result.current.createAnnouncement(announcement, true); });
-    expect(postAnnouncementNotification).toHaveBeenCalledWith('ann-1');
+    expect(postAnnouncementNotification).toHaveBeenCalledWith('ann-1', 'wowforever');
     expect(mockShowToast).toHaveBeenCalledWith('warning', 'webhooks.savedWarning', 10000);
   });
 

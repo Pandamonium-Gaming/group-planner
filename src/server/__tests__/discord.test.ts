@@ -168,8 +168,9 @@ it.each(['disabled', 'cancelled', 'missing', 'invalid', 'rejected', 'network', '
 
 it('sends and logs group-wide announcements independently of event flags', async () => {
   group.group_webhook_url = destination; group.notify_on_events = false;
-  expect((await notify(request({ announcement_id: eventId }))).status).toBe(200);
-  expect(insert).toHaveBeenCalledWith(expect.objectContaining({ kind: 'announcement' }));
+  expect((await notify(request({ announcement_id: eventId, game_slug: 'wowforever' }))).status).toBe(200);
+  expect(insert).toHaveBeenCalledWith(expect.objectContaining({ kind: 'announcement', game_slug: 'wowforever' }));
+  expect(JSON.parse(discordFetch.mock.calls[0][1].body).embeds[0].url).toContain('/wowforever/events#announcement-');
 });
 
 it('validates notification input and malformed JSON without sending', async () => {
