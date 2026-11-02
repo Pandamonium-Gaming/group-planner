@@ -377,6 +377,8 @@
     "critical": "Critical"
   },
   "discord": {
+    "gameSettingsHint": "Configure game-specific Discord webhooks and role mentions:",
+    "gameSettingsLink": "{{game}} Discord Settings",
     "integration": "Discord Integration",
     "webhookUrl": "Webhook URL",
     "webhookPlaceholder": "https://discord.com/api/webhooks/...",
@@ -1022,6 +1024,10 @@
     "guild_bank_deposit": {
       "name": "Deposit to Group Bank",
       "description": "Deposit items to the group bank"
+    },
+    "guild_bank_manage": {
+      "name": "Manage Group Bank",
+      "description": "Full management of the group bank, including settings"
     },
     "guild_bank_view_history": {
       "name": "View Bank History",

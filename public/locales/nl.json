@@ -377,6 +377,8 @@
     "critical": "Critical"
   },
   "discord": {
+    "gameSettingsHint": "Configureer Discord-webhooks en rolvermeldingen per spel:",
+    "gameSettingsLink": "Discord-instellingen voor {{game}}",
     "integration": "Discord integratie",
     "webhookUrl": "Webhook URL",
     "webhookPlaceholder": "https://discord.com/api/webhooks/...",
@@ -1022,6 +1024,10 @@
     "guild_bank_deposit": {
       "name": "Storten in groep bank",
       "description": "Items storten in de groep bank"
+    },
+    "guild_bank_manage": {
+      "name": "Groepsbank beheren",
+      "description": "Volledig beheer van de groepsbank, inclusief instellingen"
     },
     "guild_bank_view_history": {
       "name": "Bank geschiedenis bekijken",

@@ -3,6 +3,7 @@ import Discord from 'next-auth/providers/discord';
 import PostgresAdapter from '@auth/pg-adapter';
 import { Pool } from 'pg';
 import { createClient } from '@supabase/supabase-js';
+import { getServerAuthStack } from '@/lib/authStack';
 
 const discordClientId = process.env.AUTH_DISCORD_ID || process.env.DISCORD_CLIENT_ID;
 const discordClientSecret = process.env.AUTH_DISCORD_SECRET || process.env.DISCORD_CLIENT_SECRET;
@@ -238,5 +239,6 @@ export const authOptions: NextAuthOptions = {
 };
 
 export async function auth() {
+  if (getServerAuthStack() !== 'v2') return null;
   return getServerSession(authOptions);
 }

@@ -44,6 +44,12 @@
 
 ### Fixed
 
+* Prevented shared API session checks from invoking Auth.js on the legacy Supabase authentication stack, including group permission requests.
+
+* Included WoW Forever in game-specific Discord settings links by using the game registry, with translated link labels.
+
+* Added missing group bank management permission labels in all supported languages instead of displaying literal name and description placeholders.
+
 * Fixed administrator character transfers on the legacy authentication stack invoking unconfigured Auth.js instead of validating the Supabase session token.
 
 * Kept event form actions reachable with long save errors by allowing the whole form to scroll without truncating the error message.

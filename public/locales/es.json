@@ -375,6 +375,8 @@
     "critical": "Crítico"
   },
   "discord": {
+    "gameSettingsHint": "Configura los webhooks de Discord y las menciones de roles para cada juego:",
+    "gameSettingsLink": "Configuración de Discord de {{game}}",
     "integration": "Integración con Discord",
     "webhookUrl": "URL del Webhook",
     "webhookPlaceholder": "https://discord.com/api/webhooks/...",
@@ -1016,6 +1018,10 @@
     "guild_bank_deposit": {
       "name": "Depositar en el Banco del Grupo",
       "description": "Depositar artículos en el banco del grupo"
+    },
+    "guild_bank_manage": {
+      "name": "Administrar Banco del Grupo",
+      "description": "Administrar todas las funciones del banco del grupo, incluida la configuración"
     },
     "guild_bank_view_history": {
       "name": "Ver Historial del Banco",
