@@ -45,6 +45,8 @@
 
 ### Fixed
 
+* Enforced saved-event authorization for every event notification path and honoured group permission overrides for Discord delivery and reposts.
+
 * Fixed missing WoW and v2 event notifications by using authenticated server-side game webhook and role fallbacks. Notification failures now warn without treating saved events or announcements as unsaved.
 * Kept Discord announcement links and webhook log references in the game from which they were posted.
 

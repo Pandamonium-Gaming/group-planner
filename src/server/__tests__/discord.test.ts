@@ -28,6 +28,8 @@ let cancelled: boolean;
 let group: Record<string, unknown>;
 let logInsertError: boolean;
 let logUpdateError: boolean;
+let overrides: Record<string, unknown> | null;
+let permissionsError: boolean;
 const insert = jest.fn();
 const update = jest.fn();
 const select = jest.fn();
@@ -40,11 +42,12 @@ const client = {
     const query = {
       select: (columns: string): object => { select(table, columns); return query; },
       eq: jest.fn((): object => query),
+      in: async () => ({ data: role ? [{ role, user_id: 'user-1' }] : [], error: permissionsError ? { message: 'Database unavailable' } : null }),
       order: (): object => query,
       insert: (data: unknown): object => { insert(data); return query; },
       update: (data: unknown) => { update(data); return { eq: async () => ({ error: logUpdateError ? { code: 'offline' } : null }) }; },
       maybeSingle: async () => ({
-        data: table === 'group_members' ? role && { role } : {
+        data: table === 'group_permission_overrides' ? overrides : table === 'group_members' ? role && { role } : {
           id: eventId, group_id: groupId, created_by: creator, game_slug: game,
           title: 'Guild raid', starts_at: '2026-11-03T20:00:00Z', event_type: 'raid',
           description: 'Bring potions', content: 'Group announcement', is_cancelled: cancelled,
@@ -74,6 +77,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   role = 'member'; creator = 'user-1'; game = 'wowforever'; cancelled = false;
   logInsertError = false; logUpdateError = false;
+  overrides = null; permissionsError = false;
   group = { id: groupId, name: 'Guild', slug: 'guild', wowforever_events_webhook_url: destination,
     wowforever_events_role_id: 'role-123', notify_on_events: true, notify_on_announcements: true };
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
@@ -210,6 +214,57 @@ it('rejects proxy requests without context or permission and unconfigured destin
 it('requires successful audit insertion before attempting delivery', async () => {
   logInsertError = true;
   await expect(deliverWebhook(createClient(), 'user-1', { groupId, kind: 'test' }, destination, {})).rejects.toThrow('not sent');
+  expect(discordFetch).not.toHaveBeenCalled();
+});
+
+it.each(['event', 'repost'] as const)('rejects generic proxy %s sends before authorization, logging or delivery', async kind => {
+  for (const owner of ['user-1', 'another-user']) {
+    creator = owner;
+    for (const isCancelled of [false, true]) {
+      cancelled = isCancelled;
+      const response = await proxy(request({
+        webhookUrl: destination, payload: { content: 'Forged payload' },
+        context: { groupId, kind, subjectId: eventId },
+      }));
+      expect(response.status).toBe(400);
+    }
+  }
+  expect(client.from).not.toHaveBeenCalled();
+  expect(insert).not.toHaveBeenCalled();
+  expect(discordFetch).not.toHaveBeenCalled();
+});
+
+it('honours saved create and edit-any grants and revocations on event reposts', async () => {
+  role = 'trial'; overrides = { events_create: true };
+  expect((await notify(request({ event_id: eventId, repost: true }))).status).toBe(200);
+  creator = 'another-user';
+  expect((await notify(request({ event_id: eventId, repost: true }))).status).toBe(403);
+  overrides.events_edit_any = true;
+  expect((await notify(request({ event_id: eventId, repost: true }))).status).toBe(200);
+  role = 'officer'; overrides = { events_edit_any: false };
+  expect((await notify(request({ event_id: eventId, repost: true }))).status).toBe(403);
+  creator = 'user-1'; overrides = { events_create: false };
+  expect((await notify(request({ event_id: eventId, repost: true }))).status).toBe(403);
+  expect(discordFetch).toHaveBeenCalledTimes(2);
+});
+
+it.each([
+  ['test', 'settings_edit'], ['reminder', 'events_create'],
+  ['announcement', 'announcements_create'], ['welcome', 'recruitment_manage'],
+])('honours saved %s proxy grants and revocations', async (kind, permission) => {
+  role = 'trial'; overrides = { [permission]: true };
+  const body = { webhookUrl: destination, payload: { content: 'Test' }, context: { groupId, kind } };
+  expect((await proxy(request(body))).status).toBe(200);
+  role = 'admin'; overrides = { [permission]: false };
+  expect((await proxy(request(body))).status).toBe(403);
+  expect(discordFetch).toHaveBeenCalledTimes(1);
+});
+
+it('does not send when effective permissions cannot be loaded', async () => {
+  permissionsError = true;
+  expect((await notify(request({ event_id: eventId }))).status).toBe(500);
+  expect((await proxy(request({ webhookUrl: destination, payload: {}, context: { groupId, kind: 'test' } }))).status).toBe(500);
+  expect(insert).not.toHaveBeenCalled();
   expect(discordFetch).not.toHaveBeenCalled();
 });
 

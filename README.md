@@ -70,6 +70,9 @@ The server requires `SUPABASE_SERVICE_ROLE_KEY` to write delivery records.
 
 Event notifications use the game's events webhook, then its general webhook,
 then the group webhook. Both authentication stacks use the same server endpoint.
+All event sends load the saved event for ownership and cancellation checks;
+the generic webhook proxy does not accept event or repost requests.
+Delivery permissions include the group's saved role overrides.
 Saving an event or announcement still succeeds if Discord delivery fails;
 the warning does not mean another copy should be created.
 Event creators and members with permission to edit any event can use

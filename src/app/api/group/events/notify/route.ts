@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GAME_DISCORD_COLUMNS, getGameEventsRoleId, getGameEventsWebhookUrl, type GameId } from '@/lib/discordConfig';
 import { notifyNewEvent, notifyAnnouncement, type WebhookContext } from '@/lib/discord';
-import { roleHasPermission, type GroupRole } from '@/lib/permissions';
+import { getGroupPermissionsSnapshot } from '@/server/permissions/group-permissions-service';
 import { webhookSession, deliverWebhook } from '@/server/discord';
 
 export async function POST(request: NextRequest) {
@@ -20,11 +20,9 @@ export async function POST(request: NextRequest) {
     const { data: event, error: eventError } = await client.from(announcement ? 'announcements' : 'events').select('*').eq('id', id).maybeSingle();
     if (eventError) throw new Error(`Failed to load event: ${eventError.message}`);
     if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
-    const { data: membership, error: membershipError } = await client.from('group_members').select('role')
-      .eq('group_id', event.group_id).eq('user_id', userId).maybeSingle();
-    if (membershipError) throw new Error(`Failed to verify membership: ${membershipError.message}`);
-    if (!membership || !roleHasPermission(membership.role as GroupRole, announcement ? 'announcements_create' : 'events_create') ||
-      (event.created_by !== userId && !roleHasPermission(membership.role as GroupRole, announcement ? 'announcements_edit' : 'events_edit_any'))) {
+    const snapshot = await getGroupPermissionsSnapshot(event.group_id, [userId]);
+    if (!snapshot?.permissions.includes(announcement ? 'announcements_create' : 'events_create') ||
+      (event.created_by !== userId && !snapshot.permissions.includes(announcement ? 'announcements_edit' : 'events_edit_any'))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const gameSlug = announcement ? body.game_slug || 'aoc' : event.game_slug || 'aoc';

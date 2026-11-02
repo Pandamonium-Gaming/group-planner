@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deliverWebhook, webhookSession } from '@/server/discord';
-import { roleHasPermission, type GroupRole } from '@/lib/permissions';
+import { getGroupPermissionsSnapshot } from '@/server/permissions/group-permissions-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,18 +12,16 @@ export async function POST(request: NextRequest) {
     }
     const { webhookUrl, payload, context } = body || {};
     if (!context || typeof context.groupId !== 'string' ||
-      !['event', 'repost', 'announcement', 'reminder', 'test', 'welcome'].includes(context.kind) ||
+      !['announcement', 'reminder', 'test', 'welcome'].includes(context.kind) ||
       (context.gameSlug !== undefined && typeof context.gameSlug !== 'string') ||
       (context.subjectId !== undefined && typeof context.subjectId !== 'string') ||
       typeof webhookUrl !== 'string' || !payload || typeof payload !== 'object' || Array.isArray(payload)) {
       return NextResponse.json({ error: 'Invalid webhook request' }, { status: 400 });
     }
-    const { data: member, error: memberError } = await client.from('group_members').select('role')
-      .eq('group_id', context.groupId).eq('user_id', userId).maybeSingle();
-    if (memberError) throw memberError;
+    const snapshot = await getGroupPermissionsSnapshot(context.groupId, [userId]);
     const permission = context.kind === 'announcement' ? 'announcements_create' :
       context.kind === 'test' ? 'settings_edit' : context.kind === 'welcome' ? 'recruitment_manage' : 'events_create';
-    if (!member || !roleHasPermission(member.role as GroupRole, permission)) {
+    if (!snapshot?.permissions.includes(permission)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const { data: group, error } = await client.from('groups').select('*').eq('id', context.groupId).single();
@@ -34,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Webhook does not belong to this group' }, { status: 400 });
     }
     const disabled = context.kind === 'announcement' ? group.notify_on_announcements === false :
-      ['event', 'repost', 'reminder'].includes(context.kind) && group.notify_on_events === false;
+      context.kind === 'reminder' && group.notify_on_events === false;
     const result = await deliverWebhook(client, userId, context, webhookUrl, payload,
       disabled ? 'Notifications disabled in group settings' : undefined);
     return NextResponse.json(result, { status: result.success ? 200 : 502 });

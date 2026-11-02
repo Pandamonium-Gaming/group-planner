@@ -77,6 +77,12 @@ export async function sendDiscordWebhook(
   context: WebhookContext
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (context.kind === 'event' || context.kind === 'repost') {
+      if (!context.subjectId) throw new Error('A saved event is required for Discord notifications');
+      const { postEventNotification } = await import('./webhookClient');
+      const result = await postEventNotification(context.subjectId, context.kind === 'repost');
+      return { success: result.success === true || result.skipped === true };
+    }
     // Validate URL format
     if (!webhookUrl.startsWith('https://discord.com/api/webhooks/') && 
         !webhookUrl.startsWith('https://discordapp.com/api/webhooks/')) {
