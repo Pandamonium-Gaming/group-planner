@@ -126,7 +126,7 @@ export function EventForm({
     };
   }, []);
 
-  const scrollWholeDialog = viewport !== null && viewport.height < 280;
+  const scrollWholeDialog = error !== null || (viewport !== null && viewport.height < 280);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -672,7 +672,7 @@ export function EventForm({
           {/* Actions */}
           <div className="shrink-0 p-4 border-t border-slate-700 space-y-3">
             {error && (
-              <div role="alert" className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+              <div role="alert" className="break-words text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
                 {error}
               </div>
             )}

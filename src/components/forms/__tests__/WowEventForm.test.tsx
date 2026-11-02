@@ -89,6 +89,25 @@ it('offers only WoW types and submits the selected new type', async () => {
     expect.objectContaining({ event_type: 'battleground_pvp' }), true));
 });
 
+it('allows whole-dialog scrolling for an untruncated long save error at the 280px boundary', async () => {
+  const originalHeight = window.innerHeight;
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 280 });
+  const message = 'The server could not save this event. '.repeat(100);
+  const { unmount } = render(<EventForm groupId="group" userId="user" initialData={initial}
+    onSubmit={jest.fn().mockRejectedValue(new Error(message))} onCancel={jest.fn()} />);
+  const dialog = screen.getByRole('dialog');
+  expect(dialog).toHaveClass('overflow-hidden');
+  const button = screen.getByRole('button', { name: 'Create Event' });
+  fireEvent.submit(button.closest('form')!);
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(message.trim()));
+  expect(dialog).toHaveClass('block', 'overflow-y-auto');
+  expect(dialog).not.toHaveClass('overflow-hidden');
+  expect(screen.getByRole('alert')).toHaveClass('break-words');
+  expect(button.closest('form')).toHaveClass('block');
+  unmount();
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });
+});
+
 it('turns a legacy WoW siege into Dungeon when explicitly saving an edit', async () => {
   const submit = jest.fn().mockResolvedValue(undefined);
   render(<EventForm groupId="group" userId="user" gameSlug="wowforever" isEditing
