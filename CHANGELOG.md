@@ -44,6 +44,8 @@
 
 ### Fixed
 
+* Fixed administrator character transfers on the legacy authentication stack invoking unconfigured Auth.js instead of validating the Supabase session token.
+
 * Kept event form actions reachable with long save errors by allowing the whole form to scroll without truncating the error message.
 
 * Made the event form keyboard-modal with focus restoration, visible error announcements, mobile keyboard-aware sizing and whole-form scrolling at extreme zoom.
