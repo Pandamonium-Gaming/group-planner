@@ -375,6 +375,8 @@
     "critical": "Crítico"
   },
   "discord": {
+    "gameSettingsHint": "Configura los webhooks de Discord y las menciones de roles para cada juego:",
+    "gameSettingsLink": "Configuración de Discord de {{game}}",
     "integration": "Integración con Discord",
     "webhookUrl": "URL del Webhook",
     "webhookPlaceholder": "https://discord.com/api/webhooks/...",

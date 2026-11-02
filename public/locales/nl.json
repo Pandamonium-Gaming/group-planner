@@ -377,6 +377,8 @@
     "critical": "Critical"
   },
   "discord": {
+    "gameSettingsHint": "Configureer Discord-webhooks en rolvermeldingen per spel:",
+    "gameSettingsLink": "Discord-instellingen voor {{game}}",
     "integration": "Discord integratie",
     "webhookUrl": "Webhook URL",
     "webhookPlaceholder": "https://discord.com/api/webhooks/...",

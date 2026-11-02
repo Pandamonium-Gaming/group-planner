@@ -44,6 +44,8 @@
 
 ### Fixed
 
+* Included WoW Forever in game-specific Discord settings links by using the game registry, with translated link labels.
+
 * Added missing group bank management permission labels in all supported languages instead of displaying literal name and description placeholders.
 
 * Fixed administrator character transfers on the legacy authentication stack invoking unconfigured Auth.js instead of validating the Supabase session token.

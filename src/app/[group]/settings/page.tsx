@@ -18,6 +18,7 @@ import { GameManagement } from '@/components/settings/GameManagement';
 import { MemberManagement } from '@/components/settings/MemberManagement';
 import { getGroupBySlug } from '@/lib/auth';
 import { ClanLoadingScreen } from '@/components/screens/ClanLoadingScreen';
+import { getAllGames } from '@/lib/games';
 
 export default function GroupSettingsPage({ params }: { params: Promise<{ group: string }> }) {
   const { group: groupSlug } = use(params);
@@ -176,27 +177,18 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
               {/* Links to game-specific Discord settings */}
               <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
                 <p className="text-sm text-slate-300 mb-3">
-                  Configure game-specific Discord webhooks and role mentions:
+                  {t('discord.gameSettingsHint')}
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <Link
-                    href={`/${groupSlug}/aoc/settings`}
-                    className="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 rounded-lg transition-colors text-sm border border-slate-600"
-                  >
-                    Ashes of Creation Discord Settings
-                  </Link>
-                  <Link
-                    href={`/${groupSlug}/starcitizen/settings`}
-                    className="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 rounded-lg transition-colors text-sm border border-slate-600"
-                  >
-                    Star Citizen Discord Settings
-                  </Link>
-                  <Link
-                    href={`/${groupSlug}/ror/settings`}
-                    className="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 rounded-lg transition-colors text-sm border border-slate-600"
-                  >
-                    Return of Reckoning Discord Settings
-                  </Link>
+                  {getAllGames().map(game => (
+                    <Link
+                      key={game.id}
+                      href={`/${groupSlug}/${game.id}/settings`}
+                      className="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 rounded-lg transition-colors text-sm border border-slate-600"
+                    >
+                      {t('discord.gameSettingsLink', { game: game.name })}
+                    </Link>
+                  ))}
                 </div>
               </div>
             </>
