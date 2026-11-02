@@ -8,6 +8,9 @@
 
 ### Fixed
 
+* Made Vercel use the declared Yarn version and immutable dependency installation,
+  preventing deployment dependency drift from local and CI builds.
+
 * Made the pre-push build log work with separate Git working trees and preserved failed build exit codes.
 
 ## \[0.3.0] - 2026-11-02

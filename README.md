@@ -62,6 +62,10 @@ A comprehensive group management and planning tool supporting multiple MMOs.
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for full instructions.
 
+Vercel runs installation and builds through Corepack, using the Yarn version
+declared in `package.json`. Installation is immutable so deployments use the
+committed `yarn.lock` rather than resolving newer dependency versions.
+
 ## Container Deployment
 
 This repo now includes a general container path for running the app outside Vercel:
