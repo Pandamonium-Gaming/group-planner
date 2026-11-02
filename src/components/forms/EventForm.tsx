@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar } from 'lucide-react';
 import { Event, EventType, EventRole, EVENT_ROLES, utcToLocal, getEventTypesForGame, getCanonicalEventType, isEventTypeAllowedForGame } from '@/lib/events';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -154,12 +155,15 @@ export function EventForm({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div role="dialog" aria-modal="true" aria-labelledby="event-form-title"
+        className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <div className="flex shrink-0 items-center justify-between p-4 border-b border-slate-700">
+          <h2 id="event-form-title" className="text-lg font-semibold text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-orange-400" />
             {isEditing ? 'Edit Event' : 'Create Event'}
           </h2>
@@ -173,7 +177,8 @@ export function EventForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+          <div className="min-h-0 overflow-y-auto p-4 space-y-4">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -623,9 +628,10 @@ export function EventForm({
               {error}
             </div>
           )}
+          </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex shrink-0 gap-3 p-4 border-t border-slate-700">
             <button
               type="button"
               onClick={onCancel}
@@ -643,6 +649,7 @@ export function EventForm({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
