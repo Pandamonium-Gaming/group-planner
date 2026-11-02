@@ -33,6 +33,19 @@ When a PR is created by the automation:
 
 **If an issue is created instead**, follow the [Manual Update](#manual-update-when-automation-doesnt-work) steps below.
 
+### Parser Regression Tests
+
+The parser uses the ship database for IDs and preserves explicit Centurion and
+Imperator tier selections. Run its offline regression tests before changing the
+extraction logic (PowerShell):
+
+```powershell
+node --import tsx --test scripts\__tests__\fetch-subscriber-ships.test.mts
+```
+
+These tests cover ship variants, duplicate IDs, the five-ship limit, and tier
+parsing using a mocked promotions page.
+
 ## RSI Comm-Link Pattern
 
 ### URL Structure

@@ -62,6 +62,18 @@ A comprehensive group management and planning tool supporting multiple MMOs.
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for full instructions.
 
+Vercel runs installation and builds through Corepack, using the Yarn version
+declared in `package.json`. Installation is immutable so deployments use the
+committed `yarn.lock` rather than resolving newer dependency versions.
+
+Discord OAuth uses `https://discord.com` as its issuer so callbacks containing
+the `iss` parameter can be validated. Run the offline issuer and state
+validation regression test with:
+
+```powershell
+node --import tsx --test scripts\__tests__\discord-issuer.test.mts
+```
+
 ## Container Deployment
 
 This repo now includes a general container path for running the app outside Vercel:

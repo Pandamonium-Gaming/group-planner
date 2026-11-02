@@ -5,12 +5,15 @@ echo "🏗️ Running local build gate before push..."
 node -e "const fs=require('fs'); try{fs.rmSync('.next',{recursive:true,force:true,maxRetries:5,retryDelay:200});}catch(_e){}"
 node scripts/generate-migration-list.js
 
-TMP_LOG=".git/.pre-push-build.log"
+TMP_LOG="$(git rev-parse --git-path .pre-push-build.log)"
 
-if node ./node_modules/next/dist/bin/next build 2>&1 | tee "$TMP_LOG"; then
+if node ./node_modules/next/dist/bin/next build > "$TMP_LOG" 2>&1; then
+	cat "$TMP_LOG"
 	echo "✅ Build gate passed (Turbopack)."
 	exit 0
 fi
+
+cat "$TMP_LOG"
 
 if grep -q "EBUSY: resource busy or locked" "$TMP_LOG"; then
 	echo "⚠️ Turbopack hit a Windows file lock (EBUSY). Retrying with webpack..."
@@ -22,4 +25,3 @@ fi
 
 echo "❌ Build failed. Fix errors before pushing."
 exit 1
-

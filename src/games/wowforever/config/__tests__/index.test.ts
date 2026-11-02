@@ -1,6 +1,7 @@
 import {
   isValidWowForeverSelection,
   getWowForeverRaceFaction,
+  getWowForeverClassesForRace,
   WOW_FOREVER_CLASSES,
   WOW_FOREVER_PROFESSIONS,
   WOW_FOREVER_RACES,
@@ -53,5 +54,33 @@ describe('WoW Forever configuration', () => {
     expect(getWowForeverRaceFaction('Skyborne', 'shaman')).toBe('Horde');
     expect(getWowForeverRaceFaction('Skyborne', 'warrior')).toBeNull();
     expect(getWowForeverRaceFaction('Human', 'mage')).toBeNull();
+  });
+
+  it('offers exactly the classes compatible with each race', () => {
+    for (const race of WOW_FOREVER_RACES) {
+      const available = getWowForeverClassesForRace(race);
+      for (const wowClass of WOW_FOREVER_CLASSES) {
+        const compatible = (wowClass.races as readonly string[]).includes(race);
+        expect(available.some(option => option.id === wowClass.id)).toBe(compatible);
+        expect(isValidWowForeverSelection({
+          race,
+          classId: wowClass.id,
+          mainSpec: wowClass.specs[0],
+        })).toBe(compatible);
+      }
+    }
+  });
+
+  it('requires race, class and main spec while accepting optional fields', () => {
+    const valid = { race: 'Skyborne', classId: 'mage', mainSpec: 'Fire' };
+    expect(isValidWowForeverSelection(valid)).toBe(true);
+    expect(isValidWowForeverSelection({ ...valid, race: null })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, classId: null })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, mainSpec: null })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, secondarySpec: 'Fire' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, secondarySpec: 'Holy' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, profession1: 'Unknown' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, profession2: 'Unknown' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, secondarySpec: 'Frost', profession2: 'Tailoring' })).toBe(true);
   });
 });

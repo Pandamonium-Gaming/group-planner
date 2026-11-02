@@ -173,6 +173,7 @@ export const authOptions: NextAuthOptions = {
           Discord({
             clientId: discordClientId,
             clientSecret: discordClientSecret,
+            issuer: 'https://discord.com',
             authorization: {
               params: {
                 scope: 'identify',
