@@ -2,6 +2,62 @@
 
 ## \[Unreleased]
 
+### Changed
+
+* Integrated main's subscriber ship fixes into develop and prepared the 0.3.0 release.
+
+## \[0.3.0] - 2026-11-02
+
+### Fixed
+
+* Reconciled subscriber ship parsing across main and develop, preserving explicit subscription tiers,
+  database ship IDs, duplicate variant filtering, and the current ship database format.
+
+## \[0.2.8] - 2026-03-09
+
+### Fixed
+
+* **Ship name parsing bug in subscriber ships fetcher** - Fixed duplicate ship matching
+  * Parser was matching both "Ursa" and "Ursa Medivac" from the same text, causing incorrect ship IDs
+  * Now skips sub-names of already-matched longer ship names
+  * Example: if "Ursa Medivac" is matched, "Ursa" is skipped to prevent the plain ursa from being added
+
+## \[0.2.7] - 2026-03-09
+
+### Fixed
+
+* **March 2026 subscriber ships** - Removed base Ursa from Imperator tier
+  * Only Ursa Medivac should be in the March subscriber promotions
+  * Corrected Imperator tier: apollo-medivac, ursa-medivac (removed plain ursa)
+
+## \[0.2.6] - 2026-03-09
+
+### Fixed
+
+* **Subscriber ship sync duplication** - Fixed sync to remove old ships before adding new ones
+  * Sync function now deletes existing subscriber ships before upserting new ones
+  * Prevents February ships from lingering when syncing to different months
+  * Added `needsSubscriberShipResync()` helper to detect if resync is needed
+  * Ships are now correctly replaced on each sync instead of accumulating
+
+## \[0.2.5] - 2026-03-09
+
+* **Subscriber ships debugging** - Added diagnostic console logging
+  * Logs the detected month key and available months to console
+  * Logs which ships are loaded for each tier
+  * Helps troubleshoot month detection issues
+
+### Fixed
+
+* **Subscriber ships automation** - Fixed script and ship ID mapping
+  * Fetch script now loads actual ship database instead of using hardcoded names
+  * Ship names are now correctly mapped to database IDs (e.g., 'Apollo Medivac' -> 'apollo-medivac')
+  * Eliminates incorrect `rsi-` prefix that was being added to ship IDs
+  * Updated March 2026 ships with correct IDs: apollo-medivac, ursa-medivac, ursa
+  * Future automated updates will now use correct ship identifiers
+
+## \[0.2.1] - 2026-03-09
+
 ### Added
 
 * **Customizable game rank settings per group**
