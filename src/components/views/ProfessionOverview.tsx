@@ -72,7 +72,7 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                 <p className="p-4 text-sm text-slate-500">{t('professionOverview.noCoverage')}</p>
               ) : (
                 <ul className="divide-y divide-slate-800/70">
-                  {profession.characters.map(({ character, rank }) => {
+                  {profession.characters.map(({ character, rank, wowRank }) => {
                     const faction = gameSlug === 'wowforever'
                       ? getWowForeverFaction(character.wow_race || '', character.wow_class || '', character.wow_faction)
                       : null;
@@ -85,6 +85,9 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                           {character.name}
                         </Link>
                         {rank && <span className={`text-xs ${RANK_COLORS[rank].text}`}>{t(`character.${RANK_NAMES[rank].toLowerCase()}`)}</span>}
+                        {gameSlug === 'wowforever' && <span className="text-xs text-indigo-200">
+                          {t(wowRank ? `wowForever.professionRanks.${wowRank}` : 'wowForever.rankNotRecorded')}
+                        </span>}
                         <span className={`rounded px-2 py-0.5 text-xs ${character.is_main
                           ? 'bg-amber-400/10 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
                           {t(`professionOverview.${character.is_main ? 'mainLabel' : 'altLabel'}`)}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Clan, CharacterWithProfessions, MemberProfession, RankLevel, Race, Archetype } from '@/lib/types';
+import { resetChangedWowProfessionRanks } from '@/games/wowforever/config';
 import { canEditCharacter, canDeleteCharacter, canOfficerManageUser } from '@/lib/character-permissions';
 import { GroupRole } from '@/lib/permissions';
 import { syncSubscriberShips, updateSubscriberTier } from '@/lib/subscriberShips';
@@ -30,6 +31,8 @@ export interface CharacterData {
   wow_secondary_spec?: string | null;
   wow_profession_1?: string | null;
   wow_profession_2?: string | null;
+  wow_profession_1_rank?: CharacterWithProfessions['wow_profession_1_rank'];
+  wow_profession_2_rank?: CharacterWithProfessions['wow_profession_2_rank'];
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -439,6 +442,8 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
         'wow_secondary_spec',
         'wow_profession_1',
         'wow_profession_2',
+        'wow_profession_1_rank',
+        'wow_profession_2_rank',
       ].forEach((field) => {
         if (field in data) payload[field] = data[field] ?? null;
       });
@@ -524,7 +529,8 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     const characterGame = (character as any)?.game_slug as string | undefined;
     const dataGame = updateData.game_slug as string | undefined;
     const effectiveGame = characterGame || gameSlug || dataGame || 'aoc';
-    const memberData = buildMemberUpdate(updateData, effectiveGame);
+    const memberData = buildMemberUpdate(effectiveGame === 'wowforever'
+      ? resetChangedWowProfessionRanks(updateData, character) : updateData, effectiveGame);
 
     if (Object.prototype.hasOwnProperty.call(updateData, 'rank') && group?.id && getClientAuthStack() === 'v2') {
       const normalizedRank = typeof updateData.rank === 'string' && updateData.rank.trim().length > 0

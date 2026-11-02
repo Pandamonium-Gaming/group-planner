@@ -34,6 +34,34 @@ const alt = { ...main, id: 'alt', name: 'Briar', is_main: false, wow_race: 'Skyb
   wow_class: 'warrior', wow_faction: 'Horde' as const, wow_profession_1: 'Tailoring' };
 
 describe('profession and faction UI', () => {
+  it('displays trained ranks in coverage without guessing unrecorded ranks', () => {
+    render(<ProfessionOverview characters={[{ ...main, wow_profession_1_rank: 'expert' }, alt]}
+      gameSlug="wowforever" groupSlug="guild" />);
+    expect(screen.getByText('wowForever.professionRanks.expert')).toBeInTheDocument();
+    expect(screen.getByText('wowForever.rankNotRecorded')).toBeInTheDocument();
+    expect(screen.queryByText(/225|300/)).not.toBeInTheDocument();
+  });
+
+  it('saves ranks independently and clears old ranks when changing professions', async () => {
+    const submit = jest.fn().mockResolvedValue(undefined);
+    render(<CharacterForm initialData={{ name: 'Aster', wow_race: 'Human', wow_class: 'mage', wow_main_spec: 'Fire',
+      wow_profession_1: 'Alchemy', wow_profession_1_rank: 'expert',
+      wow_profession_2: 'Tailoring', wow_profession_2_rank: 'artisan' }}
+      gameSlug="wowforever" onSubmit={submit} onCancel={jest.fn()} />);
+    expect(screen.getByLabelText('wowForever.firstProfessionRank')).toHaveValue('expert');
+    expect(screen.getByLabelText('wowForever.secondProfessionRank')).toHaveValue('artisan');
+    fireEvent.change(screen.getByLabelText('wowForever.firstProfession'), { target: { value: 'Mining' } });
+    expect(screen.getByLabelText('wowForever.firstProfessionRank')).toHaveValue('');
+    expect(screen.getByLabelText('wowForever.secondProfessionRank')).toHaveValue('artisan');
+    fireEvent.change(screen.getByLabelText('wowForever.firstProfessionRank'), { target: { value: 'journeyman' } });
+    fireEvent.change(screen.getByLabelText('wowForever.secondProfession'), { target: { value: '' } });
+    expect(screen.queryByLabelText('wowForever.secondProfessionRank')).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByRole('button', { name: /Create Character/ }).closest('form')!);
+    await waitFor(() => expect(submit).toHaveBeenCalledWith(expect.objectContaining({
+      wow_profession_1: 'Mining', wow_profession_1_rank: 'journeyman',
+      wow_profession_2: null, wow_profession_2_rank: null,
+    })));
+  });
   it('shows counts, character labels and icons and updates coverage when filtering', () => {
     render(<ProfessionOverview characters={[main, alt]} gameSlug="wowforever" groupSlug="guild" />);
     expect(screen.getAllByRole('article')).toHaveLength(9);

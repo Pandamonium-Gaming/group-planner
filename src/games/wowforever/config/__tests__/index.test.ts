@@ -6,9 +6,37 @@ import {
   WOW_FOREVER_CLASSES,
   WOW_FOREVER_PROFESSIONS,
   WOW_FOREVER_RACES,
+  WOW_FOREVER_PROFESSION_RANKS,
+  resetChangedWowProfessionRanks,
 } from '../index';
 
 describe('WoW Forever configuration', () => {
+  it('accepts only recorded trained ranks paired with professions', () => {
+    const valid = { race: 'Human', classId: 'mage', mainSpec: 'Fire', profession1: 'Alchemy', profession2: 'Tailoring' };
+    for (const rank of WOW_FOREVER_PROFESSION_RANKS) {
+      expect(isValidWowForeverSelection({ ...valid, profession1Rank: rank, profession2Rank: rank })).toBe(true);
+    }
+    for (const rank of ['', 'master', 'grandmaster', 4, {}, false]) {
+      expect(isValidWowForeverSelection({ ...valid, profession1Rank: rank })).toBe(false);
+      expect(isValidWowForeverSelection({ ...valid, profession2Rank: rank })).toBe(false);
+    }
+    expect(isValidWowForeverSelection({ ...valid, profession1Rank: null })).toBe(true);
+    expect(isValidWowForeverSelection({ ...valid, profession1: null, profession1Rank: 'artisan' })).toBe(false);
+    expect(isValidWowForeverSelection({ ...valid, profession2: null, profession2Rank: 'expert' })).toBe(false);
+  });
+
+  it('clears ranks on partial profession changes without changing unrelated updates', () => {
+    const previous = { wow_profession_1: 'Alchemy', wow_profession_2: 'Tailoring' };
+    expect(resetChangedWowProfessionRanks({ wow_profession_1: 'Mining' }, previous))
+      .toEqual({ wow_profession_1: 'Mining', wow_profession_1_rank: null });
+    expect(resetChangedWowProfessionRanks({ wow_profession_2: null }, previous))
+      .toEqual({ wow_profession_2: null, wow_profession_2_rank: null });
+    expect(resetChangedWowProfessionRanks({ wow_profession_1: 'Alchemy' }, previous))
+      .toEqual({ wow_profession_1: 'Alchemy' });
+    expect(resetChangedWowProfessionRanks({ name: 'New name' }, previous)).toEqual({ name: 'New name' });
+    expect(resetChangedWowProfessionRanks({ wow_profession_1: 'Mining', wow_profession_1_rank: 'expert' }, previous))
+      .toEqual({ wow_profession_1: 'Mining', wow_profession_1_rank: 'expert' });
+  });
   it('resolves racial factions and respects Skyborne choices and restrictions', () => {
     expect(getWowForeverFaction('Human', 'mage')).toBe('Alliance');
     expect(getWowForeverFaction('Orc', 'warrior')).toBe('Horde');

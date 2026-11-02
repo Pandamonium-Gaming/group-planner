@@ -86,6 +86,29 @@ export type WowForeverRace = (typeof WOW_FOREVER_RACES)[number];
 export type WowForeverClass = (typeof WOW_FOREVER_CLASSES)[number]['id'];
 export type WowForeverFaction = 'Alliance' | 'Horde';
 
+export const WOW_FOREVER_PROFESSION_RANKS = ['apprentice', 'journeyman', 'expert', 'artisan'] as const;
+export type WowForeverProfessionRank = (typeof WOW_FOREVER_PROFESSION_RANKS)[number];
+
+export function isWowForeverProfessionRank(value: unknown): value is WowForeverProfessionRank {
+  return typeof value === 'string' && (WOW_FOREVER_PROFESSION_RANKS as readonly string[]).includes(value);
+}
+
+export function resetChangedWowProfessionRanks(
+  changes: Record<string, unknown>,
+  previous: { wow_profession_1?: unknown; wow_profession_2?: unknown }
+): Record<string, unknown> {
+  const normalized = { ...changes };
+  for (const profession of ['wow_profession_1', 'wow_profession_2'] as const) {
+    const rank = `${profession}_rank`;
+    if (Object.prototype.hasOwnProperty.call(changes, profession) &&
+      changes[profession] !== previous[profession] &&
+      !Object.prototype.hasOwnProperty.call(changes, rank)) {
+      normalized[rank] = null;
+    }
+  }
+  return normalized;
+}
+
 export function getWowForeverClass(classId: string) {
   return WOW_FOREVER_CLASSES.find((wowClass) => wowClass.id === classId);
 }
@@ -126,6 +149,8 @@ export function isValidWowForeverSelection(selection: {
   secondarySpec?: string | null;
   profession1?: string | null;
   profession2?: string | null;
+  profession1Rank?: unknown;
+  profession2Rank?: unknown;
   faction?: string | null;
 }): boolean {
   const wowClass = getWowForeverClass(selection.classId || '');
@@ -140,6 +165,10 @@ export function isValidWowForeverSelection(selection: {
   }
 
   const specs = wowClass.specs as readonly string[];
+  if ((selection.profession1Rank != null &&
+    (!selection.profession1 || !isWowForeverProfessionRank(selection.profession1Rank))) ||
+    (selection.profession2Rank != null &&
+    (!selection.profession2 || !isWowForeverProfessionRank(selection.profession2Rank)))) return false;
   if (selection.faction != null && (
     !['Alliance', 'Horde'].includes(selection.faction) ||
     getWowForeverFaction(selection.race, wowClass.id, selection.faction) !== selection.faction

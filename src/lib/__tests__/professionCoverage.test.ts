@@ -13,6 +13,15 @@ function character(overrides: Partial<CharacterWithProfessions> = {}): Character
 }
 
 describe('profession coverage', () => {
+  it('preserves independent WoW trained ranks and leaves unknown ranks unrecorded', () => {
+    const crafter = character({ game_slug: 'wowforever', wow_profession_1: 'Alchemy',
+      wow_profession_1_rank: 'expert', wow_profession_2: 'Tailoring', wow_profession_2_rank: 'artisan' });
+    const cards = getProfessionCoverage('wowforever', [crafter]);
+    expect(cards.find(card => card.id === 'Alchemy')?.characters[0].wowRank).toBe('expert');
+    expect(cards.find(card => card.id === 'Tailoring')?.characters[0].wowRank).toBe('artisan');
+    expect(getProfessionCoverage('wowforever', [{ ...crafter, wow_profession_1_rank: null }])
+      .find(card => card.id === 'Alchemy')?.characters[0].wowRank).toBeNull();
+  });
   it('shows all nine WoW professions, deduplicating both slots per character', () => {
     const main = character({ game_slug: 'wowforever', wow_profession_1: 'Alchemy', wow_profession_2: 'Alchemy' });
     const alt = character({ id: 'alt', name: 'Alt Crafter', is_main: false, game_slug: 'wowforever',

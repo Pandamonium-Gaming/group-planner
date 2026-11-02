@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import type { GroupRole } from '@/lib/permissions';
 import { getCurrentMonthKey, getSubscriberShips } from '@/games/starcitizen/config/subscriber-ships';
 import { removeSubscriberShips, syncSubscriberShips, updateSubscriberTier, type SubscriberTier } from '@/lib/subscriberShips';
-import { getWowForeverFaction, isValidWowForeverSelection } from '@/games/wowforever/config';
+import { getWowForeverFaction, isValidWowForeverSelection, resetChangedWowProfessionRanks } from '@/games/wowforever/config';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -140,7 +140,7 @@ function buildMemberPayload(data: Record<string, unknown>, effectiveGame: string
   }
 
   if (effectiveGame === 'wowforever') {
-    ['wow_race', 'wow_faction', 'wow_class', 'wow_main_spec', 'wow_secondary_spec', 'wow_profession_1', 'wow_profession_2'].forEach((field) => {
+    ['wow_race', 'wow_faction', 'wow_class', 'wow_main_spec', 'wow_secondary_spec', 'wow_profession_1', 'wow_profession_2', 'wow_profession_1_rank', 'wow_profession_2_rank'].forEach((field) => {
       if (Object.prototype.hasOwnProperty.call(data, field)) {
         payload[field] = data[field] ?? null;
       }
@@ -415,6 +415,8 @@ export async function POST(request: NextRequest) {
           secondarySpec: characterData.wow_secondary_spec as string | null | undefined,
           profession1: characterData.wow_profession_1 as string | null | undefined,
           profession2: characterData.wow_profession_2 as string | null | undefined,
+          profession1Rank: characterData.wow_profession_1_rank,
+          profession2Rank: characterData.wow_profession_2_rank,
         })
       ) {
         return NextResponse.json({ error: 'Invalid WoW Forever character selection' }, { status: 400 });
@@ -473,7 +475,7 @@ export async function POST(request: NextRequest) {
     if (payload.action === 'update_character' || payload.action === 'delete_character' || payload.action === 'set_profession_rank' || payload.action === 'sync_subscriber_tier') {
       const { data: targetCharacter, error: targetCharacterError } = await supabaseAdmin
         .from('members')
-        .select('id, group_id, user_id, game_slug, wow_race, wow_faction, wow_class, wow_main_spec, wow_secondary_spec, wow_profession_1, wow_profession_2')
+        .select('id, group_id, user_id, game_slug, wow_race, wow_faction, wow_class, wow_main_spec, wow_secondary_spec, wow_profession_1, wow_profession_2, wow_profession_1_rank, wow_profession_2_rank')
         .eq('id', payload.character_id)
         .eq('group_id', payload.group_id)
         .maybeSingle();
@@ -616,8 +618,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
-      const changes = payload.changes || {};
       const effectiveGame = (targetCharacter.game_slug as string) || 'aoc';
+      const changes = effectiveGame === 'wowforever'
+        ? resetChangedWowProfessionRanks(payload.changes || {}, targetCharacter)
+        : payload.changes || {};
       if (effectiveGame === 'wowforever') {
         const mergedCharacter = { ...targetCharacter, ...changes };
         if (!isValidWowForeverSelection({
@@ -628,6 +632,8 @@ export async function POST(request: NextRequest) {
           secondarySpec: mergedCharacter.wow_secondary_spec as string | null | undefined,
           profession1: mergedCharacter.wow_profession_1 as string | null | undefined,
           profession2: mergedCharacter.wow_profession_2 as string | null | undefined,
+          profession1Rank: mergedCharacter.wow_profession_1_rank,
+          profession2Rank: mergedCharacter.wow_profession_2_rank,
         })) {
           return NextResponse.json({ error: 'Invalid WoW Forever character selection' }, { status: 400 });
         }

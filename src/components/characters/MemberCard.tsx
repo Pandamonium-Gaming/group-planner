@@ -399,10 +399,16 @@ export function CharacterCard({
           <div className="text-slate-300">
             <span className="text-slate-500">{t('wowForever.firstProfession')}:</span>{' '}
             {character.wow_profession_1 || '—'}
+            {character.wow_profession_1 && <span className="ml-2 text-xs text-indigo-200">
+              {t(character.wow_profession_1_rank ? `wowForever.professionRanks.${character.wow_profession_1_rank}` : 'wowForever.rankNotRecorded')}
+            </span>}
           </div>
           <div className="text-slate-300">
             <span className="text-slate-500">{t('wowForever.secondProfession')}:</span>{' '}
             {character.wow_profession_2 || '—'}
+            {character.wow_profession_2 && <span className="ml-2 text-xs text-indigo-200">
+              {t(character.wow_profession_2_rank ? `wowForever.professionRanks.${character.wow_profession_2_rank}` : 'wowForever.rankNotRecorded')}
+            </span>}
           </div>
         </div>
       )}

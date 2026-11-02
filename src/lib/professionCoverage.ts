@@ -1,5 +1,5 @@
 import { PROFESSIONS, getProfessionIcon } from '@/lib/professions';
-import { WOW_FOREVER_PROFESSIONS } from '@/games/wowforever/config';
+import { WOW_FOREVER_PROFESSIONS, type WowForeverProfessionRank } from '@/games/wowforever/config';
 import type { CharacterWithProfessions, RankLevel } from '@/lib/types';
 
 export type ProfessionCharacterFilter = 'all' | 'main' | 'alt';
@@ -8,7 +8,7 @@ export interface ProfessionCoverage {
   name: string;
   icon: string;
   labelKey: string;
-  characters: Array<{ character: CharacterWithProfessions; rank?: RankLevel }>;
+  characters: Array<{ character: CharacterWithProfessions; rank?: RankLevel; wowRank?: WowForeverProfessionRank | null }>;
 }
 
 export function getProfessionCoverage(
@@ -30,10 +30,11 @@ export function getProfessionCoverage(
     name: profession.name,
     icon: gameSlug === 'wowforever' ? WOW_PROFESSION_ICONS[profession.id] : profession.icon,
     labelKey: getProfessionLabelKey(profession.id),
-    characters: filtered.flatMap(character => {
+    characters: filtered.flatMap<ProfessionCoverage['characters'][number]>(character => {
       if (gameSlug === 'wowforever') {
         return [character.wow_profession_1, character.wow_profession_2].includes(profession.id)
-          ? [{ character }]
+          ? [{ character, wowRank: character.wow_profession_1 === profession.id
+            ? character.wow_profession_1_rank : character.wow_profession_2_rank }]
           : [];
       }
       const selected = character.professions.find(entry => entry.profession === profession.id);

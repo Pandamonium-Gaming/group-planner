@@ -172,6 +172,15 @@
     "linkToMain": "Koppelen aan hoofdpersonage"
   },
   "wowForever": {
+    "firstProfessionRank": "Rang van het 1e beroep",
+    "secondProfessionRank": "Rang van het 2e beroep",
+    "rankNotRecorded": "Niet vastgelegd",
+    "professionRanks": {
+      "apprentice": "Leerling",
+      "journeyman": "Gezel",
+      "expert": "Expert",
+      "artisan": "Ambachtsman"
+    },
     "race": "Ras",
     "class": "Klasse",
     "mainSpec": "Hoofdspecialisatie",

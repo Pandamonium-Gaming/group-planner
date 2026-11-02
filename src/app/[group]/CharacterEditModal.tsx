@@ -31,6 +31,8 @@ export function CharacterEditModal({ editingCharacter, onSubmit, onCancel }: Cha
         wow_secondary_spec: editingCharacter.wow_secondary_spec || null,
         wow_profession_1: editingCharacter.wow_profession_1 || null,
         wow_profession_2: editingCharacter.wow_profession_2 || null,
+        wow_profession_1_rank: editingCharacter.wow_profession_1_rank || null,
+        wow_profession_2_rank: editingCharacter.wow_profession_2_rank || null,
         preferred_role: editingCharacter.preferred_role || [],
         rank: editingCharacter.rank || null,
       }}

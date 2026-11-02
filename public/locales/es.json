@@ -172,6 +172,15 @@
     "linkToMain": "Vincular al Personaje Principal"
   },
   "wowForever": {
+    "firstProfessionRank": "Rango de la 1.ª profesión",
+    "secondProfessionRank": "Rango de la 2.ª profesión",
+    "rankNotRecorded": "Sin registrar",
+    "professionRanks": {
+      "apprentice": "Aprendiz",
+      "journeyman": "Oficial",
+      "expert": "Experto",
+      "artisan": "Artesano"
+    },
     "race": "Raza",
     "class": "Clase",
     "mainSpec": "Especialización principal",

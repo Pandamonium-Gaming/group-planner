@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added optional trained ranks for each WoW Forever profession, shown on character cards and the coverage overview without assuming skill levels.
 * Added profession coverage cards for Ashes of Creation and WoW Forever, with main/alt filters and character lists.
 * Added app-styled WoW class and faction icons and a saved faction choice for unrestricted Skyborne classes.
 

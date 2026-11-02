@@ -8,5 +8,6 @@
   "006_discord_id_rls_policies.sql",
   "007_game_rank_settings.sql",
   "008_add_wow_forever_support.sql",
-  "009_add_wow_forever_faction.sql"
+  "009_add_wow_forever_faction.sql",
+  "010_add_wow_forever_profession_ranks.sql"
 ]

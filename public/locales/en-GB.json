@@ -172,6 +172,15 @@
     "linkToMain": "Link to Main Character"
   },
   "wowForever": {
+    "firstProfessionRank": "1st Profession Rank",
+    "secondProfessionRank": "2nd Profession Rank",
+    "rankNotRecorded": "Not recorded",
+    "professionRanks": {
+      "apprentice": "Apprentice",
+      "journeyman": "Journeyman",
+      "expert": "Expert",
+      "artisan": "Artisan"
+    },
     "race": "Race",
     "class": "Class",
     "mainSpec": "Main Spec",

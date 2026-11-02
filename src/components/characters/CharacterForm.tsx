@@ -31,6 +31,9 @@ import {
   isValidWowForeverSelection,
   WOW_FOREVER_CLASSES,
   WOW_FOREVER_PROFESSIONS,
+  WOW_FOREVER_PROFESSION_RANKS,
+  isWowForeverProfessionRank,
+  type WowForeverProfessionRank,
   WOW_FOREVER_RACES,
 } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
@@ -53,6 +56,8 @@ export interface CharacterFormData {
   wow_secondary_spec?: string | null;
   wow_profession_1?: string | null;
   wow_profession_2?: string | null;
+  wow_profession_1_rank?: WowForeverProfessionRank | null;
+  wow_profession_2_rank?: WowForeverProfessionRank | null;
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -105,6 +110,8 @@ export function CharacterForm({
     wow_secondary_spec: initialData?.wow_secondary_spec || null,
     wow_profession_1: initialData?.wow_profession_1 || null,
     wow_profession_2: initialData?.wow_profession_2 || null,
+    wow_profession_1_rank: initialData?.wow_profession_1_rank || null,
+    wow_profession_2_rank: initialData?.wow_profession_2_rank || null,
     subscriber_tier: (initialData as any)?.subscriber_tier || null,
     subscriber_since: (initialData as any)?.subscriber_since || null,
     subscriber_ships_month: (initialData as any)?.subscriber_ships_month || null,
@@ -158,6 +165,8 @@ export function CharacterForm({
         secondarySpec: formData.wow_secondary_spec,
         profession1: formData.wow_profession_1,
         profession2: formData.wow_profession_2,
+        profession1Rank: formData.wow_profession_1_rank,
+        profession2Rank: formData.wow_profession_2_rank,
       })) {
         setError(t('wowForever.invalidCombinationError'));
         return;
@@ -637,6 +646,8 @@ export function CharacterForm({
                     onChange={(e) => setFormData({
                       ...formData,
                       wow_profession_1: e.target.value || null,
+                      wow_profession_1_rank: e.target.value === formData.wow_profession_1 ? formData.wow_profession_1_rank : null,
+                      wow_profession_2_rank: e.target.value === formData.wow_profession_2 ? null : formData.wow_profession_2_rank,
                       wow_profession_2: e.target.value === formData.wow_profession_2
                         ? null
                         : formData.wow_profession_2,
@@ -648,6 +659,22 @@ export function CharacterForm({
                       <option key={profession} value={profession}>{profession}</option>
                     ))}
                   </select>
+                  {formData.wow_profession_1 && (
+                    <div className="mt-3">
+                      <label htmlFor="wow-profession-1-rank" className="mb-2 block text-sm font-medium text-slate-300">
+                        {t('wowForever.firstProfessionRank')}
+                      </label>
+                      <select id="wow-profession-1-rank" value={formData.wow_profession_1_rank || ''}
+                        onChange={event => setFormData({ ...formData, wow_profession_1_rank:
+                          isWowForeverProfessionRank(event.target.value) ? event.target.value : null })}
+                        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                        <option value="">{t('wowForever.rankNotRecorded')}</option>
+                        {WOW_FOREVER_PROFESSION_RANKS.map(rank => (
+                          <option key={rank} value={rank}>{t(`wowForever.professionRanks.${rank}`)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="wow-profession-2" className="block text-sm font-medium text-slate-300 mb-2">
@@ -656,7 +683,8 @@ export function CharacterForm({
                   <select
                     id="wow-profession-2"
                     value={formData.wow_profession_2 || ''}
-                    onChange={(e) => setFormData({ ...formData, wow_profession_2: e.target.value || null })}
+                    onChange={(e) => setFormData({ ...formData, wow_profession_2: e.target.value || null,
+                      wow_profession_2_rank: e.target.value === formData.wow_profession_2 ? formData.wow_profession_2_rank : null })}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">{t('wowForever.selectProfession')}</option>
@@ -666,6 +694,22 @@ export function CharacterForm({
                         <option key={profession} value={profession}>{profession}</option>
                       ))}
                   </select>
+                  {formData.wow_profession_2 && (
+                    <div className="mt-3">
+                      <label htmlFor="wow-profession-2-rank" className="mb-2 block text-sm font-medium text-slate-300">
+                        {t('wowForever.secondProfessionRank')}
+                      </label>
+                      <select id="wow-profession-2-rank" value={formData.wow_profession_2_rank || ''}
+                        onChange={event => setFormData({ ...formData, wow_profession_2_rank:
+                          isWowForeverProfessionRank(event.target.value) ? event.target.value : null })}
+                        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                        <option value="">{t('wowForever.rankNotRecorded')}</option>
+                        {WOW_FOREVER_PROFESSION_RANKS.map(rank => (
+                          <option key={rank} value={rank}>{t(`wowForever.professionRanks.${rank}`)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

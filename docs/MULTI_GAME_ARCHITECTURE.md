@@ -7,6 +7,13 @@ cards for Ashes of Creation and WoW Forever. Counts represent distinct character
 per profession, not accounts; main/alt filters apply to cards and summary counts.
 Ashes uses its existing profession ranks, while WoW uses both profession slots.
 
+WoW profession slots have optional manually recorded trained ranks: Apprentice,
+Journeyman, Expert and Artisan. Rank names follow the
+[Forever client-backed profession guide](https://foreverguide.net/professions/).
+No numeric skill, cap or trainer eligibility is inferred. Unknown ranks remain
+unrecorded, and changing a profession clears its old rank. Apply migration
+`010_add_wow_forever_profession_ranks.sql` before deploying rank tracking.
+
 WoW faction and class badges use original app-styled symbols, not official game
 artwork. Standard races resolve to their faction automatically. Skyborne Mage
 is Alliance-only and Shaman is Horde-only; other Skyborne classes choose their
