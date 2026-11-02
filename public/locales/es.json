@@ -1,4 +1,18 @@
 {
+  "characterTransfer": {
+    "title": "Transferencia de datos para administradores",
+    "description": "Exporta el juego actual del grupo a un archivo JSON e impórtalo en el entorno de destino. Sin sincronización directa de bases de datos.",
+    "export": "Exportar personajes",
+    "import": "Importar archivo JSON",
+    "preview": "Vista previa: {{create}} personajes nuevos, {{update}} personajes existentes actualizados.",
+    "replacesChildren": "Solo se actualizan los ID incluidos. Sus profesiones y naves se reemplazan con el archivo; los demás personajes no cambian.",
+    "unclaimedWarning": "No se encontraron estos propietarios por su ID de Discord entre los miembros aprobados del grupo de destino. Sus personajes se importarán sin propietario:",
+    "confirmation": "Escribe IMPORT para confirmar los cambios en este entorno.",
+    "confirm": "Confirmar importación",
+    "success": "Importación completada.",
+    "failed": "La transferencia de personajes ha fallado.",
+    "tooLarge": "Elige un archivo JSON de menos de 2 MB."
+  },
   "professionOverview": {
     "title": "Profesiones",
     "description": "Encuentra de un vistazo a los artesanos y recolectores de tu grupo.",
@@ -8,8 +22,8 @@
     "alt": "Solo secundarios",
     "mainLabel": "Principal",
     "altLabel": "Secundario",
-    "covered": "{covered} / {total} profesiones cubiertas",
-    "contributors": "{count} personajes colaboradores",
+    "covered": "{{covered}} / {{total}} profesiones cubiertas",
+    "contributors": "{{count}} personajes colaboradores",
     "noCoverage": "No hay personajes con esta profesión en el filtro actual.",
     "unsupported": "Este juego no registra profesiones.",
     "faction": "Facción",
@@ -150,6 +164,9 @@
     "allGamesEnabled": "Todos los juegos disponibles ya están habilitados."
   },
   "character": {
+    "owner": "Propietario",
+    "ownerUnknown": "Propietario no disponible",
+    "unclaimed": "Sin propietario",
     "addCharacter": "Añadir Personaje",
     "editCharacter": "Editar Personaje",
     "name": "Nombre del Personaje",
@@ -191,7 +208,7 @@
     "selectClass": "Seleccionar clase...",
     "selectSpec": "Seleccionar especialización...",
     "selectProfession": "Seleccionar profesión...",
-    "factionRestriction": "Esta combinación de raza y clase está restringida a {faction}.",
+    "factionRestriction": "Esta combinación de raza y clase está restringida a {{faction}}.",
     "requiredFieldsError": "La raza, la clase y la especialización principal son obligatorias para WoW Forever.",
     "invalidCombinationError": "Elige una combinación válida de raza, clase y especialización."
   },

@@ -1,4 +1,18 @@
 {
+  "characterTransfer": {
+    "title": "Administrator data transfer",
+    "description": "Export this group's current game to a JSON file, then import the file in the destination environment. No direct database sync.",
+    "export": "Export characters",
+    "import": "Import JSON file",
+    "preview": "Preview: {{create}} new characters, {{update}} existing characters updated.",
+    "replacesChildren": "Only included character IDs are updated. Their professions and ships are replaced by the file; other characters remain untouched.",
+    "unclaimedWarning": "These owners could not be matched by Discord ID to approved destination group members. Their characters will be imported as unclaimed:",
+    "confirmation": "Type IMPORT to confirm changes in this environment.",
+    "confirm": "Confirm import",
+    "success": "Import completed.",
+    "failed": "Character transfer failed.",
+    "tooLarge": "Choose a JSON file smaller than 2 MB."
+  },
   "professionOverview": {
     "title": "Professions",
     "description": "Find your group's crafters and gatherers at a glance.",
@@ -8,8 +22,8 @@
     "alt": "Alts only",
     "mainLabel": "Main",
     "altLabel": "Alt",
-    "covered": "{covered} / {total} professions covered",
-    "contributors": "{count} contributing characters",
+    "covered": "{{covered}} / {{total}} professions covered",
+    "contributors": "{{count}} contributing characters",
     "noCoverage": "No characters with this profession in the current filter.",
     "unsupported": "This game does not track professions.",
     "faction": "Faction",
@@ -150,6 +164,9 @@
     "allGamesEnabled": "All available games are already enabled."
   },
   "character": {
+    "owner": "Owner",
+    "ownerUnknown": "Owner not available",
+    "unclaimed": "Unclaimed",
     "addCharacter": "Add Character",
     "editCharacter": "Edit Character",
     "name": "Character Name",
@@ -191,7 +208,7 @@
     "selectClass": "Select class...",
     "selectSpec": "Select spec...",
     "selectProfession": "Select profession...",
-    "factionRestriction": "This race/class combination is restricted to {faction}.",
+    "factionRestriction": "This race/class combination is restricted to {{faction}}.",
     "requiredFieldsError": "Race, class, and main spec are required for WoW Forever.",
     "invalidCombinationError": "Choose a valid race, class, and specialization combination."
   },

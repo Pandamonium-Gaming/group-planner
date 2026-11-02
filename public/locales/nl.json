@@ -1,4 +1,18 @@
 {
+  "characterTransfer": {
+    "title": "Gegevensoverdracht voor beheerders",
+    "description": "Exporteer het huidige spel van de groep naar een JSON-bestand en importeer het in de doelomgeving. Geen directe databasesynchronisatie.",
+    "export": "Personages exporteren",
+    "import": "JSON-bestand importeren",
+    "preview": "Voorbeeld: {{create}} nieuwe personages, {{update}} bestaande personages bijgewerkt.",
+    "replacesChildren": "Alleen opgenomen personage-ID's worden bijgewerkt. Hun beroepen en schepen worden vervangen door het bestand; andere personages blijven ongewijzigd.",
+    "unclaimedWarning": "Deze eigenaren zijn niet via Discord-ID gevonden onder goedgekeurde leden van de doelgroep. Hun personages worden zonder eigenaar geïmporteerd:",
+    "confirmation": "Typ IMPORT om wijzigingen in deze omgeving te bevestigen.",
+    "confirm": "Import bevestigen",
+    "success": "Import voltooid.",
+    "failed": "Gegevensoverdracht mislukt.",
+    "tooLarge": "Kies een JSON-bestand kleiner dan 2 MB."
+  },
   "professionOverview": {
     "title": "Beroepen",
     "description": "Vind de ambachtslieden en verzamelaars van je groep in één oogopslag.",
@@ -8,8 +22,8 @@
     "alt": "Alleen alternatieve personages",
     "mainLabel": "Hoofd",
     "altLabel": "Alt",
-    "covered": "{covered} / {total} beroepen gedekt",
-    "contributors": "{count} bijdragende personages",
+    "covered": "{{covered}} / {{total}} beroepen gedekt",
+    "contributors": "{{count}} bijdragende personages",
     "noCoverage": "Geen personages met dit beroep in het huidige filter.",
     "unsupported": "Dit spel houdt geen beroepen bij.",
     "faction": "Factie",
@@ -150,6 +164,9 @@
     "allGamesEnabled": "Alle beschikbare spellen zijn al ingeschakeld."
   },
   "character": {
+    "owner": "Eigenaar",
+    "ownerUnknown": "Eigenaar niet beschikbaar",
+    "unclaimed": "Niet geclaimd",
     "addCharacter": "Personage toevoegen",
     "editCharacter": "Personage bewerken",
     "name": "Personagenaam",
@@ -191,7 +208,7 @@
     "selectClass": "Selecteer klasse...",
     "selectSpec": "Selecteer specialisatie...",
     "selectProfession": "Selecteer beroep...",
-    "factionRestriction": "Deze ras/klasse-combinatie is beperkt tot {faction}.",
+    "factionRestriction": "Deze ras/klasse-combinatie is beperkt tot {{faction}}.",
     "requiredFieldsError": "Ras, klasse en hoofdspecialisatie zijn verplicht voor WoW Forever.",
     "invalidCombinationError": "Kies een geldige combinatie van ras, klasse en specialisatie."
   },

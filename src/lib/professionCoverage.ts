@@ -68,6 +68,6 @@ const PROFESSION_LABEL_KEYS: Record<string, string> = {
   Skinning: 'professionOverview.skinning',
 };
 
-function getProfessionLabelKey(id: string): string {
+export function getProfessionLabelKey(id: string): string {
   return PROFESSION_LABEL_KEYS[id] || `professions.${id.toLowerCase()}`;
 }

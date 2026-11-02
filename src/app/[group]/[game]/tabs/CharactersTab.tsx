@@ -125,9 +125,9 @@ export function CharactersTab({
           const canDelete = getUserCanDeleteCharacter(character) && !isGameArchived;
           
           // Get main character name if this is an alt
-          const mainCharacter = character.is_main ? null : characters.find(c => c.user_id === character.user_id && c.is_main);
+          const mainCharacter = character.is_main || !character.user_id ? null : characters.find(c => c.user_id === character.user_id && c.is_main);
           // Get alt characters if this is a main
-          const alts = character.is_main ? characters.filter(c => c.user_id === character.user_id && !c.is_main) : [];
+          const alts = character.is_main && character.user_id ? characters.filter(c => c.user_id === character.user_id && !c.is_main) : [];
           
           return (
             <CharacterCard
@@ -149,4 +149,3 @@ export function CharactersTab({
     </div>
   );
 }
-

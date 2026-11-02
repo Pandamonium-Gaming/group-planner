@@ -144,6 +144,7 @@ export interface MemberProfession {
 // Extended character with professions loaded
 export interface CharacterWithProfessions extends Character {
   professions: MemberProfession[];
+  owner?: { display_name: string | null; discord_username: string | null } | null;
 }
 
 // Legacy alias for compatibility

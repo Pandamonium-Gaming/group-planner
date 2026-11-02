@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
 import { RACES, ARCHETYPES, RaceId, ArchetypeId } from '@/lib/characters';
 import { getClassById, ROR_CLASSES, ROR_ROLE_CONFIG } from '@/games/returnofreckooning/config';
 import { getGameConfig } from '@/config';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { WOW_FOREVER_CLASSES, WOW_FOREVER_PROFESSIONS } from '@/games/wowforever/config';
+import { getProfessionLabelKey } from '@/lib/professionCoverage';
 
 interface GameRoleOption {
   id: string;
@@ -28,6 +30,8 @@ export interface CharacterFilters {
   rorRole: string | ''; // ror role derived from class (e.g., 'tank', 'healer')
   // Universal filters
   characterType: 'all' | 'main' | 'alt'; // filter by main/alt characters
+  wowClasses?: string[];
+  wowProfessions?: string[];
 }
 
 interface CharacterFiltersProps {
@@ -51,6 +55,8 @@ export const DEFAULT_FILTERS: CharacterFilters = {
   rorClass: '',
   rorRole: '',
   characterType: 'all',
+  wowClasses: [],
+  wowProfessions: [],
 };
 
 export function CharacterFiltersBar({
@@ -79,7 +85,9 @@ export function CharacterFiltersBar({
     filters.rorFaction !== '' ||
     filters.rorClass !== '' ||
     filters.rorRole !== '' ||
-    filters.characterType !== 'all';
+    filters.characterType !== 'all' ||
+    (filters.wowClasses?.length || 0) > 0 ||
+    (filters.wowProfessions?.length || 0) > 0;
 
   const clearFilters = () => {
     onChange(DEFAULT_FILTERS);
@@ -133,6 +141,38 @@ export function CharacterFiltersBar({
       {/* Expanded filters */}
       {isExpanded && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-800">
+          {gameSlug === 'wowforever' && (
+            <>
+              <fieldset className="rounded-lg border border-slate-700 p-3">
+                <legend className="px-1 text-xs text-slate-400">{t('wowForever.class')}</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {WOW_FOREVER_CLASSES.map(wowClass => (
+                    <label key={wowClass.id} className="flex items-center gap-2 text-sm text-slate-300">
+                      <input type="checkbox" checked={(filters.wowClasses || []).includes(wowClass.id)}
+                        onChange={event => onChange({ ...filters, wowClasses: event.target.checked
+                          ? [...(filters.wowClasses || []), wowClass.id]
+                          : (filters.wowClasses || []).filter(id => id !== wowClass.id) })} />
+                      {wowClass.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="rounded-lg border border-slate-700 p-3">
+                <legend className="px-1 text-xs text-slate-400">{t('professionOverview.title')}</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {WOW_FOREVER_PROFESSIONS.map(profession => (
+                    <label key={profession} className="flex items-center gap-2 text-sm text-slate-300">
+                      <input type="checkbox" checked={(filters.wowProfessions || []).includes(profession)}
+                        onChange={event => onChange({ ...filters, wowProfessions: event.target.checked
+                          ? [...(filters.wowProfessions || []), profession]
+                          : (filters.wowProfessions || []).filter(name => name !== profession) })} />
+                      {t(getProfessionLabelKey(profession))}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
+          )}
           {/* Race filter - AoC only */}
           {gameSlug === 'aoc' && (
             <div>
@@ -357,6 +397,9 @@ export function filterCharacters<T extends {
   subscriber_tier?: string | null;
   ror_faction?: string | null;
   ror_class?: string | null;
+  wow_class?: string | null;
+  wow_profession_1?: string | null;
+  wow_profession_2?: string | null;
   rank?: string | null;
 }>(
   characters: T[],
@@ -375,6 +418,9 @@ export function filterCharacters<T extends {
   }
   
   return characters.filter(char => {
+    if (filters.wowClasses?.length && !filters.wowClasses.includes(char.wow_class || '')) return false;
+    if (filters.wowProfessions?.length && !filters.wowProfessions.some(profession =>
+      profession === char.wow_profession_1 || profession === char.wow_profession_2)) return false;
     // Search filter - include character if:
     // 1. Name matches search, OR
     // 2. Has user_id and that user_id had a character that matched search
@@ -455,4 +501,3 @@ export function filterCharacters<T extends {
     return true;
   });
 }
-

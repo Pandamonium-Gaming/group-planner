@@ -120,6 +120,11 @@ export async function PATCH(request: NextRequest) {
       timezone?: string;
       display_name?: string | null;
     };
+    if (body.display_name !== undefined && body.display_name !== null &&
+      (typeof body.display_name !== 'string' || body.display_name.trim().length > 100 ||
+        /[\u0000-\u001f]/.test(body.display_name))) {
+      return NextResponse.json({ error: 'Display name must be at most 100 characters without control characters' }, { status: 400 });
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -128,6 +133,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceRole);
+    await findOrCreateUserProfileById(authContext.userId, {
+      discordId: authContext.discordId, discordUsername: authContext.discordUsername,
+      discordAvatar: authContext.discordAvatar, displayName: authContext.displayName,
+    });
     const updatePayload: Record<string, unknown> = {};
 
     if (typeof body.timezone === 'string') {

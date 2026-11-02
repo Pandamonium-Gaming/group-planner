@@ -84,6 +84,11 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                           className="min-w-0 flex-1 truncate text-sm text-slate-200 hover:text-indigo-300" title={character.name}>
                           {character.name}
                         </Link>
+                        <span className="max-w-24 truncate text-xs text-slate-400" title={t('character.owner')}>
+                          {character.user_id
+                            ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
+                            : t('character.unclaimed')}
+                        </span>
                         {rank && <span className={`text-xs ${RANK_COLORS[rank].text}`}>{t(`character.${RANK_NAMES[rank].toLowerCase()}`)}</span>}
                         {gameSlug === 'wowforever' && <span className="text-xs text-indigo-200">
                           {t(wowRank ? `wowForever.professionRanks.${wowRank}` : 'wowForever.rankNotRecorded')}

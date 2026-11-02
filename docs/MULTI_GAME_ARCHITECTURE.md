@@ -14,6 +14,28 @@ No numeric skill, cap or trainer eligibility is inferred. Unknown ranks remain
 unrecorded, and changing a profession clears its old rank. Apply migration
 `010_add_wow_forever_profession_ranks.sql` before deploying rank tracking.
 
+The Characters page supports multi-select WoW classes and professions. Selections
+use OR within a category and AND between categories; professions match either
+slot. Search retains main/alt account grouping, while unclaimed characters are
+never grouped together. Character and coverage views show the owner's profile
+display name, falling back to Discord username. Users can edit their override
+in account Settings; names never change identity or permissions.
+
+Group administrators can export/import a versioned JSON file for the current
+group and game, including Ashes profession data and Star Citizen ship ownership.
+Use live export -> local file -> destination import, never direct database sync.
+Import previews create/update counts and unresolved-owner warnings, requires
+typing `IMPORT`, and is applied atomically through migration
+`011_add_character_transfer.sql`. Owners match approved destination group
+members by Discord ID, never source user UUIDs or display names. Missing owners
+remain unclaimed. Only included character IDs are updated; their professions
+and ships are replaced, while unrelated characters stay untouched. Conflicting
+IDs, multiple mains and stale previews are rejected. Transfers are limited to
+1,000 characters and 2 MB. The server-only function denies public, anonymous
+and authenticated direct calls; the API separately requires group-admin access.
+Run `supabase/tests/character_transfer.sql` against development to exercise the
+transaction with synthetic data; its outer transaction always rolls back.
+
 WoW faction and class badges use original app-styled symbols, not official game
 artwork. Standard races resolve to their faction automatically. Skyborne Mage
 is Alliance-only and Shaman is Horde-only; other Skyborne classes choose their

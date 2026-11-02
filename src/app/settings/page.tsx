@@ -11,7 +11,7 @@ import { InlineFooter } from '@/components/layout/Footer';
 import { getClientAuthStack } from '@/lib/authStack';
 
 export default function SettingsPage() {
-  const { user, profile, loading } = useAuthContext();
+  const { user, profile, loading, refresh } = useAuthContext();
   const { language, setLanguage, t } = useLanguage();
   const [timezone, setTimezone] = useState('UTC');
   const [displayName, setDisplayName] = useState('');
@@ -76,6 +76,7 @@ export default function SettingsPage() {
         if (updateError) throw updateError;
       }
       
+      await refresh();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -149,10 +150,12 @@ export default function SettingsPage() {
 
           {/* Display Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="profile-display-name" className="block text-sm font-medium text-slate-300 mb-2">
               {t('settings.displayName')}
             </label>
             <input
+              id="profile-display-name"
+              maxLength={100}
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -292,4 +295,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

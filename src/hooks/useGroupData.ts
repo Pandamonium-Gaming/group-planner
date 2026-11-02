@@ -238,7 +238,8 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
             .from('members')
             .select(`
               *,
-              member_professions (*)
+              member_professions (*),
+              owner:users!members_user_id_fkey(display_name, discord_username)
             `)
             .eq('group_id', groupData.id)
             .eq('game_slug', gameSlug || 'aoc')
@@ -254,7 +255,8 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
           .from('members')
           .select(`
             *,
-            member_professions (*)
+            member_professions (*),
+            owner:users!members_user_id_fkey(display_name, discord_username)
           `)
           .eq('group_id', groupData.id)
           .eq('game_slug', gameSlug || 'aoc')

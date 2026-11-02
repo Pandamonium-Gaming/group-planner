@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 type Language = 'en-GB' | 'es' | 'nl';
 
@@ -126,4 +126,3 @@ export const LANGUAGES = [
   { code: 'es' as Language, name: 'Español', flag: '🇪🇸' },
   { code: 'nl' as Language, name: 'Nederlands', flag: '🇳🇱' },
 ];
-

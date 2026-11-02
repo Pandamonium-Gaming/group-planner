@@ -311,7 +311,8 @@ export async function GET(request: NextRequest) {
     .from('members')
     .select(`
       *,
-      member_professions (*)
+      member_professions (*),
+      owner:users!members_user_id_fkey(display_name, discord_username)
     `)
     .eq('group_id', groupId)
     .eq('game_slug', gameSlug)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Edit2, Check, X, AlertTriangle, Star } from 'lucide-react';
 import { CharacterWithProfessions, RankLevel, RANK_COLORS } from '@/lib/types';
 import { SUBSCRIBER_COLORS, SUBSCRIBER_TIERS } from '@/games/starcitizen/config/subscriber-ships';
@@ -183,9 +183,16 @@ export function CharacterCard({
               <div>
                 <div className="flex items-center gap-2">
                   {character.is_main && (
-                    <Star size={14} className="text-amber-400 fill-amber-400" />
+                    <span role="img" aria-label={t('character.mainCharacter')} title={t('character.mainCharacter')}>
+                      <Star size={14} className="text-amber-400 fill-amber-400" aria-hidden="true" />
+                    </span>
                   )}
                   <h3 className="text-white font-semibold truncate">{character.name}</h3>
+                  <span className="truncate text-xs text-slate-400" title={t('character.owner')}>
+                    {character.user_id
+                      ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
+                      : t('character.unclaimed')}
+                  </span>
                   {character.level > 1 && (
                     <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
                       Lv.{character.level}
