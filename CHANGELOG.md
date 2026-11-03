@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added money deposits and withdrawals to the Group Bank, with Gold / Silver / Copper inputs, balances and history for WoW Forever. Migration `026_wow_bank_currency.sql` converts existing WoW whole-gold balances and transactions to integer copper without changing Ashes units; money transfers now update the balance and audit history atomically.
 * Included migration `025_atomic_bank_resource_transactions.sql` from main, providing atomic guild-bank resource transactions and the matching migration-history entry.
 * Added small coloured guild-rank badges beside characters across member rosters, class and profession overviews, events, parties, fleets, siege rosters, caravans and loot views, with rank names in character selectors. Badges use the player's membership rank and each game's configured rank names and hierarchy; unranked players, guests and disabled ranks have no badge.
 * Enabled Guild Bank for WoW Forever with a separate bank, inventory, history and starter WoW item catalogue per group and game. Apply migration 024 before deploying; existing bank balances and items remain with Ashes. WoW does not show Freeholds or Caravans, and deleting a game now removes its bank.
@@ -46,6 +47,10 @@
 * **Production-like app + db compose overlay**
   * Added `docker-compose.prod.stack.yml` to combine the production app override with a local Postgres container for self-hosted prod-style validation
   * Added production stack command examples to `README.md`
+
+### Security
+
+* Enforced effective guild-bank deposit and withdrawal permissions for currency transfers in the database and blocked direct bank-balance writes.
 
 ### Changed
 

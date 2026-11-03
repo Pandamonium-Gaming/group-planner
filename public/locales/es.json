@@ -816,6 +816,12 @@
   "bank": {
     "title": "Banco del Grupo",
     "gold": "Oro",
+    "goldShort": "o",
+    "silver": "Plata",
+    "silverShort": "p",
+    "copper": "Cobre",
+    "copperShort": "c",
+    "errorInsufficientGold": "Dinero insuficiente en el banco",
     "inventory": "Inventario",
     "transactions": "Transacciones",
     "requests": "Solicitudes",

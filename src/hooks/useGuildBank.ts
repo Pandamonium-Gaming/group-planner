@@ -8,7 +8,6 @@ import {
   BankInventoryWithResource,
   BankTransactionWithDetails,
   ResourceRequestWithDetails,
-  BankTransactionType,
   ResourceCategory,
 } from '@/lib/types';
 
@@ -246,28 +245,13 @@ export function useGuildBank(groupId: string | null, gameSlug = 'aoc'): UseGuild
   // Adjust gold balance
   const adjustGold = async (amount: number, notes?: string) => {
     if (!bank) throw new Error('Bank not initialized');
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const newBalance = bank.gold_balance + amount;
-    if (newBalance < 0) throw new Error('Insufficient gold');
-
-    const { error: updateError } = await supabase
-      .from('guild_banks')
-      .update({
-        gold_balance: newBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bank.id);
-    if (updateError) throw updateError;
-
-    const { error: transactionError } = await supabase.from('bank_transactions').insert({
-      bank_id: bank.id,
-      transaction_type: amount > 0 ? 'deposit' : 'withdrawal' as BankTransactionType,
-      quantity: 0,
-      gold_amount: amount,
-      user_id: user?.id,
-      notes,
+    if (!Number.isSafeInteger(amount) || amount === 0) {
+      throw new Error('Gold amount must be a non-zero safe integer');
+    }
+    const { error: transactionError } = await supabase.rpc('apply_bank_gold_transaction', {
+      p_bank_id: bank.id,
+      p_amount: amount,
+      p_notes: notes ?? null,
     });
     if (transactionError) throw transactionError;
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { EconomyTabContent } from '../EconomyTabContent';
 import EconomyPage from '@/app/[group]/[game]/economy/page';
 import type { GuildBank, ResourceCatalog } from '@/lib/types';
@@ -22,10 +22,11 @@ const mockHasPermission = jest.fn();
 let mockGameSlug = 'wowforever';
 const deposit = jest.fn();
 const withdraw = jest.fn();
+const adjustGold = jest.fn();
 const initializeBank = jest.fn();
 const bankState = () => ({
   bank: bank as GuildBank | null, inventory: [], transactions: [], resourceCatalog: [resource],
-  loading: false, error: null as string | null, deposit, withdraw, initializeBank,
+  loading: false, error: null as string | null, deposit, withdraw, adjustGold, initializeBank,
 });
 
 jest.mock('@/contexts/LanguageContext', () => ({
@@ -52,6 +53,7 @@ beforeEach(() => {
   mockGameSlug = 'wowforever';
   deposit.mockResolvedValue(undefined);
   withdraw.mockResolvedValue(undefined);
+  adjustGold.mockResolvedValue(undefined);
   initializeBank.mockResolvedValue(bank);
   mockUseGuildBank.mockReturnValue(bankState());
   mockUseFreeholds.mockReturnValue({ freeholds: [], loading: false });
@@ -127,4 +129,81 @@ it('does not present a bank creation button when loading failed', () => {
   render(<EconomyPage />);
   expect(screen.getByRole('alert')).toHaveTextContent('Apply migration 024');
   expect(screen.getAllByRole('button', { name: 'bank.title' })).toHaveLength(1);
+});
+
+async function openMoneyForm(type: 'deposit' | 'withdraw') {
+  fireEvent.click(screen.getByRole('button', { name: `bank.${type}` }));
+  const dialog = screen.getByRole('dialog');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  fireEvent.click(within(dialog).getByRole('button', { name: /bank.gold/ }));
+  return dialog;
+}
+
+it('deposits Gold / Silver / Copper as exact integer copper without creating inventory items', async () => {
+  render(<EconomyPage />);
+  const dialog = await openMoneyForm('deposit');
+  fireEvent.change(within(dialog).getByLabelText('bank.gold'), { target: { value: '12' } });
+  fireEvent.change(within(dialog).getByLabelText('bank.silver'), { target: { value: '34' } });
+  fireEvent.change(within(dialog).getByLabelText('bank.copper'), { target: { value: '56' } });
+  fireEvent.change(within(dialog).getByLabelText(/loot.reason/), { target: { value: ' Raid funds ' } });
+  fireEvent.submit(within(dialog).getByRole('button', { name: 'bank.deposit' }).closest('form')!);
+  await waitFor(() => expect(adjustGold).toHaveBeenCalledWith(123456, 'Raid funds'));
+  expect(deposit).not.toHaveBeenCalled();
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it('withdraws the exact maximum copper balance, including amounts below one gold', async () => {
+  mockUseGuildBank.mockReturnValue({ ...bankState(), bank: { ...bank, gold_balance: 1234 } });
+  render(<EconomyPage />);
+  const dialog = await openMoneyForm('withdraw');
+  fireEvent.click(within(dialog).getByRole('button', { name: /Max/ }));
+  expect(within(dialog).getByLabelText('bank.gold')).toHaveValue(0);
+  expect(within(dialog).getByLabelText('bank.silver')).toHaveValue(12);
+  expect(within(dialog).getByLabelText('bank.copper')).toHaveValue(34);
+  fireEvent.submit(within(dialog).getByRole('button', { name: 'bank.withdraw' }).closest('form')!);
+  await waitFor(() => expect(adjustGold).toHaveBeenCalledWith(-1234, undefined));
+  expect(withdraw).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['0', '0', '0', 'bank.errorInvalidQuantity'],
+  ['0', '100', '0', 'bank.errorInvalidQuantity'],
+  ['0', '0', '1.5', 'bank.errorInvalidQuantity'],
+  ['0', '1', '1', 'bank.errorInsufficientGold'],
+])('rejects invalid or overdrawn WoW amounts (%s, %s, %s)', async (gold, silver, copper, message) => {
+  mockUseGuildBank.mockReturnValue({ ...bankState(), bank: { ...bank, gold_balance: 100 } });
+  render(<EconomyPage />);
+  const dialog = await openMoneyForm('withdraw');
+  fireEvent.change(within(dialog).getByLabelText('bank.gold'), { target: { value: gold } });
+  fireEvent.change(within(dialog).getByLabelText('bank.silver'), { target: { value: silver } });
+  fireEvent.change(within(dialog).getByLabelText('bank.copper'), { target: { value: copper } });
+  fireEvent.submit(within(dialog).getByRole('button', { name: 'bank.withdraw' }).closest('form')!);
+  expect(within(dialog).getByRole('alert')).toHaveTextContent(message);
+  expect(adjustGold).not.toHaveBeenCalled();
+});
+
+it('keeps failed money transfers open and surfaces the database error', async () => {
+  adjustGold.mockRejectedValue(new Error('Audit insert failed'));
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    render(<EconomyPage />);
+    const dialog = await openMoneyForm('deposit');
+    fireEvent.change(within(dialog).getByLabelText('bank.copper'), { target: { value: '1' } });
+    fireEvent.submit(within(dialog).getByRole('button', { name: 'bank.deposit' }).closest('form')!);
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Audit insert failed');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  } finally {
+    log.mockRestore();
+  }
+});
+
+it('keeps Ashes deposits in whole gold without silver or copper fields', async () => {
+  mockGameSlug = 'aoc';
+  mockUseGuildBank.mockReturnValue({ ...bankState(), bank: { ...bank, game_slug: 'aoc' } });
+  render(<EconomyPage />);
+  const dialog = await openMoneyForm('deposit');
+  expect(within(dialog).queryByLabelText('bank.silver')).not.toBeInTheDocument();
+  fireEvent.change(within(dialog).getByLabelText('bank.gold *'), { target: { value: '12' } });
+  fireEvent.submit(within(dialog).getByRole('button', { name: 'bank.deposit' }).closest('form')!);
+  await waitFor(() => expect(adjustGold).toHaveBeenCalledWith(12, undefined));
 });
