@@ -4700,7 +4700,6 @@ CREATE POLICY "Authenticated users can update guild icons"
         AND role IN ('admin', 'officer', 'member')
     )
   );
-  );
 
 -- Policy: Group admins/officers can delete guild icons
 CREATE POLICY "Group admins can delete guild icons"

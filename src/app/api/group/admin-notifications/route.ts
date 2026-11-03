@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { webhookSession } from '@/server/discord';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
 import { isAdminRoleMentions, isAdminCategorySettings } from '@/lib/adminNotifications';
+import { adminDatabaseError, adminFailure } from '@/server/admin-errors';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -13,7 +14,7 @@ async function adminContext(request: NextRequest, groupId: unknown) {
   }
   const { data, error } = await session.client.from('group_members').select('role')
     .eq('group_id', groupId).eq('user_id', session.userId).maybeSingle();
-  if (error) throw new Error('Unable to verify administrator access');
+  if (error) throw adminDatabaseError('group_access', error);
   if (data?.role !== 'admin') return { response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   return { client: session.client, userId: session.userId, groupId };
 }
@@ -29,17 +30,16 @@ export async function GET(request: NextRequest) {
     const { client, groupId } = context;
     const { data: config, error: configError } = await client.from('group_admin_discord')
       .select('destination_id,role_mentions,categories').eq('group_id', groupId).maybeSingle();
-    if (configError) throw new Error('Unable to load admin configuration');
+    if (configError) throw adminDatabaseError('group_config_load', configError);
     const { data: logs, error: logsError } = await client.from('admin_discord_notifications')
       .select('id,kind,status,http_status,error,created_at')
       .eq('group_id', groupId).eq('destination', 'group')
       .order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(page * 20, page * 20 + 20);
-    if (logsError) throw new Error('Unable to load admin notification history');
+    if (logsError) throw adminDatabaseError('group_history_load', logsError);
     return NextResponse.json({ configured: !!config?.destination_id, role_mentions: config?.role_mentions || {}, categories: config?.categories || {}, logs: logs.slice(0, 20), hasMore: logs.length > 20 });
-  } catch {
-    console.error('[admin-discord] Unable to load group admin notifications');
-    return NextResponse.json({ error: 'Unable to load admin notifications' }, { status: 500 });
+  } catch (error) {
+    return adminFailure(error, 'unknown');
   }
 }
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       const { error } = await context.client.rpc('save_admin_discord_preferences', {
         p_group_id: context.groupId, p_categories: body.categories, p_roles: body.role_mentions, p_actor_id: context.userId,
       });
-      if (error) throw new Error('Unable to save notification preferences');
+      if (error) throw adminDatabaseError('group_save_preferences', error);
       return NextResponse.json({ success: true });
     }
     if ('role_mentions' in body) {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       const { error } = await context.client.rpc('save_group_admin_discord_roles', {
         p_group_id: context.groupId, p_roles: body.role_mentions, p_actor_id: context.userId,
       });
-      if (error) throw new Error('Unable to save admin role mentions');
+      if (error) throw adminDatabaseError('group_save_roles', error);
       return NextResponse.json({ success: true });
     }
     if (typeof body.webhook_url !== 'string') {
@@ -84,10 +84,9 @@ export async function POST(request: NextRequest) {
     const { error } = await context.client.rpc('save_group_admin_discord', {
       p_group_id: context.groupId, p_webhook_url: url || null, p_actor_id: context.userId,
     });
-    if (error) throw new Error('Unable to save private admin destination');
+    if (error) throw adminDatabaseError('group_save_webhook', error);
     return NextResponse.json({ configured: !!url });
-  } catch {
-    console.error('[admin-discord] Unable to save group admin destination');
-    return NextResponse.json({ error: 'Unable to save admin webhook' }, { status: 500 });
+  } catch (error) {
+    return adminFailure(error, 'unknown');
   }
 }

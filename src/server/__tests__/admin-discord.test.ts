@@ -6,7 +6,7 @@ import { GET as deliver } from '@/app/api/admin/notifications/deliver/route';
 import { GET as settings, POST as save } from '@/app/api/group/admin-notifications/route';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
 import { GET as siteSettings, POST as saveSite } from '@/app/api/admin/notifications/settings/route';
-import type { AdminCategorySettings, AdminRoleMentions } from '@/lib/adminNotifications';
+import { isAdminCategorySettings, isAdminRoleMentions, type AdminCategorySettings, type AdminRoleMentions } from '@/lib/adminNotifications';
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -483,4 +483,61 @@ it('validates site input, explicit overrides and configuration errors without ex
   dbError = false;
   rpc.mockResolvedValue({ error: { code: 'offline' } });
   expect((await saveSite(request({ categories: {}, role_mentions: {} }))).status).toBe(500);
+});
+
+it('reports a specific code for each site configuration failure without leaking values', async () => {
+  const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  auth.mockResolvedValue({ user: { id: 'admin-1', discordId: '123456789012345678' } });
+
+  process.env.ADMIN_DISCORD_ROLE_MENTIONS = '449231691198758925';
+  let response = await siteSettings(request());
+  expect(response.status).toBe(500);
+  expect(await response.json()).toMatchObject({ code: 'site_role_config' });
+  expect(errorLog).toHaveBeenLastCalledWith(expect.stringContaining('site_role_config'), expect.stringContaining('ADMIN_DISCORD_ROLE_MENTIONS failed validation'));
+
+  process.env.ADMIN_DISCORD_ROLE_MENTIONS = 'invalid JSON';
+  expect(await (await siteSettings(request())).json()).toMatchObject({ code: 'site_role_config' });
+  delete process.env.ADMIN_DISCORD_ROLE_MENTIONS;
+
+  process.env.SITE_ADMIN_DISCORD_IDS = 'bad-id';
+  response = await siteSettings(request());
+  expect(await response.json()).toMatchObject({ code: 'site_allowlist' });
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  response = await siteSettings(request());
+  expect(await response.json()).toMatchObject({ code: 'server_credentials' });
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+
+  dbError = true;
+  response = await siteSettings(request());
+  expect(await response.json()).toMatchObject({ code: 'site_config_load' });
+  dbError = false;
+
+  rpc.mockResolvedValue({ error: { code: 'PGRST202', message: 'function not found' } });
+  response = await saveSite(request({ categories: {}, role_mentions: {} }));
+  expect(await response.json()).toMatchObject({ code: 'site_save_preferences' });
+  expect(errorLog).toHaveBeenLastCalledWith(expect.stringContaining('site_save_preferences'), expect.stringContaining('PGRST202 function not found'));
+
+  const logged = JSON.stringify(errorLog.mock.calls);
+  expect(logged).not.toContain('test-key');
+  errorLog.mockRestore();
+});
+
+it('formats game_deleted with a Game field, no settings link section and category validation', () => {
+  const payload = adminNotificationPayload({ ...notification, kind: 'game_deleted', subject_name: 'Ashes of Creation', changes: { game: 'Ashes of Creation' } }, { groupSlug: 'guild' });
+  expect(payload.embeds[0].title).toBe('Game deleted');
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Game', value: 'Ashes of Creation' }));
+  expect(payload.embeds[0].fields.find(field => field.name === 'Affected account')).toBeUndefined();
+  expect(payload.embeds[0].fields.find(field => field.name === 'Changes')).toBeUndefined();
+  expect(payload.embeds[0].url).toBe('https://planner.test/guild/settings');
+  expect(isAdminCategorySettings({ game_deleted: false })).toBe(true);
+  expect(isAdminRoleMentions({ game_deleted: '123456789012345678' })).toBe(true);
+});
+
+it('renders no Game field or generic changed line when a game_deleted game is not a string', () => {
+  const payload = adminNotificationPayload({ ...notification, kind: 'game_deleted', subject_name: null, changes: { game: 42 } as never }, { groupSlug: 'guild' });
+  expect(payload.embeds[0].fields.find(field => field.name === 'Game')).toBeUndefined();
+  expect(payload.embeds[0].fields.find(field => field.name === 'Changes')).toBeUndefined();
 });

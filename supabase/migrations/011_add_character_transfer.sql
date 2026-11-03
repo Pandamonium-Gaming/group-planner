@@ -29,6 +29,7 @@ BEGIN
     OR jsonb_array_length(p_document->'characters') > 1000 THEN
     RAISE EXCEPTION 'Invalid character transfer document';
   END IF;
+  PERFORM 1 FROM public.groups WHERE id = p_group_id FOR KEY SHARE;
   PERFORM 1 FROM public.group_games
     WHERE group_id = p_group_id AND game_slug = p_game_slug AND NOT archived FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Destination game is missing or archived'; END IF;

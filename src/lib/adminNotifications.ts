@@ -2,6 +2,7 @@ export const ADMIN_NOTIFICATION_KINDS = [
   'account_registered', 'group_created', 'group_deleted', 'member_joined',
   'member_left_or_removed', 'member_requested', 'member_request_closed',
   'role_changed', 'permissions_changed', 'webhook_changed',
+  'game_deleted',
 ] as const;
 
 export type AdminNotificationKind = typeof ADMIN_NOTIFICATION_KINDS[number];

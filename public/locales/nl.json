@@ -28,6 +28,23 @@
     "private": "Alleen groepsbeheerders kunnen deze bestemming wijzigen. Opgeslagen URL's worden nooit naar de browser teruggestuurd. Gebruik een privé Discord-kanaal; deze meldingen bevatten beheerdersinformatie.",
     "disable": "Beheerderswebhook uitschakelen",
     "failed": "Beheerdersmeldingen konden niet worden geladen of opgeslagen. Controleer beheerderstoegang, de webhook-URL, rol-ID's en migraties 015–017 en vernieuw daarna.",
+    "errors": {
+      "server_credentials": "De server mist zijn Supabase-gegevens. Controleer de omgevingsvariabelen voor de Supabase-URL en de service-rolsleutel.",
+      "site_allowlist": "SITE_ADMIN_DISCORD_IDS is ongeldig. Het moet door komma's gescheiden Discord-gebruikers-ID's van 17–20 cijfers bevatten.",
+      "site_identity": "Je Discord-identiteit kon niet worden geverifieerd. Meld je af en weer aan.",
+      "site_role_config": "De rolvermeldingen zijn ongeldig. ADMIN_DISCORD_ROLE_MENTIONS moet een JSON-object zijn zoals {\"group_created\":\"<rol-ID>\"} en opgeslagen rol-ID's moeten 17–20 cijfers hebben.",
+      "site_config_load": "De sitemeldingsinstellingen konden niet worden gelezen. Controleer of migraties 015–017 zijn toegepast.",
+      "site_history_load": "De sitemeldingsgeschiedenis kon niet worden gelezen. Controleer of migraties 015–017 zijn toegepast.",
+      "site_save_webhook": "De site-webhook kon niet worden opgeslagen. Controleer de serverlogs.",
+      "site_save_preferences": "De sitemeldingsvoorkeuren konden niet worden opgeslagen. Controleer de serverlogs.",
+      "group_access": "Je beheerderstoegang voor de groep kon niet worden geverifieerd. Vernieuw en probeer opnieuw.",
+      "group_config_load": "De groepsmeldingsinstellingen konden niet worden gelezen. Controleer of migraties 015–017 zijn toegepast.",
+      "group_history_load": "De groepsmeldingsgeschiedenis kon niet worden gelezen. Controleer of migraties 015–017 zijn toegepast.",
+      "group_save_webhook": "De groepswebhook kon niet worden opgeslagen. Controleer de serverlogs.",
+      "group_save_roles": "De rolvermeldingen van de groep konden niet worden opgeslagen. Controleer de serverlogs.",
+      "group_save_preferences": "De groepsmeldingsvoorkeuren konden niet worden opgeslagen. Controleer de serverlogs.",
+      "unknown": "Onverwachte serverfout. Controleer de serverlogs."
+    },
     "history": "Geschiedenis van beheerdersmeldingen",
     "delivery": "Wijzigingen in de wachtrij worden elke minuut verwerkt, vijf per batch. Alleen nieuwe wijzigingen worden vastgelegd. Bij snelheidslimieten volgen maximaal vijf pogingen; onzekere leveringen worden niet automatisch herhaald. Controleer Discord voordat je opnieuw probeert. Sommige serverwijzigingen hebben geen herkenbare uitvoerder. Vertrekmeldingen maken geen onderscheid tussen vertrek, verwijdering of accountverwijdering.",
     "kinds": {
@@ -40,7 +57,8 @@
       "member_request_closed": "Lidmaatschapsaanvraag gesloten",
       "role_changed": "Ledenrol gewijzigd",
       "permissions_changed": "Aangepaste rechten gewijzigd",
-      "webhook_changed": "Discord-instellingen gewijzigd"
+      "webhook_changed": "Discord-instellingen gewijzigd",
+      "game_deleted": "Spel verwijderd"
     },
     "statuses": {
       "pending": "In wachtrij / herhaling gepland",
@@ -418,7 +436,24 @@
     "restore": "Herstellen",
     "archive": "Archiveren",
     "noteLabel": "Let op:",
-    "note": "Archiveren verbergt een spel in de navigatie en voorkomt updates, maar alle personages, schepen en andere gegevens blijven in de database en kunnen op elk moment worden hersteld."
+    "note": "Archiveren verbergt een spel in de navigatie en voorkomt updates, maar alle personages, schepen en andere gegevens blijven in de database en kunnen op elk moment worden hersteld.",
+    "deleteButton": "Definitief verwijderen",
+    "deleteTitle": "{{gameName}} definitief verwijderen",
+    "deleteBody": "Hiermee worden alle gegevens van {{gameName}} voor deze groep definitief gewist, inclusief personages, schepen en andere spelspecifieke gegevens. Dit kan niet ongedaan worden gemaakt.",
+    "deleteConfirmLabel": "Typ de naam van het spel om te bevestigen: {{gameName}}",
+    "deleteCancel": "Annuleren",
+    "deleteSuccess": "{{gameName}} is definitief verwijderd",
+    "deleteFailed": "Kan de spelgegevens niet verwijderen. Probeer het opnieuw.",
+    "deleting": "Verwijderen...",
+    "errors": {
+      "unauthorized": "Je moet inloggen om dit te doen.",
+      "game_forbidden": "Alleen een groepsbeheerder kan een spel verwijderen.",
+      "game_not_found": "Dat spel is niet gevonden voor deze groep.",
+      "game_not_archived": "Archiveer het spel voordat je de gegevens verwijdert.",
+      "game_confirmation": "De ingevoerde naam komt niet overeen met de naam van het spel.",
+      "game_last": "Een groep moet minstens één spel behouden. Voeg eerst een ander spel toe of laat dit spel gearchiveerd.",
+      "game_delete": "Kan de spelgegevens niet verwijderen. Probeer het opnieuw."
+    }
   },
   "members": {
     "title": "Leden",

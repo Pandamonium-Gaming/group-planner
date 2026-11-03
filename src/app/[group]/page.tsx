@@ -3,14 +3,14 @@
 import { useState, use, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, ChevronRight, Home, Plus, Trash2, Shield, Loader, Archive } from 'lucide-react';
+import { LogOut, ChevronRight, Home, Plus, Shield, Loader, Archive } from 'lucide-react';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { GameIcon } from '@/components/common/GameIcon';
 import { createGroup, getGroupBySlug } from '@/lib/auth';
 import { useGroupMembership } from '@/hooks/useGroupMembership';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getGroupGamesWithStatus, addGameToGroup, removeGameFromGroup } from '@/lib/group-games';
+import { getGroupGamesWithStatus, addGameToGroup } from '@/lib/group-games';
 import { getAllGames } from '@/lib/games';
 import { ClanLoadingScreen } from '@/components/screens/ClanLoadingScreen';
 import { ClanErrorScreen } from '@/components/screens/ClanErrorScreen';
@@ -40,7 +40,6 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
   const [gamesWithStatus, setGamesWithStatus] = useState<Array<{ slug: string; archived: boolean }>>([]);
   const [showAddGame, setShowAddGame] = useState(false);
   const [addingGame, setAddingGame] = useState<string | null>(null);
-  const [removingGame, setRemovingGame] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -114,23 +113,6 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
       console.error('Error adding game:', err);
     } finally {
       setAddingGame(null);
-    }
-  };
-
-  // Remove game from group
-  const handleRemoveGame = async (gameSlug: string) => {
-    if (!groupId) return;
-    
-    setRemovingGame(gameSlug);
-    try {
-      const success = await removeGameFromGroup(groupId, gameSlug);
-      if (success) {
-        setEnabledGames(enabledGames.filter(g => g !== gameSlug));
-      }
-    } catch (err) {
-      console.error('Error removing game:', err);
-    } finally {
-      setRemovingGame(null);
     }
   };
 
@@ -448,22 +430,6 @@ export default function GroupPage({ params }: { params: Promise<{ group: string 
                   <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
               </Link>
-
-              {/* Admin delete button */}
-              {canEditSettings && !isArchived && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveGame(game.slug); }}
-                  disabled={removingGame === game.slug}
-                  className="absolute top-3 right-3 p-2 opacity-0 group-hover:opacity-100 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all z-10"
-                  title="Remove this game from the group"
-                >
-                  {removingGame === game.slug ? (
-                    <Loader className="w-4 h-4 text-red-400 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  )}
-                </button>
-              )}
             </div>
           );
           })}

@@ -3,13 +3,16 @@ import { webhookSession } from '@/server/discord';
 import { isDiscordRoleId } from '@/lib/adminNotifications';
 import { auth } from '@/auth';
 import { getServerAuthStack } from '@/lib/authStack';
+import { AdminError } from '@/server/admin-errors';
 
 export async function siteAdminContext(request: NextRequest) {
   const { client, userId } = await webhookSession(request);
   if (!userId) return { client, userId, allowed: false };
   const ids = (process.env.SITE_ADMIN_DISCORD_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
   if (!ids.length) return { client, userId, allowed: false };
-  if (!ids.every(isDiscordRoleId)) throw new Error('Invalid site administrator allowlist');
+  if (!ids.every(isDiscordRoleId)) {
+    throw new AdminError('site_allowlist', `${ids.filter(id => !isDiscordRoleId(id)).length} of ${ids.length} entries are not 17–20 digit IDs`);
+  }
   let discordId: unknown;
   if (getServerAuthStack() === 'v2') {
     discordId = (await auth())?.user?.discordId;
@@ -17,7 +20,7 @@ export async function siteAdminContext(request: NextRequest) {
     const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
     if (!token) return { client, userId, allowed: false };
     const { data, error } = await client.auth.getUser(token);
-    if (error) throw new Error('Unable to verify site administrator identity');
+    if (error) throw new AdminError('site_identity', error.message);
     const identity = data.user?.identities?.find(item => item.provider === 'discord');
     discordId = identity?.identity_data?.sub;
   }

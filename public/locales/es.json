@@ -28,6 +28,23 @@
     "private": "Solo los administradores del grupo pueden cambiar este destino. Las URL guardadas nunca se devuelven al navegador. Usa un canal privado de Discord; estas alertas contienen información administrativa.",
     "disable": "Desactivar webhook de administración",
     "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL, los ID de rol y las migraciones 015–017, y actualiza.",
+    "errors": {
+      "server_credentials": "Al servidor le faltan las credenciales de Supabase. Revisa las variables de entorno de la URL de Supabase y la clave de rol de servicio.",
+      "site_allowlist": "SITE_ADMIN_DISCORD_IDS no es válido. Debe contener ID de usuario de Discord de 17 a 20 dígitos separados por comas.",
+      "site_identity": "No se pudo verificar tu identidad de Discord. Cierra sesión y vuelve a iniciarla.",
+      "site_role_config": "Las menciones de rol no son válidas. ADMIN_DISCORD_ROLE_MENTIONS debe ser un objeto JSON como {\"group_created\":\"<ID de rol>\"} y los ID de rol guardados deben tener de 17 a 20 dígitos.",
+      "site_config_load": "No se pudo leer la configuración de notificaciones del sitio. Comprueba que las migraciones 015–017 estén aplicadas.",
+      "site_history_load": "No se pudo leer el historial de notificaciones del sitio. Comprueba que las migraciones 015–017 estén aplicadas.",
+      "site_save_webhook": "No se pudo guardar el webhook del sitio. Revisa los registros del servidor.",
+      "site_save_preferences": "No se pudieron guardar las preferencias de notificaciones del sitio. Revisa los registros del servidor.",
+      "group_access": "No se pudo verificar tu acceso de administrador del grupo. Actualiza e inténtalo de nuevo.",
+      "group_config_load": "No se pudo leer la configuración de notificaciones del grupo. Comprueba que las migraciones 015–017 estén aplicadas.",
+      "group_history_load": "No se pudo leer el historial de notificaciones del grupo. Comprueba que las migraciones 015–017 estén aplicadas.",
+      "group_save_webhook": "No se pudo guardar el webhook del grupo. Revisa los registros del servidor.",
+      "group_save_roles": "No se pudieron guardar las menciones de rol del grupo. Revisa los registros del servidor.",
+      "group_save_preferences": "No se pudieron guardar las preferencias de notificaciones del grupo. Revisa los registros del servidor.",
+      "unknown": "Error inesperado del servidor. Revisa los registros del servidor."
+    },
     "history": "Historial de notificaciones de administración",
     "delivery": "Los cambios en cola se procesan cada minuto, cinco por lote. Solo se registran cambios nuevos. Los límites de frecuencia se reintentan hasta cinco veces; los envíos inciertos no se reintentan automáticamente. Comprueba Discord antes de reintentar. Algunos cambios del servidor no tienen autor identificable. Las alertas de salida no distinguen entre abandono, expulsión o eliminación de la cuenta.",
     "kinds": {
@@ -40,7 +57,8 @@
       "member_request_closed": "Solicitud de ingreso cerrada",
       "role_changed": "Rol de miembro cambiado",
       "permissions_changed": "Permisos personalizados cambiados",
-      "webhook_changed": "Configuración de Discord cambiada"
+      "webhook_changed": "Configuración de Discord cambiada",
+      "game_deleted": "Juego eliminado"
     },
     "statuses": {
       "pending": "En cola / reintento programado",
@@ -416,7 +434,24 @@
     "restore": "Restaurar",
     "archive": "Archivar",
     "noteLabel": "Nota:",
-    "note": "Archivar un juego lo oculta de la navegación y evita actualizaciones, pero todos los personajes, naves y otros datos permanecen en la base de datos y se pueden restaurar en cualquier momento."
+    "note": "Archivar un juego lo oculta de la navegación y evita actualizaciones, pero todos los personajes, naves y otros datos permanecen en la base de datos y se pueden restaurar en cualquier momento.",
+    "deleteButton": "Eliminar permanentemente",
+    "deleteTitle": "Eliminar {{gameName}} permanentemente",
+    "deleteBody": "Esto elimina de forma permanente todos los datos de {{gameName}} de este grupo, incluidos personajes, naves y otros registros específicos del juego. Esta acción no se puede deshacer.",
+    "deleteConfirmLabel": "Escribe el nombre del juego para confirmar: {{gameName}}",
+    "deleteCancel": "Cancelar",
+    "deleteSuccess": "{{gameName}} se ha eliminado permanentemente",
+    "deleteFailed": "No se pudieron eliminar los datos del juego. Inténtalo de nuevo.",
+    "deleting": "Eliminando...",
+    "errors": {
+      "unauthorized": "Debes iniciar sesión para hacerlo.",
+      "game_forbidden": "Solo un administrador del grupo puede eliminar un juego.",
+      "game_not_found": "No se encontró ese juego en este grupo.",
+      "game_not_archived": "Archiva el juego antes de eliminar sus datos.",
+      "game_confirmation": "El nombre escrito no coincide con el nombre del juego.",
+      "game_last": "Un grupo debe conservar al menos un juego. Añade otro juego primero o mantén este archivado.",
+      "game_delete": "No se pudieron eliminar los datos del juego. Inténtalo de nuevo."
+    }
   },
   "members": {
     "title": "Miembros",

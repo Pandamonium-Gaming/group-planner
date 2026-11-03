@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { webhookHeaders } from '@/lib/webhookClient';
 
 export interface GroupGameInfo {
   game_slug: string;
@@ -87,21 +88,34 @@ export async function addGameToGroup(groupId: string, gameSlug: string): Promise
 }
 
 /**
- * Remove a game from a group (admin only)
+ * Permanently delete an archived game's data for a group (admin only, server-validated).
  */
-export async function removeGameFromGroup(groupId: string, gameSlug: string): Promise<boolean> {
+export async function deleteGameForGroup(
+  groupId: string,
+  gameSlug: string,
+  confirmName: string,
+): Promise<{ ok: true } | { ok: false; code: string | null }> {
   try {
-    const { error } = await supabase
-      .from('group_games')
-      .delete()
-      .eq('group_id', groupId)
-      .eq('game_slug', gameSlug);
-
-    if (error) throw error;
-    return true;
+    // Cookies authenticate the v2 stack; webhookHeaders() adds the v1 Supabase bearer token.
+    const headers = { ...(await webhookHeaders()), 'Content-Type': 'application/json' };
+    const response = await fetch('/api/group/games', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers,
+      body: JSON.stringify({ groupId, gameSlug, confirmName }),
+    });
+    if (response.ok) return { ok: true };
+    let code: string | null = null;
+    try {
+      const payload = (await response.json()) as { code?: unknown };
+      code = typeof payload.code === 'string' ? payload.code : null;
+    } catch {
+      code = null;
+    }
+    return { ok: false, code };
   } catch (err) {
-    console.error('Error removing game from group:', err);
-    return false;
+    console.error('Error deleting game for group:', err);
+    return { ok: false, code: null };
   }
 }
 

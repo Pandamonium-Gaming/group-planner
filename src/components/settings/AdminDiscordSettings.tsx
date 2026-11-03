@@ -14,6 +14,15 @@ interface AdminLog {
   created_at: string;
 }
 
+async function failureCode(response: Response): Promise<string | null> {
+  try {
+    const body = await response.json() as { code?: unknown };
+    return typeof body.code === 'string' ? body.code : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: string; siteWide?: boolean }) {
   const { t } = useLanguage();
   const [webhook, setWebhook] = useState('');
@@ -21,6 +30,7 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [logs, setLogs] = useState<AdminLog[]>([]);
@@ -40,6 +50,7 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
     async function load() {
       setLoading(true);
       setError(false);
+      setErrorCode(null);
       setDenied(false);
       try {
         const response = await fetch(`${endpoint}?group_id=${encodeURIComponent(groupId || '')}&page=${page}`, {
@@ -49,7 +60,10 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
           if (active) { setDenied(true); setLogs([]); }
           return;
         }
-        if (!response.ok) throw new Error(`Unable to load admin notifications (${response.status})`);
+        if (!response.ok) {
+          if (active) setErrorCode(await failureCode(response));
+          throw new Error(`Unable to load admin notifications (${response.status})`);
+        }
         const data = await response.json() as { configured: boolean; role_mentions?: AdminRoleMentions; categories?: AdminCategorySettings; logs: AdminLog[]; hasMore: boolean };
         if (active) {
           setConfigured(data.configured);
@@ -75,12 +89,16 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
     setSaving(true);
     setSaved(false);
     setError(false);
+    setErrorCode(null);
     try {
       const response = await fetch(endpoint, {
         method: 'POST', credentials: 'include', headers: await webhookHeaders(),
         body: JSON.stringify({ group_id: groupId, role_mentions: roleMentions, categories }),
       });
-      if (!response.ok) throw new Error('Unable to save notification preferences');
+      if (!response.ok) {
+        setErrorCode(await failureCode(response));
+        throw new Error('Unable to save notification preferences');
+      }
       setRolesDirty(false);
       rolesEdited.current = false;
       setSaved(true);
@@ -97,12 +115,16 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
     setSaving(true);
     setSaved(false);
     setError(false);
+    setErrorCode(null);
     try {
       const response = await fetch(endpoint, {
         method: 'POST', credentials: 'include', headers: await webhookHeaders(),
         body: JSON.stringify({ group_id: groupId, webhook_url: disable ? '' : webhook.trim() }),
       });
-      if (!response.ok) throw new Error(`Unable to save admin webhook (${response.status})`);
+      if (!response.ok) {
+        setErrorCode(await failureCode(response));
+        throw new Error(`Unable to save admin webhook (${response.status})`);
+      }
       setConfigured(!disable);
       setWebhook('');
       setSaved(true);
@@ -178,7 +200,7 @@ export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: 
           className="px-3 py-2 rounded bg-purple-700 text-white disabled:opacity-50">{t('adminNotifications.saveRoles')}</button>
       </form>
       {saved && <p role="status" className="text-green-400">{t('common.saved')}</p>}
-      {error && <p role="alert" className="text-red-400">{t('adminNotifications.failed')}</p>}
+      {error && <p role="alert" className="text-red-400">{t(errorCode ? `adminNotifications.errors.${errorCode}` : 'adminNotifications.failed')}</p>}
       <h4 className="text-white font-medium">{t('adminNotifications.history')}</h4>
       <p className="text-xs text-slate-400">{t('adminNotifications.delivery')}</p>
       <button type="button" onClick={() => setRefresh(value => value + 1)} disabled={loading || saving}

@@ -1,34 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { auth } from '@/auth';
+import { GAMES, type GameId } from '@/lib/games';
+import { webhookSession } from '@/server/discord';
+import { AdminError, adminDatabaseError, adminFailure, type AdminErrorCode } from '@/server/admin-errors';
 
 type GroupMembershipRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
 
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    return null;
-  }
-
-  return createClient(url, key);
-}
-
-async function getAuthorizedMembership(groupId: string) {
-  const session = await auth();
-  const userId = session?.user?.id;
-
-  if (!userId) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), role: null as GroupMembershipRole };
-  }
-
-  const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) {
+/**
+ * Resolves the signed-in user on either auth stack (v2 session cookie, or the
+ * v1 Supabase bearer token verified server-side) and their role in the group.
+ */
+async function getAuthorizedMembership(request: NextRequest, groupId: string) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
       error: NextResponse.json({ error: 'Server missing Supabase service credentials' }, { status: 500 }),
       role: null as GroupMembershipRole,
     };
+  }
+
+  const { client: supabaseAdmin, userId } = await webhookSession(request);
+
+  if (!userId) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), role: null as GroupMembershipRole };
   }
 
   const { data: membership, error } = await supabaseAdmin
@@ -46,7 +38,7 @@ async function getAuthorizedMembership(groupId: string) {
     return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }), role: null as GroupMembershipRole };
   }
 
-  return { error: null, role: membership.role as GroupMembershipRole, supabaseAdmin };
+  return { error: null, role: membership.role as GroupMembershipRole, supabaseAdmin, userId };
 }
 
 export async function GET(request: NextRequest) {
@@ -57,7 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing group_id' }, { status: 400 });
   }
 
-  const { error, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, supabaseAdmin } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
     return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -84,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing groupId or gameSlug' }, { status: 400 });
   }
 
-  const { error, role, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, role, supabaseAdmin } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
     return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -104,32 +96,59 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(request: NextRequest) {
-  const body = await request.json();
-  const groupId = body?.groupId as string | undefined;
-  const gameSlug = body?.gameSlug as string | undefined;
+const GAME_DELETE_ERRORS = new Map<string, { code: AdminErrorCode; status: number }>(Object.entries({
+  NOT_ADMIN: { code: 'game_forbidden', status: 403 },
+  GAME_NOT_FOUND: { code: 'game_not_found', status: 404 },
+  GAME_NOT_ARCHIVED: { code: 'game_not_archived', status: 409 },
+  CONFIRMATION_MISMATCH: { code: 'game_confirmation', status: 400 },
+  LAST_GAME: { code: 'game_last', status: 409 },
+} as Record<string, { code: AdminErrorCode; status: number }>));
 
-  if (!groupId || !gameSlug) {
-    return NextResponse.json({ error: 'Missing groupId or gameSlug' }, { status: 400 });
+/** Adds a stable `code` to the shared helper's bare error responses (DELETE only; GET/POST bodies unchanged). */
+function withErrorCode(response: NextResponse) {
+  const status = response.status;
+  const code: AdminErrorCode = status === 401 ? 'unauthorized' : status === 403 ? 'game_forbidden' : 'game_delete';
+  return adminFailure(new AdminError(code, `membership check returned ${status}`), code, status);
+}
+
+export async function DELETE(request: NextRequest) {
+  const body = await request.json().catch(() => null);
+  const groupId = body?.groupId;
+  const gameSlug = body?.gameSlug;
+  const confirmName = body?.confirmName;
+
+  if (typeof groupId !== 'string' || !groupId || typeof gameSlug !== 'string' || !gameSlug || typeof confirmName !== 'string' || !confirmName) {
+    return NextResponse.json({ error: 'Missing groupId, gameSlug or confirmName', code: 'bad_request' }, { status: 400 });
   }
 
-  const { error, role, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, role, supabaseAdmin, userId } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
-    return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return (error ? withErrorCode(error) : null) ?? adminFailure(new AdminError('unauthorized'), 'unauthorized', 401);
   }
 
   if (role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return adminFailure(new AdminError('game_forbidden'), 'game_forbidden', 403);
   }
 
-  const { error: deleteError } = await supabaseAdmin
-    .from('group_games')
-    .delete()
-    .eq('group_id', groupId)
-    .eq('game_slug', gameSlug);
+  if (!Object.hasOwn(GAMES, gameSlug)) {
+    return adminFailure(new AdminError('game_not_found', 'slug not in registry'), 'game_not_found', 404);
+  }
 
-  if (deleteError) {
-    return NextResponse.json({ error: 'Failed to remove game', details: deleteError.message }, { status: 500 });
+  const { error: rpcError } = await supabaseAdmin.rpc('delete_group_game', {
+    p_group_id: groupId,
+    p_game_slug: gameSlug,
+    p_confirm_name: confirmName,
+    p_expected_name: GAMES[gameSlug as GameId].name,
+    p_actor_id: userId,
+  });
+
+  if (rpcError) {
+    const mapped = GAME_DELETE_ERRORS.get(rpcError.message?.trim());
+    return adminFailure(
+      adminDatabaseError(mapped?.code ?? 'game_delete', rpcError),
+      mapped?.code ?? 'game_delete',
+      mapped?.status ?? 500,
+    );
   }
 
   return NextResponse.json({ success: true });

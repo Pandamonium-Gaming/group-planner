@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { siteAdminContext } from '@/server/site-admin';
 import { isAdminCategorySettings, isAdminRoleMentions } from '@/lib/adminNotifications';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
+import { AdminError, adminDatabaseError, adminFailure } from '@/server/admin-errors';
+
+function siteRoleMentions(stored: unknown) {
+  let roles = stored;
+  if (roles == null) {
+    try {
+      roles = JSON.parse(process.env.ADMIN_DISCORD_ROLE_MENTIONS || '{}');
+    } catch {
+      throw new AdminError('site_role_config', 'ADMIN_DISCORD_ROLE_MENTIONS is not valid JSON');
+    }
+  }
+  if (!isAdminRoleMentions(roles)) {
+    throw new AdminError('site_role_config', `${stored == null ? 'ADMIN_DISCORD_ROLE_MENTIONS' : 'stored role_mentions'} failed validation`);
+  }
+  return roles;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,20 +27,18 @@ export async function GET(request: NextRequest) {
     if (!Number.isSafeInteger(page) || page < 0 || page > 10000) return NextResponse.json({ error: 'Invalid page' }, { status: 400 });
     const { data: config, error } = await client.from('site_admin_discord')
       .select('webhook_override,destination_id,role_mentions,categories').eq('id', true).maybeSingle();
-    if (error) throw new Error('Unable to load site configuration');
-    const roles: unknown = config?.role_mentions ?? JSON.parse(process.env.ADMIN_DISCORD_ROLE_MENTIONS || '{}');
-    if (!isAdminRoleMentions(roles)) throw new Error('Invalid site role configuration');
+    if (error) throw adminDatabaseError('site_config_load', error);
+    const roles = siteRoleMentions(config?.role_mentions);
     const { data: logs, error: logError } = await client.from('admin_discord_notifications')
       .select('id,kind,status,http_status,error,created_at').eq('destination', 'site')
       .order('created_at', { ascending: false }).order('id', { ascending: false }).range(page * 20, page * 20 + 20);
-    if (logError) throw new Error('Unable to load site history');
+    if (logError) throw adminDatabaseError('site_history_load', logError);
     return NextResponse.json({
       configured: config?.webhook_override ? !!config.destination_id : !!process.env.ADMIN_DISCORD_WEBHOOK_URL,
       role_mentions: roles, categories: config?.categories || {}, logs: logs.slice(0, 20), hasMore: logs.length > 20,
     });
-  } catch {
-    console.error('[admin-discord] Unable to load site administration settings');
-    return NextResponse.json({ error: 'Unable to load site settings' }, { status: 500 });
+  } catch (error) {
+    return adminFailure(error, 'unknown');
   }
 }
 
@@ -42,7 +56,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid webhook request' }, { status: 400 });
       }
       const { error } = await client.rpc('save_site_admin_discord_webhook', { p_url: body.webhook_url.trim() || null, p_actor_id: userId });
-      if (error) throw new Error('Unable to save site webhook');
+      if (error) throw adminDatabaseError('site_save_webhook', error);
       return NextResponse.json({ configured: !!body.webhook_url.trim() });
     }
     if (!('categories' in body) || !('role_mentions' in body)
@@ -52,10 +66,9 @@ export async function POST(request: NextRequest) {
     const { error } = await client.rpc('save_admin_discord_preferences', {
       p_group_id: null, p_categories: body.categories, p_roles: body.role_mentions, p_actor_id: userId,
     });
-    if (error) throw new Error('Unable to save site preferences');
+    if (error) throw adminDatabaseError('site_save_preferences', error);
     return NextResponse.json({ success: true });
-  } catch {
-    console.error('[admin-discord] Unable to save site administration settings');
-    return NextResponse.json({ error: 'Unable to save site settings' }, { status: 500 });
+  } catch (error) {
+    return adminFailure(error, 'unknown');
   }
 }

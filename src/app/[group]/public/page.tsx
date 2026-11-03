@@ -16,6 +16,7 @@ interface PublicGroupData {
     recruitment_message?: string;
     public_description?: string;
   };
+  groupGames: Array<{ game_slug: string; archived: boolean }>;
   memberCount: number;
   professionCoverage: number;
   upcomingEvents: number;
@@ -41,9 +42,17 @@ export default function PublicGroupPage({ params }: { params: Promise<{ group: s
         }
 
         const publicData = await response.json();
-        
+
+        // A missing game list must not be read as "legacy group, offer every game".
+        if (!Array.isArray(publicData.groupGames)) {
+          setData(null);
+          setLoading(false);
+          return;
+        }
+
         setData({
-          group: publicData.group,
+          group: publicData.clan,
+          groupGames: publicData.groupGames,
           memberCount: publicData.memberCount || 0,
           professionCoverage: 75, // Could calculate this
           upcomingEvents: publicData.upcomingEvents || 0,
@@ -196,6 +205,7 @@ export default function PublicGroupPage({ params }: { params: Promise<{ group: s
         <RecruitmentForm
           groupId={group.id}
           groupName={group.name}
+          groupGames={data.groupGames}
           onClose={() => setShowRecruitmentForm(false)}
           onSuccess={() => {
             setShowRecruitmentForm(false);

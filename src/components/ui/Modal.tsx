@@ -1,8 +1,30 @@
 'use client';
 
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]:not([disabled])',
+].join(', ');
+
+const isTabbable = (el: HTMLElement) => {
+  const attr = el.getAttribute('tabindex');
+  if (attr !== null && Number(attr) < 0) return false;
+  return !el.closest('[inert], [hidden]');
+};
+
+// Open modals in open order; only the topmost handles Escape and Tab.
+const openModalStack: object[] = [];
 
 interface ModalProps {
   isOpen: boolean;
@@ -18,6 +40,7 @@ interface ModalProps {
  * - Full-screen on mobile (< 640px)
  * - Centered overlay on desktop
  * - Closes with ESC key or clicking outside
+ * - Traps Tab focus inside and restores focus to the opener on close
  */
 export function Modal({
   isOpen,
@@ -29,7 +52,6 @@ export function Modal({
 }: ModalProps) {
   const { t } = useLanguage();
   const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   // Size classes for desktop
   const sizeClasses = {
@@ -39,31 +61,107 @@ export function Modal({
     xl: 'sm:max-w-xl',
   };
 
-  // Handle ESC key to close
+  // Capture the opener while rendering, on a closed -> open transition, using React's
+  // "adjust state while rendering" pattern: React re-renders immediately, before the commit
+  // in which children autofocus, so the dialog's own input can never be captured.
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setOpener(typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null);
+    }
+  }
+
+  // Latest values for the lifecycle effect, synced in layout effects (which run before the
+  // previous commit's passive cleanup, so a real close sees isOpen === false there, while an
+  // unmount or StrictMode's simulated unmount still sees true).
+  const onCloseRef = useRef(onClose);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const isOpenRef = useRef(false);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+    openerRef.current = opener;
+    isOpenRef.current = isOpen;
+  });
+
+  // Restore scheduled by a cleanup that ran while the latest render still said "open"
+  // (an unmount, or StrictMode's simulated one); a re-run of the effect cancels it.
+  const pendingRestore = useRef<object | null>(null);
+
+  // Escape, focus trap, scroll lock and focus restoration for the open lifecycle
   useEffect(() => {
+    pendingRestore.current = null;
+    if (!isOpen) return;
+
+    const token = {};
+    openModalStack.push(token);
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (openModalStack[openModalStack.length - 1] !== token) return;
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const container = modalRef.current;
+      if (!container) return;
+      // Query at key-press time so dynamic content is respected
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter(isTabbable);
+
+      if (focusable.length === 0) {
+        e.preventDefault();
+        container.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (!container.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && (active === first || active === container)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Store current active element for focus restoration
-      previousActiveElement.current = document.activeElement as HTMLElement;
-      // Lock body scroll
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-      // Restore focus when modal closes
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus();
+      const index = openModalStack.indexOf(token);
+      if (index !== -1) openModalStack.splice(index, 1);
+      // Keep the scroll lock while another modal is still open
+      if (openModalStack.length === 0) document.body.style.overflow = '';
+
+      const target = openerRef.current;
+      const restore = () => {
+        if (target && document.contains(target)) target.focus();
+      };
+      if (!isOpenRef.current) {
+        // Really closing: restore focus to the opener straight away
+        restore();
+      } else {
+        // Unmounting while open, or StrictMode's simulated unmount: defer so a
+        // immediate re-run of the effect can cancel it without moving focus
+        const pending = {};
+        pendingRestore.current = pending;
+        queueMicrotask(() => {
+          if (pendingRestore.current === pending) restore();
+        });
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Handle click outside to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -91,8 +189,9 @@ export function Modal({
       {/* Modal Content */}
       <div
         ref={modalRef}
+        tabIndex={-1}
         className={`
-          relative w-full bg-slate-900 border border-slate-700 shadow-xl
+          relative w-full outline-none bg-slate-900 border border-slate-700 shadow-xl
           h-full sm:h-auto sm:rounded-xl sm:mx-4 ${sizeClasses[size]}
           flex flex-col max-h-screen sm:max-h-[90vh]
           animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:fade-in duration-200

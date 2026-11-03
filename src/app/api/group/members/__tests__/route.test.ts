@@ -47,12 +47,14 @@ type MockState = {
   selectMembershipQueue: GroupMemberRow[];
   selectCharacterQueue: CharacterRow[];
   updates: UpdateRecord[];
+  insertResult: { data: unknown; error: { message: string } | null };
 };
 
 const mockState: MockState = {
   selectMembershipQueue: [],
   selectCharacterQueue: [],
   updates: [],
+  insertResult: { data: null, error: null },
 };
 
 function createGroupMembersSelectQuery() {
@@ -114,6 +116,9 @@ function createMockAdminClient() {
 
       if (table === 'members') {
         return {
+          insert: jest.fn(() => ({
+            select: () => ({ single: async () => mockState.insertResult }),
+          })),
           select: jest.fn(() => createMembersSelectQuery()),
           update: jest.fn((payload: Record<string, unknown>) => {
             const record: UpdateRecord = {
@@ -152,6 +157,7 @@ describe('POST /api/group/members', () => {
     mockState.selectMembershipQueue = [];
     mockState.selectCharacterQueue = [];
     mockState.updates = [];
+    mockState.insertResult = { data: null, error: null };
 
     auth.mockResolvedValue({
       user: {
@@ -160,6 +166,30 @@ describe('POST /api/group/members', () => {
     });
 
     createClient.mockImplementation(() => createMockAdminClient());
+  });
+
+  it('returns 409 game_not_enabled when the game was removed from the group', async () => {
+    mockState.selectMembershipQueue = [{ id: 'actor-membership-id', role: 'member', user_id: 'actor-user-id' }];
+    mockState.insertResult = { data: null, error: { message: 'GAME_NOT_ENABLED' } };
+
+    const response = await POST(makeRequest({
+      action: 'create_character', group_id: 'group-1', game_slug: 'aoc', character: { name: 'Stale' },
+    }) as any);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'This game is no longer enabled for the group', code: 'game_not_enabled' });
+  });
+
+  it('keeps other character insert failures as 500', async () => {
+    mockState.selectMembershipQueue = [{ id: 'actor-membership-id', role: 'member', user_id: 'actor-user-id' }];
+    mockState.insertResult = { data: null, error: { message: 'duplicate key' } };
+
+    const response = await POST(makeRequest({
+      action: 'create_character', group_id: 'group-1', game_slug: 'aoc', character: { name: 'Dup' },
+    }) as any);
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Failed to create character', details: 'duplicate key' });
   });
 
   it('updates by resolved target membership id for update_user_rank action', async () => {

@@ -268,6 +268,20 @@ const getGameRoute = (gameSlug: string) => {
 
 ***
 
+## Deleting a Game: Register Its Data for Cleanup
+
+Group admins can permanently delete an archived game's data for their group through the `public.delete_group_game` database function (migration 021). It erases rows by game and resets the game's per-game `groups` columns (for example the `aoc_`, `sc_`, `ror_` and `wowforever_` prefixed columns) to their defaults.
+
+When you add a game:
+
+* Add its per-game `groups` columns to a reset branch in `delete_group_game`. Do this in a **new migration** that replaces the function; do not edit migration 021 in place.
+* If you add a new table tagged with a game (a `game_slug` column), add its deletion to the function in the same migration, and attach the `public.require_enabled_game()` BEFORE INSERT trigger (migration 023) to it so stale or concurrent writes cannot recreate the deleted game's rows.
+* `scripts/__tests__/delete-group-game-migration.test.mts` has a guard that collects game slugs from `src/config/games/*.json`, the `GameId` union in `src/lib/games.ts` and the migrations, and fails if a registered game has no reset branch in the function. Update the migration and the test's migration reference together.
+* In that test, add the new game's slug to the `COLUMN_PREFIX` map (its `groups` column prefix) and to `DISPLAY_NAME` (used by the database tests), and add the new migration to the migration list the database tests apply (`GAME_SCHEMA_MIGRATIONS` in `scripts/__tests__/game-schema.mts`); the guard and the database tests fail otherwise.
+* A group's last remaining game cannot be deleted (`delete_group_game` raises `LAST_GAME`), so tests that delete a game need the group to have a second one.
+
+***
+
 ## Checklist for Adding a New Game
 
 * \[ ] Game slug and name decided
@@ -281,6 +295,7 @@ const getGameRoute = (gameSlug: string) => {
 * \[ ] Update character creation form if needed
 * \[ ] Add game icon/emoji
 * \[ ] Documentation updated in README.md
+* \[ ] Per-game `groups` columns registered in `delete_group_game` (new migration)
 
 ***
 
