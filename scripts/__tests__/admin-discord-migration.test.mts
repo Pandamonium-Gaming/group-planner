@@ -49,6 +49,10 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await assert.rejects(client.query(`INSERT INTO ${table('admin_discord_notifications')}(kind,destination) VALUES ('game_deleted','group')`), /check constraint/);
     await client.query('ROLLBACK TO SAVEPOINT before_game_deleted');
     await client.query(gameMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
+    const suppressMigration = await readFile(new URL('../../supabase/migrations/019_suppress_alert_flag.sql', import.meta.url), 'utf8');
+    assert.match(suppressMigration, /^BEGIN;\s/);
+    assert.match(suppressMigration, /COMMIT;\s*$/);
+    await client.query(suppressMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const rows = async () => (await client.query(`SELECT * FROM ${table('admin_discord_notifications')} ORDER BY created_at, id`)).rows;
     await client.query(`INSERT INTO ${table('users')} VALUES ($1,'Admin','admin'),($2,'Member','member')`, [admin, member]);
     assert.equal((await rows()).filter(row => row.kind === 'account_registered').length, 2);
@@ -162,6 +166,14 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await assert.rejects(client.query(`SELECT ${table('save_admin_discord_preferences')}($1,'{}','{}',$2)`, [group, member]), /Administrator access required/);
     await client.query('ROLLBACK TO SAVEPOINT denied_preferences');
     await client.query('ROLLBACK TO SAVEPOINT category_checks');
+    const configAlerts = async () => (await rows()).filter(row => row.kind === 'webhook_changed' && row.changes?.group_webhook_url === 'changed').length;
+    const configBefore = await configAlerts();
+    await client.query(`UPDATE ${table('groups')} SET group_webhook_url='https://discord.com/api/webhooks/1/changed-a' WHERE id=$1`, [group]);
+    assert.equal(await configAlerts(), configBefore + 1, 'Config change queues one alert');
+    await client.query("SELECT set_config('app.suppress_admin_config_alert','on',true)");
+    await client.query(`UPDATE ${table('groups')} SET group_webhook_url='https://discord.com/api/webhooks/1/changed-b' WHERE id=$1`, [group]);
+    await client.query("SELECT set_config('app.suppress_admin_config_alert','',true)");
+    assert.equal(await configAlerts(), configBefore + 1, 'Suppression flag queues no alert');
     const beforeDelete = (await rows()).length;
     await client.query(`DELETE FROM ${table('groups')} WHERE id=$1`, [group]);
     assert.equal((await rows()).length, beforeDelete + 2, 'Deletion must notify site and private group channel without cascade noise');
