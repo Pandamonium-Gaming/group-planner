@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
 * Added event reposts to Discord and administrator-only, paginated webhook logs for events, announcements, tests, reminders and member welcomes. Migration 013 stores delivery metadata only, never webhook credentials or message payloads.
 * Added WoW-specific Dungeon, Levelling, World PvP, Battleground PvP and Arena PvP event choices while preserving other games and historical events.
 * Added administrator-only JSON character export/import for the current group and game, with preview, explicit confirmation, Discord owner matching and atomic updates.
@@ -44,6 +45,8 @@
 * Integrated main's subscriber ship fixes into develop and prepared the 0.3.0 release.
 
 ### Fixed
+
+* Aligned guest RSVP class storage with game registry IDs using migration 014; existing UUID values are preserved and displayed as unknown rather than incorrectly mapped to a class.
 
 * Enforced saved-event authorization for every event notification path and honoured group permission overrides for Discord delivery and reposts.
 

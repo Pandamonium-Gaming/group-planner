@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { postEventNotification } from '@/lib/webhookClient';
+import { EventClassRoster } from './EventClassRoster';
 import { CharacterWithProfessions } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AnonymousGuestForm } from '@/components/forms/AnonymousGuestForm';
@@ -286,6 +287,8 @@ export function EventCard({
               )}
             </div>
           </div>
+
+          {!isPublicView && <EventClassRoster event={event} />}
 
           {/* Role Requirements & Roster */}
           {(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 

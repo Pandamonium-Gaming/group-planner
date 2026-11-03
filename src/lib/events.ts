@@ -163,6 +163,16 @@ export interface Event {
   updated_at: string;
 }
 
+export interface EventCharacter {
+  id: string;
+  name: string;
+  primary_archetype?: import('./types').Archetype | null;
+  secondary_archetype?: import('./types').Archetype | null;
+  ror_class?: string | null;
+  wow_class?: string | null;
+  wow_main_spec?: string | null;
+}
+
 export interface EventRsvp {
   id: string;
   event_id: string;
@@ -172,10 +182,7 @@ export interface EventRsvp {
   role: EventRole | null;
   note: string | null;
   responded_at: string;
-  character?: {
-    id: string;
-    name: string;
-  };
+  character?: EventCharacter | null;
   user?: {
     id: string;
     display_name: string | null;
@@ -188,6 +195,7 @@ export interface GuestEventRsvp {
   allied_group_id: string | null;
   guest_name: string;
   guest_email?: string | null;
+  // Game registry ID; legacy UUID values remain readable but have no class mapping.
   class_id: string | null;
   role: EventRole;
   status: 'attending' | 'maybe' | 'declined';

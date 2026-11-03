@@ -1,4 +1,18 @@
 {
+  "eventRoster": {
+    "title": "Composición de clases",
+    "description": "Los asistentes y los posibles asistentes se cuentan por separado, incluidos los invitados. Las clases y especializaciones usan los perfiles actuales; no se asigna automáticamente un personaje principal.",
+    "totals": "Totales de clases por asistencia",
+    "class": "Clase",
+    "attending": "Asistirá",
+    "maybe": "Quizás",
+    "guest": "Invitado",
+    "unknownCharacter": "Personaje desconocido",
+    "unknownClass": "Clase no registrada",
+    "unknownSpec": "Especialización principal no registrada",
+    "noCharacter": "Sin personaje seleccionado",
+    "empty": "Todavía no hay asistentes confirmados ni posibles."
+  },
   "webhooks": {
     "repost": "Volver a publicar en Discord",
     "sending": "Enviando...",

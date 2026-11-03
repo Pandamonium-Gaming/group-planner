@@ -1,4 +1,18 @@
 {
+  "eventRoster": {
+    "title": "Klassenverdeling",
+    "description": "Aanwezig en Misschien worden apart geteld, inclusief gasten. Klassen en hoofdspecialisaties gebruiken de huidige personageprofielen; zonder gekoppeld personage wordt geen hoofdpersonage toegewezen.",
+    "totals": "Klassentotalen per aanwezigheidsstatus",
+    "class": "Klasse",
+    "attending": "Aanwezig",
+    "maybe": "Misschien",
+    "guest": "Gast",
+    "unknownCharacter": "Onbekend personage",
+    "unknownClass": "Klasse niet vastgelegd",
+    "unknownSpec": "Hoofdspecialisatie niet vastgelegd",
+    "noCharacter": "Geen personage geselecteerd",
+    "empty": "Nog geen bevestigde of mogelijke deelnemers."
+  },
   "webhooks": {
     "repost": "Opnieuw plaatsen op Discord",
     "sending": "Verzenden...",

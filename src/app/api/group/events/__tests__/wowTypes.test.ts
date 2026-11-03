@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { POST } from '../route';
+import { GET, POST } from '../route';
 
 jest.mock('next/server', () => ({ NextResponse: {
   json: (body: unknown, init?: { status?: number }) => ({ status: init?.status || 200, json: async () => body }),
@@ -10,6 +10,7 @@ jest.mock('@supabase/supabase-js', () => ({ createClient: jest.fn() }));
 const { createClient } = jest.requireMock('@supabase/supabase-js') as { createClient: jest.Mock };
 const insert = jest.fn();
 const update = jest.fn();
+const select = jest.fn();
 const previous = { id: 'event', group_id: 'group', created_by: 'admin', game_slug: 'wowforever', event_type: 'farming_gear' };
 
 function request(payload: unknown) {
@@ -23,7 +24,8 @@ beforeEach(() => {
   createClient.mockReturnValue({
     from: (table: string) => {
       const query = {
-        select: () => query, eq: () => query, neq: () => query,
+        select: (columns: string) => { select(table, columns); return query; }, eq: () => query, neq: () => query,
+        gte: () => query, order: () => query, limit: () => query,
         maybeSingle: async () => ({ data: table === 'group_members' ? { role: 'admin' } : previous, error: null }),
         single: async () => ({ data: previous, error: null }),
         insert: (data: unknown) => { insert(data); return query; },
@@ -35,6 +37,13 @@ beforeEach(() => {
   });
 });
 
+it('loads selected character class/spec fields on the authenticated event screen', async () => {
+  const request = { url: 'https://planner.test/api/group/events?group_id=group&game_slug=wowforever' } as NextRequest;
+  expect((await GET(request)).status).toBe(200);
+  expect(select).toHaveBeenCalledWith('events', expect.stringContaining(
+    'character:members(id, name, primary_archetype, secondary_archetype, ror_class, wow_class, wow_main_spec)'
+  ));
+});
 it.each(['dungeon', 'leveling', 'world_pvp', 'battleground_pvp', 'arena_pvp'])('accepts new WoW %s events', async eventType => {
   const response = await POST(request({ action: 'create_event', group_id: 'group',
     event: { event_type: eventType, game_slug: 'wowforever' } }));
