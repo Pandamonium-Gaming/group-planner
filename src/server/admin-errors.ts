@@ -15,6 +15,7 @@ export const ADMIN_ERROR_MESSAGES = {
   group_save_webhook: 'Unable to save the group webhook',
   group_save_roles: 'Unable to save the group role mentions',
   group_save_preferences: 'Unable to save the group notification preferences',
+  unauthorized: 'Sign in to continue',
   game_forbidden: 'Only a group administrator can delete a game',
   game_not_found: 'That game was not found for this group',
   game_not_archived: 'Archive the game before deleting its data',

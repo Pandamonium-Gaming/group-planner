@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
-import { getGameConfig } from '@/config';
+import { GAMES, type GameId } from '@/lib/games';
 import { AdminError, adminDatabaseError, adminFailure, type AdminErrorCode } from '@/server/admin-errors';
 
 type GroupMembershipRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
@@ -48,7 +48,7 @@ async function getAuthorizedMembership(groupId: string) {
     return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }), role: null as GroupMembershipRole };
   }
 
-  return { error: null, role: membership.role as GroupMembershipRole, supabaseAdmin };
+  return { error: null, role: membership.role as GroupMembershipRole, supabaseAdmin, userId };
 }
 
 export async function GET(request: NextRequest) {
@@ -106,15 +106,19 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-const GAME_DELETE_ERRORS: Record<string, { code: AdminErrorCode; status: number }> = {
+const GAME_DELETE_ERRORS = new Map<string, { code: AdminErrorCode; status: number }>(Object.entries({
   NOT_ADMIN: { code: 'game_forbidden', status: 403 },
   GAME_NOT_FOUND: { code: 'game_not_found', status: 404 },
   GAME_NOT_ARCHIVED: { code: 'game_not_archived', status: 409 },
   CONFIRMATION_MISMATCH: { code: 'game_confirmation', status: 400 },
-};
+} as Record<string, { code: AdminErrorCode; status: number }>));
 
-// Slugs present in the game registry; getGameConfig() would silently fall back to AoC for anything else.
-const REGISTRY_SLUGS = new Set(['aoc', 'starcitizen', 'star-citizen', 'wowforever']);
+/** Adds a stable `code` to the shared helper's bare error responses (DELETE only; GET/POST bodies unchanged). */
+function withErrorCode(response: NextResponse) {
+  const status = response.status;
+  const code: AdminErrorCode = status === 401 ? 'unauthorized' : status === 403 ? 'game_forbidden' : 'game_delete';
+  return adminFailure(new AdminError(code, `membership check returned ${status}`), code, status);
+}
 
 export async function DELETE(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -126,30 +130,29 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Missing groupId, gameSlug or confirmName', code: 'bad_request' }, { status: 400 });
   }
 
-  const { error, role, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, role, supabaseAdmin, userId } = await getAuthorizedMembership(groupId);
   if (error || !supabaseAdmin) {
-    return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return (error ? withErrorCode(error) : null) ?? adminFailure(new AdminError('unauthorized'), 'unauthorized', 401);
   }
 
   if (role !== 'admin') {
     return adminFailure(new AdminError('game_forbidden'), 'game_forbidden', 403);
   }
 
-  if (!REGISTRY_SLUGS.has(gameSlug)) {
+  if (!Object.hasOwn(GAMES, gameSlug)) {
     return adminFailure(new AdminError('game_not_found', 'slug not in registry'), 'game_not_found', 404);
   }
 
-  const session = await auth();
   const { error: rpcError } = await supabaseAdmin.rpc('delete_group_game', {
     p_group_id: groupId,
     p_game_slug: gameSlug,
     p_confirm_name: confirmName,
-    p_expected_name: getGameConfig(gameSlug).name,
-    p_actor_id: session?.user?.id,
+    p_expected_name: GAMES[gameSlug as GameId].name,
+    p_actor_id: userId,
   });
 
   if (rpcError) {
-    const mapped = GAME_DELETE_ERRORS[rpcError.message?.trim()];
+    const mapped = GAME_DELETE_ERRORS.get(rpcError.message?.trim());
     return adminFailure(
       adminDatabaseError(mapped?.code ?? 'game_delete', rpcError),
       mapped?.code ?? 'game_delete',

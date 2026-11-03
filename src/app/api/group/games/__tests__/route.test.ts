@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import type { NextRequest } from 'next/server';
 import { DELETE } from '../route';
+import { GAMES } from '@/lib/games';
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -56,7 +57,7 @@ describe('DELETE /api/group/games', () => {
       p_group_id: groupId,
       p_game_slug: 'starcitizen',
       p_confirm_name: 'Star Citizen',
-      p_expected_name: 'Star Citizen',
+      p_expected_name: GAMES.starcitizen.name,
       p_actor_id: 'admin-1',
     });
   });
@@ -70,6 +71,7 @@ describe('DELETE /api/group/games', () => {
     auth.mockResolvedValue(null);
     const response = await DELETE(request(valid));
     expect(response.status).toBe(401);
+    expect((await response.json()).code).toBe('unauthorized');
     expect(rpc).not.toHaveBeenCalled();
   });
 
@@ -77,6 +79,7 @@ describe('DELETE /api/group/games', () => {
     role = memberRole;
     const response = await DELETE(request(valid));
     expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('game_forbidden');
     expect(rpc).not.toHaveBeenCalled();
   });
 
@@ -98,8 +101,20 @@ describe('DELETE /api/group/games', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it('deletes an archived ror game using the registry name', async () => {
+    const response = await DELETE(request({ groupId, gameSlug: 'ror', confirmName: 'x' }));
+    expect(response.status).toBe(200);
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_game_slug: 'ror', p_expected_name: GAMES.ror.name });
+  });
+
+  it.each(['toString', '__proto__', 'constructor'])('rejects prototype slug %s without the RPC', async (slug) => {
+    const response = await DELETE(request({ ...valid, gameSlug: slug }));
+    expect(response.status).toBe(404);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it.each([
-    ['NOT_ADMIN', 403, 'Forbidden'],
+    ['NOT_ADMIN', 403, 'game_forbidden'],
     ['GAME_NOT_FOUND', 404, 'game_not_found'],
     ['GAME_NOT_ARCHIVED', 409, 'game_not_archived'],
     ['CONFIRMATION_MISMATCH', 400, 'game_confirmation'],
@@ -109,7 +124,7 @@ describe('DELETE /api/group/games', () => {
     expect(response.status).toBe(status);
     const body = await response.json();
     expect(typeof body.error).toBe('string');
-    if (status !== 403) expect(body.code).toBe(code);
+    expect(body.code).toBe(code);
   });
 
   it('returns 500 game_delete without leaking the raw error', async () => {
