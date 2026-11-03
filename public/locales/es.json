@@ -129,6 +129,16 @@
     "failed": "La transferencia de personajes ha fallado.",
     "tooLarge": "Elige un archivo JSON de menos de 2 MB."
   },
+  "classOverview": {
+    "title": "Clases",
+    "description": "Consulta la distribución de clases de tu grupo y encuentra personajes de cada clase.",
+    "archetypes": "Agrupados por arquetipo principal, con las clases combinadas de cada personaje.",
+    "covered": "{{covered}} / {{total}} clases representadas",
+    "characters": "{{count}} personajes",
+    "share": "{{count}} ({{percent}})",
+    "noCoverage": "No hay personajes de esta clase en el filtro actual.",
+    "unsupported": "Este juego no registra clases."
+  },
   "professionOverview": {
     "title": "Profesiones",
     "description": "Encuentra de un vistazo a los artesanos y recolectores de tu grupo.",

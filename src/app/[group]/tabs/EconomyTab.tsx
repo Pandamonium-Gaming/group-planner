@@ -8,6 +8,5 @@ export interface EconomyTabProps {
 }
 
 export function EconomyTab({ groupId, isOfficer }: EconomyTabProps) {
-  return <EconomyTabContent groupId={groupId} isOfficer={isOfficer} />;
+  return <EconomyTabContent groupId={groupId} isOfficer={isOfficer} canManageBank={isOfficer} />;
 }
-

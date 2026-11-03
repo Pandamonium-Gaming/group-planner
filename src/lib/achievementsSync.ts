@@ -68,6 +68,7 @@ export async function syncGroupAchievements(groupId: string): Promise<number> {
         .from('guild_banks')
         .select('id')
         .eq('group_id', groupId)
+        .eq('game_slug', 'aoc')
         .single();
       if (!bank) return 0;
       const { count } = await supabaseAdmin
@@ -179,4 +180,3 @@ export async function syncGroupAchievements(groupId: string): Promise<number> {
   }
   return updated;
 }
-

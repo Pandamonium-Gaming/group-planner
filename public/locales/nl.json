@@ -129,6 +129,16 @@
     "failed": "Gegevensoverdracht mislukt.",
     "tooLarge": "Kies een JSON-bestand kleiner dan 2 MB."
   },
+  "classOverview": {
+    "title": "Klassen",
+    "description": "Bekijk de klassenverdeling van je groep en vind personages van elke klasse.",
+    "archetypes": "Gegroepeerd op primair archetype, met de gecombineerde klasse van elk personage.",
+    "covered": "{{covered}} / {{total}} klassen vertegenwoordigd",
+    "characters": "{{count}} personages",
+    "share": "{{count}} ({{percent}})",
+    "noCoverage": "Geen personages van deze klasse in het huidige filter.",
+    "unsupported": "Dit spel houdt geen klassen bij."
+  },
   "professionOverview": {
     "title": "Beroepen",
     "description": "Vind de ambachtslieden en verzamelaars van je groep in één oogopslag.",

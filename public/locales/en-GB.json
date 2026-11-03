@@ -129,6 +129,16 @@
     "failed": "Character transfer failed.",
     "tooLarge": "Choose a JSON file smaller than 2 MB."
   },
+  "classOverview": {
+    "title": "Classes",
+    "description": "See your group's class spread and find characters of each class.",
+    "archetypes": "Grouped by primary archetype, with combined classes shown for each character.",
+    "covered": "{{covered}} / {{total}} classes represented",
+    "characters": "{{count}} characters",
+    "share": "{{count}} ({{percent}})",
+    "noCoverage": "No characters of this class in the current filter.",
+    "unsupported": "This game does not track classes."
+  },
   "professionOverview": {
     "title": "Professions",
     "description": "Find your group's crafters and gatherers at a glance.",

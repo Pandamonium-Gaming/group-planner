@@ -40,7 +40,7 @@ A group that no longer plays, or intends to play, a game wants that game gone: n
 Everything is scoped to `(group_id, game_slug)`.
 
 | Erased | How |
-|---|---|
+| --- | --- |
 | `members` (characters) | delete rows; cascades remove `member_professions`, `character_ships`, `party_roster`, `node_citizenships` and other member-owned rows |
 | `events` | delete rows; cascades remove `event_rsvps`, `guest_event_rsvps` |
 | `recruitment_applications` | delete rows |

@@ -52,7 +52,7 @@ interface UseGuildBankReturn {
   refresh: () => Promise<void>;
 }
 
-export function useGuildBank(groupId: string | null): UseGuildBankReturn {
+export function useGuildBank(groupId: string | null, gameSlug = 'aoc'): UseGuildBankReturn {
   const [bank, setBank] = useState<GuildBank | null>(null);
   const [inventory, setInventory] = useState<BankInventoryWithResource[]>([]);
   const [transactions, setTransactions] = useState<BankTransactionWithDetails[]>([]);
@@ -77,6 +77,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
         .from('guild_banks')
         .select('*')
         .eq('group_id', groupId)
+        .eq('game_slug', gameSlug)
         .maybeSingle();
 
       if (bankError) throw bankError;
@@ -87,6 +88,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
       const { data: catalogData, error: catalogError } = await supabase
         .from('resource_catalog')
         .select('*')
+        .eq('game_slug', gameSlug)
         .order('category')
         .order('name');
 
@@ -169,7 +171,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, gameSlug]);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -185,7 +187,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
 
     const { data, error: createError } = await supabase
       .from('guild_banks')
-      .insert({ group_id: groupId })
+      .insert({ group_id: groupId, game_slug: gameSlug })
       .select()
       .single();
 
@@ -213,43 +215,14 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
   const deposit = async (data: ResourceTransactionData) => {
     if (!bank) throw new Error('Bank not initialized');
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Upsert inventory
-    const { data: existing } = await supabase
-      .from('bank_inventory')
-      .select('id, quantity')
-      .eq('bank_id', bank.id)
-      .eq('resource_id', data.resource_id)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from('bank_inventory')
-        .update({
-          quantity: existing.quantity + data.quantity,
-          last_updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-    } else {
-      await supabase
-        .from('bank_inventory')
-        .insert({
-          bank_id: bank.id,
-          resource_id: data.resource_id,
-          quantity: data.quantity,
-        });
-    }
-
-    // Record transaction
-    await supabase.from('bank_transactions').insert({
-      bank_id: bank.id,
-      resource_id: data.resource_id,
-      transaction_type: 'deposit' as BankTransactionType,
-      quantity: data.quantity,
-      user_id: user?.id,
-      notes: data.notes,
+    const { error: transactionError } = await supabase.rpc('apply_bank_resource_transaction', {
+      p_bank_id: bank.id,
+      p_resource_id: data.resource_id,
+      p_quantity: data.quantity,
+      p_transaction_type: 'deposit',
+      p_notes: data.notes ?? null,
     });
+    if (transactionError) throw transactionError;
 
     await fetchData();
   };
@@ -258,35 +231,14 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
   const withdraw = async (data: ResourceTransactionData) => {
     if (!bank) throw new Error('Bank not initialized');
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { data: existing } = await supabase
-      .from('bank_inventory')
-      .select('id, quantity')
-      .eq('bank_id', bank.id)
-      .eq('resource_id', data.resource_id)
-      .single();
-
-    if (!existing || existing.quantity < data.quantity) {
-      throw new Error('Insufficient resources');
-    }
-
-    await supabase
-      .from('bank_inventory')
-      .update({
-        quantity: existing.quantity - data.quantity,
-        last_updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id);
-
-    await supabase.from('bank_transactions').insert({
-      bank_id: bank.id,
-      resource_id: data.resource_id,
-      transaction_type: 'withdrawal' as BankTransactionType,
-      quantity: -data.quantity,
-      user_id: user?.id,
-      notes: data.notes,
+    const { error: transactionError } = await supabase.rpc('apply_bank_resource_transaction', {
+      p_bank_id: bank.id,
+      p_resource_id: data.resource_id,
+      p_quantity: data.quantity,
+      p_transaction_type: 'withdrawal',
+      p_notes: data.notes ?? null,
     });
+    if (transactionError) throw transactionError;
 
     await fetchData();
   };
@@ -300,15 +252,16 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
     const newBalance = bank.gold_balance + amount;
     if (newBalance < 0) throw new Error('Insufficient gold');
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('guild_banks')
       .update({
         gold_balance: newBalance,
         updated_at: new Date().toISOString(),
       })
       .eq('id', bank.id);
+    if (updateError) throw updateError;
 
-    await supabase.from('bank_transactions').insert({
+    const { error: transactionError } = await supabase.from('bank_transactions').insert({
       bank_id: bank.id,
       transaction_type: amount > 0 ? 'deposit' : 'withdrawal' as BankTransactionType,
       quantity: 0,
@@ -316,6 +269,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
       user_id: user?.id,
       notes,
     });
+    if (transactionError) throw transactionError;
 
     await fetchData();
   };
@@ -327,7 +281,7 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    await supabase.from('resource_requests').insert({
+    const { error: requestError } = await supabase.from('resource_requests').insert({
       bank_id: bank.id,
       resource_id: data.resource_id,
       requested_by: user.id,
@@ -335,44 +289,52 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
       quantity: data.quantity,
       reason: data.reason,
     });
+    if (requestError) throw requestError;
 
     await fetchData();
   };
 
   // Approve request
   const approveRequest = async (requestId: string) => {
+    if (!bank) throw new Error('Bank not initialized');
     const { data: { user } } = await supabase.auth.getUser();
 
-    await supabase
+    const { error: requestError } = await supabase
       .from('resource_requests')
       .update({
         status: 'approved',
         reviewed_by: user?.id,
         reviewed_at: new Date().toISOString(),
       })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .eq('bank_id', bank.id);
+    if (requestError) throw requestError;
 
     await fetchData();
   };
 
   // Deny request
   const denyRequest = async (requestId: string) => {
+    if (!bank) throw new Error('Bank not initialized');
     const { data: { user } } = await supabase.auth.getUser();
 
-    await supabase
+    const { error: requestError } = await supabase
       .from('resource_requests')
       .update({
         status: 'denied',
         reviewed_by: user?.id,
         reviewed_at: new Date().toISOString(),
       })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .eq('bank_id', bank.id);
+    if (requestError) throw requestError;
 
     await fetchData();
   };
 
   // Fulfill request (withdraw and complete)
   const fulfillRequest = async (requestId: string) => {
+    if (!bank) throw new Error('Bank not initialized');
     const request = requests.find((r) => r.id === requestId);
     if (!request) throw new Error('Request not found');
 
@@ -382,13 +344,15 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
       notes: `Fulfilled request: ${request.reason || request.id}`,
     });
 
-    await supabase
+    const { error: requestError } = await supabase
       .from('resource_requests')
       .update({
         status: 'fulfilled',
         fulfilled_at: new Date().toISOString(),
       })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .eq('bank_id', bank.id);
+    if (requestError) throw requestError;
 
     await fetchData();
   };
@@ -423,4 +387,3 @@ export function useGuildBank(groupId: string | null): UseGuildBankReturn {
     refresh: fetchData,
   };
 }
-

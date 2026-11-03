@@ -103,6 +103,7 @@ async function calculateAchievementProgress(
           .from('guild_banks')
           .select('id')
           .eq('group_id', groupId)
+          .eq('game_slug', 'aoc')
           .single();
 
         if (!bank) {
@@ -357,4 +358,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

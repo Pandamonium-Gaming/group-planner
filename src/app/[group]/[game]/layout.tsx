@@ -32,6 +32,7 @@ function getActiveTabFromPath(pathname: string): Tab {
   const tabMap: Record<string, Tab> = {
     'characters': 'characters',
     'professions': 'professions',
+    'classes': 'classes',
     'events': 'events',
     'matrix': 'matrix',
     'hangar': 'matrix',

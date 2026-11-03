@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Warehouse, Home, Truck, Coins } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGuildBank } from '@/hooks/useGuildBank';
@@ -14,12 +14,21 @@ type EconomySubTab = 'bank' | 'freeholds' | 'caravans';
 
 interface EconomyTabContentProps {
   groupId: string;
+  gameSlug?: string;
   isOfficer: boolean;
+  canManageBank: boolean;
+  canDeposit?: boolean;
+  canWithdraw?: boolean;
 }
 
-export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps) {
+export function EconomyTabContent({
+  groupId, gameSlug = 'aoc', isOfficer, canManageBank, canDeposit = true, canWithdraw = true,
+}: EconomyTabContentProps) {
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<EconomySubTab>('bank');
+  const [initializing, setInitializing] = useState(false);
+  const [initializeError, setInitializeError] = useState<string | null>(null);
+  const ashesGroupId = gameSlug === 'aoc' ? groupId : null;
 
   const {
     bank,
@@ -27,17 +36,18 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
     transactions,
     resourceCatalog,
     loading: bankLoading,
+    error: bankError,
     initializeBank,
     deposit,
     withdraw,
-  } = useGuildBank(groupId);
+  } = useGuildBank(groupId, gameSlug);
 
   const {
     freeholds,
     loading: freeholdsLoading,
     createFreehold,
     addBuilding,
-  } = useFreeholds(groupId);
+  } = useFreeholds(ashesGroupId);
 
   const {
     upcomingCaravans,
@@ -45,7 +55,20 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
     createCaravan,
     signUpAsEscort,
     withdrawEscort,
-  } = useCaravans(groupId);
+  } = useCaravans(ashesGroupId);
+
+  const handleInitialize = async () => {
+    setInitializing(true);
+    setInitializeError(null);
+    try {
+      await initializeBank();
+    } catch (error) {
+      console.error('Error initializing guild bank:', error);
+      setInitializeError(error instanceof Error ? error.message : t('common.error'));
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   const SUB_TABS = [
     { id: 'bank', icon: Warehouse, label: t('bank.title') },
@@ -57,7 +80,7 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
     <div className="space-y-4">
       {/* Sub-navigation */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {SUB_TABS.map(({ id, icon: Icon, label }) => (
+        {SUB_TABS.filter(tab => tab.id === 'bank' || gameSlug === 'aoc').map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => setSubTab(id as EconomySubTab)}
@@ -77,14 +100,18 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
       {subTab === 'bank' && (
         bankLoading ? (
           <div className="text-center py-8 text-slate-400">{t('common.loading')}</div>
+        ) : bankError ? (
+          <p role="alert" className="rounded-lg border border-red-800 bg-red-900/20 p-4 text-red-400">
+            {t('common.error')}: {bankError}
+          </p>
         ) : bank ? (
           <GuildBankView
             bank={bank}
             inventory={inventory}
             transactions={transactions}
             resourceCatalog={resourceCatalog}
-            onDeposit={deposit}
-            onWithdraw={withdraw}
+            onDeposit={canDeposit ? deposit : undefined}
+            onWithdraw={canWithdraw ? withdraw : undefined}
             isOfficer={isOfficer}
           />
         ) : (
@@ -96,19 +123,21 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
             <p className="text-sm text-slate-500 mb-4">
               {t('bank.emptyInventoryDesc')}
             </p>
-            {isOfficer && (
+            {canManageBank && (
               <button
-                onClick={() => initializeBank()}
-                className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+                onClick={handleInitialize}
+                disabled={initializing}
+                className="px-6 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
               >
-                {t('bank.title')}
+                {initializing ? t('common.loading') : t('bank.title')}
               </button>
             )}
+            {initializeError && <p role="alert" className="mt-4 text-sm text-red-400">{initializeError}</p>}
           </div>
         )
       )}
 
-      {subTab === 'freeholds' && (
+      {gameSlug === 'aoc' && subTab === 'freeholds' && (
         freeholdsLoading ? (
           <div className="text-center py-8 text-slate-400">{t('common.loading')}</div>
         ) : (
@@ -120,7 +149,7 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
         )
       )}
 
-      {subTab === 'caravans' && (
+      {gameSlug === 'aoc' && subTab === 'caravans' && (
         caravansLoading ? (
           <div className="text-center py-8 text-slate-400">{t('common.loading')}</div>
         ) : (
@@ -136,4 +165,3 @@ export function EconomyTabContent({ groupId, isOfficer }: EconomyTabContentProps
     </div>
   );
 }
-

@@ -251,7 +251,8 @@
     "Winstead",
     "woodworking",
     "Woodworking",
-    "worldofwarcraft"
+    "worldofwarcraft",
+    "writable"
   ],
   "ignorePaths": [
     "node_modules",
