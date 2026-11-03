@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -52,7 +52,6 @@ export function Modal({
 }: ModalProps) {
   const { t } = useLanguage();
   const modalRef = useRef<HTMLDivElement>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   // Size classes for desktop
   const sizeClasses = {
@@ -62,19 +61,29 @@ export function Modal({
     xl: 'sm:max-w-xl',
   };
 
-  // Keep the latest onClose without re-running the lifecycle effect when its identity changes
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  // Capture the opener during render on a closed -> open transition: React autofocuses
-  // children in the commit phase, before any effect runs, so reading it later could pick
-  // up the dialog's own input. It is deliberately not cleared by the effect cleanup, so
-  // StrictMode's simulated unmount/remount cannot lose it.
-  const wasOpen = useRef(false);
-  if (isOpen && !wasOpen.current && typeof document !== 'undefined') {
-    previousActiveElement.current = document.activeElement as HTMLElement | null;
+  // Capture the opener while rendering, on a closed -> open transition, using React's
+  // "adjust state while rendering" pattern: React re-renders immediately, before the commit
+  // in which children autofocus, so the dialog's own input can never be captured.
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setOpener(typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null);
+    }
   }
-  wasOpen.current = isOpen;
+
+  // Latest values for the lifecycle effect, synced in layout effects (which run before the
+  // previous commit's passive cleanup, so a real close sees isOpen === false there, while an
+  // unmount or StrictMode's simulated unmount still sees true).
+  const onCloseRef = useRef(onClose);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const isOpenRef = useRef(false);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+    openerRef.current = opener;
+    isOpenRef.current = isOpen;
+  });
 
   // Restore scheduled by a cleanup that ran while the latest render still said "open"
   // (an unmount, or StrictMode's simulated one); a re-run of the effect cancels it.
@@ -135,11 +144,11 @@ export function Modal({
       // Keep the scroll lock while another modal is still open
       if (openModalStack.length === 0) document.body.style.overflow = '';
 
-      const opener = previousActiveElement.current;
+      const target = openerRef.current;
       const restore = () => {
-        if (opener && document.contains(opener)) opener.focus();
+        if (target && document.contains(target)) target.focus();
       };
-      if (!wasOpen.current) {
+      if (!isOpenRef.current) {
         // Really closing: restore focus to the opener straight away
         restore();
       } else {
