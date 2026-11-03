@@ -18,8 +18,9 @@ jest.mock('@/contexts/LanguageContext', () => ({
     return value.replace(/\{\{(\w+)\}\}/g, (_, k) => params?.[k] ?? '');
   } }),
 }));
+let mockRole = 'admin';
 jest.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({ hasPermission: () => true, loading: false }),
+  usePermissions: () => ({ hasPermission: () => true, userRole: mockRole, loading: false }),
 }));
 jest.mock('@/lib/group-games', () => ({
   getGroupGames: jest.fn(),
@@ -33,6 +34,7 @@ const ARCHIVED_NAME = 'Ashes of Creation';
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockRole = 'admin';
   // active: only wowforever; all: aoc (archived) + wowforever
   mocked.getGroupGames.mockImplementation(async (_g: string, includeArchived?: boolean) =>
     includeArchived ? ['aoc', 'wowforever'] : ['wowforever']);
@@ -49,6 +51,14 @@ it('shows Delete permanently only on archived games', async () => {
   render(<GameManagement groupId="group-1" />);
   await screen.findByText(ARCHIVED_NAME);
   expect(screen.getAllByRole('button', { name: /Delete permanently/ })).toHaveLength(1);
+});
+
+it('hides Delete permanently from non-admins even with settings_edit', async () => {
+  mockRole = 'officer';
+  render(<GameManagement groupId="group-1" />);
+  await screen.findByText(ARCHIVED_NAME);
+  expect(screen.queryByRole('button', { name: /Delete permanently/ })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Restore/ })).toBeInTheDocument();
 });
 
 it('opens an accessible dialog that keeps confirm disabled until the exact name is typed', async () => {
@@ -96,6 +106,16 @@ it('keeps the dialog open with the localised message for a known error code', as
   const dialog = await screen.findByRole('dialog');
   expect(await screen.findByText(en.gameManagement.errors.game_not_archived)).toBeInTheDocument();
   expect(dialog).toBeInTheDocument();
+});
+
+it('shows the localised last-game message', async () => {
+  mocked.deleteGameForGroup.mockResolvedValue({ ok: false, code: 'game_last' });
+  await openDialog();
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: ARCHIVED_NAME } });
+  fireEvent.click(confirmButton());
+  expect(await screen.findByText(en.gameManagement.errors.game_last)).toBeInTheDocument();
+  expect(en.gameManagement.errors.game_last).toMatch(/at least one game/);
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
 });
 
 it.each(['bad_request', 'totally_unknown', null])('falls back to the generic message for code %s', async (code) => {

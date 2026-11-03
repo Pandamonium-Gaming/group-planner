@@ -60,6 +60,13 @@ BEGIN
   -- migration (e.g. the baseline's game_ship_permissions seed) can still carry the legacy tag.
   v_slugs := CASE WHEN p_game_slug = 'starcitizen' THEN ARRAY['starcitizen', 'star-citizen'] ELSE ARRAY[p_game_slug] END;
 
+  -- A group with no group_games rows is read as "every game enabled" (legacy groups were never
+  -- backfilled), so deleting the last row would resurrect all games. Refuse instead.
+  PERFORM 1 FROM public.group_games
+    WHERE group_id = p_group_id AND game_slug <> ALL (v_slugs);
+  IF NOT FOUND THEN RAISE EXCEPTION 'LAST_GAME'; END IF;
+
+
   -- remove_loaner_ships_for_pledge is a BEFORE DELETE trigger that deletes sibling loaner rows; within
   -- one cascading delete that aborts with "tuple already modified". Remove loaners first, then pledges.
   DELETE FROM public.character_ships cs USING public.members m

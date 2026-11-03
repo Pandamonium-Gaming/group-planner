@@ -19,6 +19,7 @@ const DELETE_ERROR_CODES = [
   'game_not_found',
   'game_not_archived',
   'game_confirmation',
+  'game_last',
   'game_delete',
 ] as const;
 
@@ -39,9 +40,11 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { hasPermission, loading: permissionsLoading } = usePermissions(groupId);
+  const { hasPermission, userRole, loading: permissionsLoading } = usePermissions(groupId);
   const { t } = useLanguage();
   const canEditSettings = hasPermission('settings_edit');
+  // The server only lets a group admin delete, so officers with a settings_edit override must not see the button.
+  const canDeleteGames = canEditSettings && userRole === 'admin';
 
   const fetchGameStatuses = async () => {
     setLoading(true);
@@ -278,7 +281,7 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
                   </>
                 )}
               </button>
-              {game.archived && (
+              {game.archived && canDeleteGames && (
                 <button
                   onClick={() => openDelete(game)}
                   disabled={actionInProgress === game.slug || !canEditSettings}

@@ -20,6 +20,7 @@ export const ADMIN_ERROR_MESSAGES = {
   game_not_found: 'That game was not found for this group',
   game_not_archived: 'Archive the game before deleting its data',
   game_confirmation: 'The confirmation name does not match the game name',
+  game_last: 'A group must keep at least one game',
   game_delete: 'Unable to delete the game data',
   unknown: 'Unexpected server error',
 } as const;

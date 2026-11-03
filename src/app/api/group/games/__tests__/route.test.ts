@@ -118,6 +118,7 @@ describe('DELETE /api/group/games', () => {
     ['GAME_NOT_FOUND', 404, 'game_not_found'],
     ['GAME_NOT_ARCHIVED', 409, 'game_not_archived'],
     ['CONFIRMATION_MISMATCH', 400, 'game_confirmation'],
+    ['LAST_GAME', 409, 'game_last'],
   ])('maps %s to %i', async (message, status, code) => {
     rpc.mockResolvedValue({ error: { code: 'P0001', message } });
     const response = await DELETE(request(valid));

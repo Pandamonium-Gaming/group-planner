@@ -104,7 +104,8 @@ export function adminNotificationPayload(event: AdminNotification, details: Noti
     { name: 'Changed by', value: details.actorName ? text(details.actorName)
       : event.actor_id ? 'Name unavailable (account may have been deleted)' : 'Not available (system or server-side change)', inline: false },
   ];
-  if (event.subject_name || event.subject_id) {
+  // game_deleted stores the game name as subject_name; it is not an account, so the Game field covers it.
+  if (event.kind !== 'game_deleted' && (event.subject_name || event.subject_id)) {
     const name = details.subjectName || event.subject_name;
     fields.push({ name: event.kind === 'permissions_changed' ? 'Role' : 'Affected account',
       value: name ? text(event.kind === 'permissions_changed' ? roleName(name) : name) : 'Name unavailable (account may have been deleted)', inline: false });

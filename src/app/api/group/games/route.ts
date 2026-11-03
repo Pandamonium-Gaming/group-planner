@@ -111,6 +111,7 @@ const GAME_DELETE_ERRORS = new Map<string, { code: AdminErrorCode; status: numbe
   GAME_NOT_FOUND: { code: 'game_not_found', status: 404 },
   GAME_NOT_ARCHIVED: { code: 'game_not_archived', status: 409 },
   CONFIRMATION_MISMATCH: { code: 'game_confirmation', status: 400 },
+  LAST_GAME: { code: 'game_last', status: 409 },
 } as Record<string, { code: AdminErrorCode; status: number }>));
 
 /** Adds a stable `code` to the shared helper's bare error responses (DELETE only; GET/POST bodies unchanged). */

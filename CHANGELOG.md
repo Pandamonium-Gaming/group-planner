@@ -45,6 +45,8 @@
 
 * Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.
 * Changed `DELETE /api/group/games` to require `{ groupId, gameSlug, confirmName }`: the caller must be a group admin, the game must be archived and `confirmName` must match the game name. It now deletes the game's data instead of only the `group_games` row.
+* Known limitation: a group's last remaining game cannot be deleted (`LAST_GAME` / `game_last`), because the home page treats a group with no `group_games` rows as having every game enabled (legacy groups were never backfilled) and would show the deleted game again. Add another game first, or keep the last one archived.
+* Fixed the `game_deleted` Discord alert showing the game name as an "Affected account"; the Delete permanently button is now shown to group admins only.
 * Known limitation: recruitment applications with no game tag (the recruitment form does not set one yet) are not removed by game deletion, and group-wide tables without a game tag (parties, announcements, siege events, loot/DKP, guild banks and similar) are kept.
 
 * Made administration notification settings failures specific: the site and group routes now return a stable `code` with a secret-free message (for example an invalid `ADMIN_DISCORD_ROLE_MENTIONS` or `SITE_ADMIN_DISCORD_IDS`, missing Supabase credentials or unapplied migrations 015–017), log the underlying cause server-side, and the settings page shows the matching localised guidance.

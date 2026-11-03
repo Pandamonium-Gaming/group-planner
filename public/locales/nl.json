@@ -451,6 +451,7 @@
       "game_not_found": "Dat spel is niet gevonden voor deze groep.",
       "game_not_archived": "Archiveer het spel voordat je de gegevens verwijdert.",
       "game_confirmation": "De ingevoerde naam komt niet overeen met de naam van het spel.",
+      "game_last": "Een groep moet minstens één spel behouden. Voeg eerst een ander spel toe of laat dit spel gearchiveerd.",
       "game_delete": "Kan de spelgegevens niet verwijderen. Probeer het opnieuw."
     }
   },

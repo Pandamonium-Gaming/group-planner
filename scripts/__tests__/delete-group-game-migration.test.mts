@@ -465,6 +465,31 @@ test('rejects', { skip: !connectionString }, () => withSchema(async ctx => {
   }
 }));
 
+test('refuses to delete the last remaining game, checked after confirmation', { skip: !connectionString }, () => withSchema(async ctx => {
+  const s = await seed(ctx);
+  const { client, t } = ctx;
+  // Group A keeps only X (starcitizen, archived); a legacy star-citizen alias row must not count as another game.
+  await client.query(`DELETE FROM ${t('group_games')} WHERE group_id=$1 AND game_slug=$2`, [s.groups.A, Y]);
+  await client.query(`INSERT INTO ${t('group_games')}(group_id,game_slug,archived) VALUES ($1,'star-citizen',true)`, [s.groups.A]);
+  const before = await snapshot(ctx, s);
+  const cases: [string, string, string, string][] = [
+    ['last game', 'Star Citizen', 'Star Citizen', 'LAST_GAME'],
+    ['confirmation checked before last game', 'wrong', 'Star Citizen', 'CONFIRMATION_MISMATCH'],
+  ];
+  for (const [label, confirm, expected, code] of cases) {
+    await client.query('SAVEPOINT last');
+    await assert.rejects(call(ctx, s.groups.A, X, confirm, expected, s.users.adminA),
+      (error: Error) => { assert.equal(error.message, code, label); return true; });
+    await client.query('ROLLBACK TO SAVEPOINT last');
+    assert.deepEqual(await snapshot(ctx, s), before, `${label}: all rows intact`);
+  }
+  // With another game present the same deletion succeeds.
+  await client.query(`INSERT INTO ${t('group_games')}(group_id,game_slug,archived) VALUES ($1,$2,false)`, [s.groups.A, Y]);
+  await call(ctx, s.groups.A, X, 'Star Citizen', 'Star Citizen', s.users.adminA);
+  const left = await client.query(`SELECT game_slug FROM ${t('group_games')} WHERE group_id=$1`, [s.groups.A]);
+  assert.deepEqual(left.rows.map(r => r.game_slug), [Y]);
+}));
+
 test('queues exactly one game_deleted notification', { skip: !connectionString }, () => withSchema(async ctx => {
   const s = await seed(ctx);
   const { client, t } = ctx;

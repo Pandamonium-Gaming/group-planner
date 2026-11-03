@@ -449,6 +449,7 @@
       "game_not_found": "No se encontró ese juego en este grupo.",
       "game_not_archived": "Archiva el juego antes de eliminar sus datos.",
       "game_confirmation": "El nombre escrito no coincide con el nombre del juego.",
+      "game_last": "Un grupo debe conservar al menos un juego. Añade otro juego primero o mantén este archivado.",
       "game_delete": "No se pudieron eliminar los datos del juego. Inténtalo de nuevo."
     }
   },
