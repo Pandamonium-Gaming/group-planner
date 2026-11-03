@@ -6,6 +6,10 @@
 
 export type GameId = 'aoc' | 'sc' | 'ror' | 'wowforever' | 'cc';
 
+export function isDiscordWebhookUrl(url: string): boolean {
+  return /^https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/[^/?#]+\/[^/?#]+\/?(?:\?[^#]*)?$/.test(url);
+}
+
 interface GroupDiscordConfig {
   id: string;
   group_webhook_url?: string;

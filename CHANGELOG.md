@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added private Discord administration alerts for new accounts, group creation/deletion, membership and role changes, permission overrides and webhook configuration changes. Migration 015 captures committed changes in a private delivery queue; group admins can configure a separate webhook and inspect delivery history. Site alerts use a server-only webhook and an authenticated, every-minute cron worker.
 * Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
 * Added event reposts to Discord and administrator-only, paginated webhook logs for events, announcements, tests, reminders and member welcomes. Migration 013 stores delivery metadata only, never webhook credentials or message payloads.
 * Added WoW-specific Dungeon, Levelling, World PvP, Battleground PvP and Arena PvP event choices while preserving other games and historical events.

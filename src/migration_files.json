@@ -13,5 +13,6 @@
   "011_add_character_transfer.sql",
   "012_add_wow_forever_event_types.sql",
   "013_add_discord_webhook_logs.sql",
-  "014_guest_rsvp_class_registry_ids.sql"
+  "014_guest_rsvp_class_registry_ids.sql",
+  "015_admin_discord_notifications.sql"
 ]

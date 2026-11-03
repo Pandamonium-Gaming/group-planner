@@ -14,6 +14,7 @@ import { GuildIconUploaderWrapper } from '../[game]/GuildIconUploaderWrapper';
 import { PermissionsSettings } from '@/components/settings/PermissionsSettings';
 import { RecruitmentSettings } from '@/components/settings/RecruitmentSettings';
 import { GroupDiscordSettings } from '@/components/settings/GroupDiscordSettings';
+import { AdminDiscordSettings } from '@/components/settings/AdminDiscordSettings';
 import { GameManagement } from '@/components/settings/GameManagement';
 import { MemberManagement } from '@/components/settings/MemberManagement';
 import { getGroupBySlug } from '@/lib/auth';
@@ -162,6 +163,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
           {canEditPermissions && (
             <PermissionsSettings groupId={group.id} userRole={membership.role || 'member'} />
           )}
+
+          <AdminDiscordSettings key={group.id} groupId={group.id} />
 
           {/* Discord Integration */}
           {canEditSettings && group && (

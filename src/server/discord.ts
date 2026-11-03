@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { getServerAuthStack } from '@/lib/authStack';
 import type { DiscordWebhookPayload, WebhookContext } from '@/lib/discord';
+import { isDiscordWebhookUrl } from '@/lib/discordConfig';
 
 export async function webhookSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,7 +39,7 @@ export async function deliverWebhook(
     message = skipReason;
   } else if (!webhook) {
     message = 'No Discord webhook configured';
-  } else if (!/^https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/[^/?#]+\/[^/?#]+\/?(?:\?[^#]*)?$/.test(webhook)) {
+  } else if (!isDiscordWebhookUrl(webhook)) {
     message = 'Invalid configured Discord webhook URL';
   } else {
     try {
