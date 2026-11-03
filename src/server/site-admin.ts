@@ -11,7 +11,7 @@ export async function siteAdminContext(request: NextRequest) {
   const ids = (process.env.SITE_ADMIN_DISCORD_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
   if (!ids.length) return { client, userId, allowed: false };
   if (!ids.every(isDiscordRoleId)) {
-    throw new AdminError('site_allowlist', `${ids.filter(id => !isDiscordRoleId(id)).length} of ${ids.length} entries are not 17–20 digit IDs`);
+    throw new AdminError('site_allowlist', `${ids.filter(id => !isDiscordRoleId(id)).length} of ${ids.length} entries are not 17â€“20 digit IDs`);
   }
   let discordId: unknown;
   if (getServerAuthStack() === 'v2') {
