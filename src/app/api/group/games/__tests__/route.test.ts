@@ -17,22 +17,32 @@ const { createClient } = jest.requireMock('@supabase/supabase-js') as { createCl
 
 const groupId = '00000000-0000-4000-8000-000000000001';
 const rpc = jest.fn();
+const getUser = jest.fn();
 let role: string | null;
+let membershipUser: unknown;
 
 const client = {
   rpc,
+  auth: { getUser },
   from: () => {
     const query = {
       select: (): object => query,
-      eq: (): object => query,
+      eq: (column: string, value: unknown): object => {
+        if (column === 'user_id') membershipUser = value;
+        return query;
+      },
       maybeSingle: async () => ({ data: role && { role }, error: null }),
     };
     return query;
   },
 };
 
-function request(body: unknown) {
-  return { json: async () => body } as unknown as NextRequest;
+function request(body: unknown, headers: Record<string, string> = {}) {
+  const lower = Object.fromEntries(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]));
+  return {
+    json: async () => body,
+    headers: { get: (name: string) => lower[name.toLowerCase()] ?? null },
+  } as unknown as NextRequest;
 }
 
 const valid = { groupId, gameSlug: 'starcitizen', confirmName: 'Star Citizen' };
@@ -41,10 +51,13 @@ beforeEach(() => {
   jest.resetAllMocks();
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+  process.env.AUTH_STACK = 'v2';
   createClient.mockReturnValue(client);
   auth.mockResolvedValue({ user: { id: 'admin-1' } });
+  getUser.mockResolvedValue({ data: { user: null }, error: { message: 'invalid token' } });
   rpc.mockResolvedValue({ error: null });
   role = 'admin';
+  membershipUser = undefined;
   jest.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
@@ -72,6 +85,44 @@ describe('DELETE /api/group/games', () => {
     const response = await DELETE(request(valid));
     expect(response.status).toBe(401);
     expect((await response.json()).code).toBe('unauthorized');
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('checks membership for the v2 session user', async () => {
+    const response = await DELETE(request(valid));
+    expect(response.status).toBe(200);
+    expect(membershipUser).toBe('admin-1');
+    expect(getUser).not.toHaveBeenCalled();
+  });
+
+  it('authenticates a v1 (Supabase) admin through the bearer token', async () => {
+    delete process.env.AUTH_STACK;
+    auth.mockResolvedValue(null);
+    getUser.mockResolvedValue({ data: { user: { id: 'v1-admin' } }, error: null });
+    const response = await DELETE(request(valid, { Authorization: 'Bearer v1-access-token' }));
+    expect(response.status).toBe(200);
+    expect(getUser).toHaveBeenCalledWith('v1-access-token');
+    expect(membershipUser).toBe('v1-admin');
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_actor_id: 'v1-admin' });
+  });
+
+  it('rejects a v1 bearer token Supabase does not accept', async () => {
+    delete process.env.AUTH_STACK;
+    auth.mockResolvedValue(null);
+    const response = await DELETE(request(valid, { Authorization: 'Bearer forged' }));
+    expect(response.status).toBe(401);
+    expect((await response.json()).code).toBe('unauthorized');
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('rejects a v1 non-admin bearer user with game_forbidden', async () => {
+    delete process.env.AUTH_STACK;
+    auth.mockResolvedValue(null);
+    getUser.mockResolvedValue({ data: { user: { id: 'v1-member' } }, error: null });
+    role = 'member';
+    const response = await DELETE(request(valid, { Authorization: 'Bearer v1-access-token' }));
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe('game_forbidden');
     expect(rpc).not.toHaveBeenCalled();
   });
 

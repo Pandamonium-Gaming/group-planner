@@ -1,36 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { auth } from '@/auth';
 import { GAMES, type GameId } from '@/lib/games';
+import { webhookSession } from '@/server/discord';
 import { AdminError, adminDatabaseError, adminFailure, type AdminErrorCode } from '@/server/admin-errors';
 
 type GroupMembershipRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
 
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    return null;
-  }
-
-  return createClient(url, key);
-}
-
-async function getAuthorizedMembership(groupId: string) {
-  const session = await auth();
-  const userId = session?.user?.id;
-
-  if (!userId) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), role: null as GroupMembershipRole };
-  }
-
-  const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) {
+/**
+ * Resolves the signed-in user on either auth stack (v2 session cookie, or the
+ * v1 Supabase bearer token verified server-side) and their role in the group.
+ */
+async function getAuthorizedMembership(request: NextRequest, groupId: string) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
       error: NextResponse.json({ error: 'Server missing Supabase service credentials' }, { status: 500 }),
       role: null as GroupMembershipRole,
     };
+  }
+
+  const { client: supabaseAdmin, userId } = await webhookSession(request);
+
+  if (!userId) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), role: null as GroupMembershipRole };
   }
 
   const { data: membership, error } = await supabaseAdmin
@@ -59,7 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing group_id' }, { status: 400 });
   }
 
-  const { error, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, supabaseAdmin } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
     return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -86,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing groupId or gameSlug' }, { status: 400 });
   }
 
-  const { error, role, supabaseAdmin } = await getAuthorizedMembership(groupId);
+  const { error, role, supabaseAdmin } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
     return error ?? NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -131,7 +121,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Missing groupId, gameSlug or confirmName', code: 'bad_request' }, { status: 400 });
   }
 
-  const { error, role, supabaseAdmin, userId } = await getAuthorizedMembership(groupId);
+  const { error, role, supabaseAdmin, userId } = await getAuthorizedMembership(request, groupId);
   if (error || !supabaseAdmin) {
     return (error ? withErrorCode(error) : null) ?? adminFailure(new AdminError('unauthorized'), 'unauthorized', 401);
   }

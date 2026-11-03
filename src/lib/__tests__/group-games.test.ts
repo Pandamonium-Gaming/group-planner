@@ -1,8 +1,32 @@
 jest.mock('@/lib/supabase', () => ({ supabase: {} }));
+jest.mock('@/lib/webhookClient', () => ({ webhookHeaders: jest.fn() }));
 import * as groupGames from '@/lib/group-games';
 
+const { webhookHeaders } = jest.requireMock('@/lib/webhookClient') as { webhookHeaders: jest.Mock };
 const fetchMock = jest.fn();
-beforeEach(() => { global.fetch = fetchMock; fetchMock.mockReset(); });
+beforeEach(() => {
+  global.fetch = fetchMock;
+  fetchMock.mockReset();
+  webhookHeaders.mockReset();
+  webhookHeaders.mockResolvedValue({ 'Content-Type': 'application/json', Authorization: 'Bearer v1-token' });
+});
+
+it('deleteGameForGroup sends the v1 bearer headers from webhookHeaders alongside the cookies', async () => {
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+  await groupGames.deleteGameForGroup('g1', 'aoc', 'Ashes of Creation');
+  expect(webhookHeaders).toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenCalledWith('/api/group/games', expect.objectContaining({
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer v1-token' },
+  }));
+});
+
+it('deleteGameForGroup reports a null code without fetching when no session can be read', async () => {
+  webhookHeaders.mockRejectedValue(new Error('Sign in before sending a Discord notification'));
+  jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  await expect(groupGames.deleteGameForGroup('g1', 'aoc', 'n')).resolves.toEqual({ ok: false, code: null });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
 
 it('no longer exports removeGameFromGroup (home-page remove button is gone)', () => {
   expect('removeGameFromGroup' in groupGames).toBe(false);

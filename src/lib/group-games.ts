@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { webhookHeaders } from '@/lib/webhookClient';
 
 export interface GroupGameInfo {
   game_slug: string;
@@ -95,10 +96,12 @@ export async function deleteGameForGroup(
   confirmName: string,
 ): Promise<{ ok: true } | { ok: false; code: string | null }> {
   try {
+    // Cookies authenticate the v2 stack; webhookHeaders() adds the v1 Supabase bearer token.
+    const headers = { ...(await webhookHeaders()), 'Content-Type': 'application/json' };
     const response = await fetch('/api/group/games', {
       method: 'DELETE',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ groupId, gameSlug, confirmName }),
     });
     if (response.ok) return { ok: true };
