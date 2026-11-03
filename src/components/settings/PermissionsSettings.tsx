@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { Check, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -131,7 +131,7 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
 
   // Get roles that current user can manage
   const manageableRoles = (Object.keys(ROLE_CONFIG) as GroupRole[])
-    .filter(role => hierarchy[userRole] > hierarchy[role])
+    .filter(role => role !== 'pending' && hierarchy[userRole] > hierarchy[role])
     .sort((a, b) => hierarchy[b] - hierarchy[a]);
 
   const togglePermission = (role: GroupRole, permissionId: string) => {
@@ -397,4 +397,3 @@ export function PermissionsSettings({ groupId, userRole, onSave }: PermissionsSe
     </div>
   );
 }
-

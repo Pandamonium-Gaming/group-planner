@@ -5,6 +5,8 @@ import { adminNotificationPayload, processAdminNotifications, type AdminNotifica
 import { GET as deliver } from '@/app/api/admin/notifications/deliver/route';
 import { GET as settings, POST as save } from '@/app/api/group/admin-notifications/route';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
+import { GET as siteSettings, POST as saveSite } from '@/app/api/admin/notifications/settings/route';
+import type { AdminCategorySettings, AdminRoleMentions } from '@/lib/adminNotifications';
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -33,6 +35,8 @@ let resultError: boolean;
 let destinationError: boolean;
 let updatedRow: boolean;
 let resolvedUser: { display_name: string | null; discord_username: string | null } | null;
+let groupCategories: AdminCategorySettings;
+let siteConfig: { categories: AdminCategorySettings; webhook_override: boolean; destination_id: string | null; role_mentions: AdminRoleMentions | null } | null;
 const updates = jest.fn();
 const selects = jest.fn();
 const ranges = jest.fn();
@@ -56,7 +60,8 @@ const mockClient = {
       maybeSingle: async () => ({
         data: table === 'group_members' ? role && { role }
           : table === 'users' ? resolvedUser
-            : table === 'groups' ? { slug: 'friendly-guild' } : { destination_id: 'destination-1', role_mentions: {} },
+            : table === 'groups' ? { slug: 'friendly-guild' }
+              : table === 'site_admin_discord' ? siteConfig : { destination_id: 'destination-1', role_mentions: {}, categories: groupCategories },
         error: dbError ? { code: 'offline' } : null,
       }),
       range: async (start: number, end: number) => {
@@ -80,6 +85,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   events = [notification]; role = 'admin'; dbError = false; resultError = false;
   destinationError = false; updatedRow = true;
+  groupCategories = {}; siteConfig = null;
   resolvedUser = { display_name: 'Friendly player', discord_username: 'discord-player' };
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
@@ -87,6 +93,7 @@ beforeEach(() => {
   process.env.CRON_SECRET = 'test-cron-secret';
   delete process.env.ADMIN_DISCORD_WEBHOOK_URL;
   delete process.env.ADMIN_DISCORD_ROLE_MENTIONS;
+  delete process.env.SITE_ADMIN_DISCORD_IDS;
   process.env.NEXT_PUBLIC_SITE_URL = 'https://planner.test';
   createClient.mockReturnValue(mockClient);
   client = databaseClient('https://test.supabase.co', 'test-key');
@@ -310,7 +317,7 @@ it('supports legacy bearer authentication without invoking Auth.js', async () =>
 it('never returns stored credentials or payloads and paginates history', async () => {
   const response = await settings(request(undefined, undefined, '1'));
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ configured: true, role_mentions: {}, logs: [], hasMore: false });
+  expect(await response.json()).toEqual({ configured: true, role_mentions: {}, categories: {}, logs: [], hasMore: false });
   expect(ranges).toHaveBeenCalledWith(20, 40);
   expect(selects).not.toHaveBeenCalledWith('admin_discord_destinations', expect.anything());
   expect(selects).toHaveBeenCalledWith('admin_discord_notifications', 'id,kind,status,http_status,error,created_at');
@@ -348,4 +355,113 @@ it.each([
   ['https://discord.com/api/webhooks/123/token#fragment', false],
 ])('validates the Discord destination %s', (url, expected) => {
   expect(isDiscordWebhookUrl(url)).toBe(expected);
+});
+
+it('skips claimed disabled alerts before resolving names or sending, and requires a recorded result', async () => {
+  groupCategories = { role_changed: false };
+  expect(await processAdminNotifications(client)).toEqual({ processed: 1, sent: 0 });
+  expect(discordFetch).not.toHaveBeenCalled();
+  expect(selects).not.toHaveBeenCalledWith('users', expect.anything());
+  expect(updates).toHaveBeenLastCalledWith('admin_discord_notifications', { status: 'skipped', error: 'Notification category disabled' });
+  updatedRow = false;
+  await expect(processAdminNotifications(client)).rejects.toThrow('Unable to complete');
+});
+
+it('uses current site categories and explicit webhook/role overrides without environment fallback', async () => {
+  events = [{ ...notification, destination: 'site', kind: 'account_registered', destination_id: null }];
+  process.env.ADMIN_DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/456/environment-token';
+  process.env.ADMIN_DISCORD_ROLE_MENTIONS = 'malformed environment override';
+  siteConfig = { categories: {}, webhook_override: true, destination_id: 'site-destination', role_mentions: { account_registered: '123456789012345678' } };
+  await processAdminNotifications(client);
+  expect(discordFetch).toHaveBeenCalledWith(destination, expect.anything());
+  expect(JSON.parse(discordFetch.mock.calls[0][1].body).allowed_mentions.roles).toEqual(['123456789012345678']);
+  discordFetch.mockClear();
+  siteConfig.destination_id = null;
+  await processAdminNotifications(client);
+  expect(discordFetch).not.toHaveBeenCalled();
+  siteConfig.categories = { account_registered: false };
+  siteConfig.destination_id = 'site-destination';
+  await processAdminNotifications(client);
+  expect(discordFetch).not.toHaveBeenCalled();
+  expect(updates).toHaveBeenLastCalledWith('admin_discord_notifications', expect.objectContaining({ error: 'Notification category disabled' }));
+});
+
+it('saves group categories and roles together, validates values and rejects mixed webhook writes', async () => {
+  expect((await save(request({ group_id: groupId, categories: { role_changed: false }, role_mentions: {}, actor_id: 'forged' }))).status).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith('save_admin_discord_preferences', {
+    p_group_id: groupId, p_categories: { role_changed: false }, p_roles: {}, p_actor_id: 'admin-1',
+  });
+  for (const categories of [null, [], { role_changed: 'false' }, { unknown: false }]) {
+    expect((await save(request({ group_id: groupId, categories, role_mentions: {} }))).status).toBe(400);
+  }
+  expect((await save(request({ group_id: groupId, categories: {}, role_mentions: {}, webhook_url: '' }))).status).toBe(400);
+});
+
+it('links preference audits to their correct protected configuration pages', () => {
+  const group = adminNotificationPayload({ ...notification, kind: 'webhook_changed', changes: { notification_preferences: 'changed' } },
+    { groupSlug: 'friendly-guild' });
+  expect(group.embeds[0].url).toBe('https://planner.test/friendly-guild/settings#admin');
+  const site = adminNotificationPayload({ ...notification, kind: 'webhook_changed', destination: 'site', group_id: null });
+  expect(site.embeds[0].url).toBe('https://planner.test/admin/notifications');
+});
+
+it('denies site settings by default, including group admins and forged identities', async () => {
+  expect((await siteSettings(request())).status).toBe(403);
+  expect((await saveSite(request({ actor_id: 'admin-1', discord_id: '123456789012345678' }))).status).toBe(403);
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  expect((await siteSettings(request())).status).toBe(403);
+  auth.mockResolvedValue(null);
+  expect((await siteSettings(request())).status).toBe(401);
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+it('authorizes site admins using signed v2 provider identity and never reads public profile identity', async () => {
+  process.env.SITE_ADMIN_DISCORD_IDS = ' 123456789012345678,987654321098765432 ';
+  auth.mockResolvedValue({ user: { id: 'admin-1', discordId: '123456789012345678' } });
+  process.env.ADMIN_DISCORD_WEBHOOK_URL = destination;
+  expect((await siteSettings(request(undefined, undefined, '1'))).status).toBe(200);
+  expect(ranges).toHaveBeenCalledWith(20, 40);
+  expect(selects).not.toHaveBeenCalledWith('users', expect.anything());
+  expect(selects).not.toHaveBeenCalledWith('admin_discord_destinations', expect.anything());
+  expect((await saveSite(request({ categories: { account_registered: false }, role_mentions: {}, actor_id: 'forged' }))).status).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith('save_admin_discord_preferences', {
+    p_group_id: null, p_categories: { account_registered: false }, p_roles: {}, p_actor_id: 'admin-1',
+  });
+  expect((await saveSite(request({ webhook_url: ` ${destination} ` }))).status).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith('save_site_admin_discord_webhook', { p_url: destination, p_actor_id: 'admin-1' });
+  expect((await saveSite(request({ webhook_url: '' }))).status).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith('save_site_admin_discord_webhook', { p_url: null, p_actor_id: 'admin-1' });
+});
+
+it('authorizes legacy site admins only through verified Discord identities, not user metadata', async () => {
+  process.env.AUTH_STACK = 'v1';
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  getUser.mockResolvedValue({ data: { user: { id: 'admin-1', user_metadata: { provider_id: '123456789012345678' } } }, error: null });
+  expect((await siteSettings(request(undefined, 'legacy-session'))).status).toBe(403);
+  getUser.mockResolvedValue({ data: { user: { id: 'admin-1', identities: [{ provider: 'discord', id: '123456789012345678' }] } }, error: null });
+  expect((await siteSettings(request(undefined, 'legacy-session'))).status).toBe(200);
+  expect(auth).not.toHaveBeenCalled();
+  expect(selects).not.toHaveBeenCalledWith('users', expect.anything());
+});
+
+it('validates site input, explicit overrides and configuration errors without exposing credentials', async () => {
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  auth.mockResolvedValue({ user: { id: 'admin-1', discordId: '123456789012345678' } });
+  process.env.ADMIN_DISCORD_ROLE_MENTIONS = 'invalid JSON';
+  siteConfig = { categories: { account_registered: false }, webhook_override: true, destination_id: null, role_mentions: {} };
+  const response = await siteSettings(request());
+  expect(await response.json()).toEqual({ configured: false, categories: { account_registered: false }, role_mentions: {}, logs: [], hasMore: false });
+  expect((await siteSettings(request(undefined, undefined, '-1'))).status).toBe(400);
+  for (const body of [null, [], {}, { categories: { unknown: false }, role_mentions: {} }, { categories: {}, role_mentions: { role_changed: '@everyone' } },
+    { webhook_url: 'https://evil.test' }, { webhook_url: '', categories: {} }]) {
+    expect((await saveSite(request(body))).status).toBe(400);
+  }
+  process.env.SITE_ADMIN_DISCORD_IDS = 'bad-id';
+  expect((await siteSettings(request())).status).toBe(500);
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  dbError = true;
+  expect((await siteSettings(request())).status).toBe(500);
+  dbError = false;
+  rpc.mockResolvedValue({ error: { code: 'offline' } });
+  expect((await saveSite(request({ categories: {}, role_mentions: {} }))).status).toBe(500);
 });

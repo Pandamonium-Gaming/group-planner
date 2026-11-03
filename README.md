@@ -145,8 +145,9 @@ after five minutes. Check Discord before any manual recovery; exactly-once
 delivery cannot be guaranteed by Discord webhooks. Missing destinations are
 recorded as skipped and do not replay automatically after configuration.
 The group settings panel shows paginated delivery status and sanitised errors.
-Site-wide delivery history is service-role-only in
-`admin_discord_notifications`; it is not exposed to group administrators.
+Site-wide delivery history is stored service-role-only in
+`admin_discord_notifications`; the site-administrator API exposes only sanitised
+history to allowlisted site admins, never to group administrators by that role alone.
 
 Admin destinations live in a separate service-role-only table, never in the
 member-readable group record. Saved URLs are not returned to the browser.
@@ -155,6 +156,36 @@ or deletion. Destination versions and audit metadata are retained for service-si
 investigation; administrators managing retention must preserve destinations still
 referenced by queued deliveries. Delivery history contains no webhook credentials,
 emails or complete Discord message payloads.
+
+#### Category switches and site administration
+
+Apply [migration 017](./supabase/migrations/017_admin_notification_categories.sql)
+before deploying category controls. All categories default to enabled. Group
+admins manage their categories and roles under **Group Settings → Admin alerts**.
+Disabling a category skips pending deliveries and records new changes as skipped.
+The worker rechecks category settings before sending a claimed alert. An already
+started network request cannot be recalled. Re-enabling never replays skipped
+alerts. Existing group webhook destinations and role snapshots are preserved.
+
+Set `SITE_ADMIN_DISCORD_IDS` to a comma-separated allowlist of Discord **user**
+IDs to grant access to `/admin/notifications`, linked from personal Settings.
+An empty allowlist denies everyone; being a group administrator grants no site
+access. Authorization uses the verified Discord OAuth identity, not editable
+profile fields or request parameters. Site admins can configure category switches,
+roles, a private site webhook and inspect paginated site delivery history.
+Cron secrets and the administrator allowlist remain server-only configuration.
+
+Until saved in the UI, the site webhook and roles use their existing environment
+settings. A saved site webhook overrides the environment; disabling it explicitly
+prevents fallback. Saving site preferences overrides the environment role map.
+Webhook credentials remain write-only and service-role-protected. Site-wide
+changes are audited; disabling configuration-change alerts can suppress their
+Discord delivery but not the audit record. Current site preferences apply to
+queued site alerts at delivery, while group roles retain their queue-time snapshot.
+
+Settings links are constructed from `NEXT_PUBLIC_SITE_URL`, the group's saved
+slug, and a section hash. They are never derived from an incoming request host or
+a Discord webhook URL. Keep the site URL correct for each environment.
 
 #### Optional administration role mentions
 
@@ -166,8 +197,8 @@ Blank means no mention. Enable Discord Developer Mode and use **Copy Role ID**;
 do not paste a role name or a `<@&...>` mention. The webhook must be permitted to
 mention that role. Saving role mentions is separate from changing the webhook.
 
-Site operators configure the server-only `ADMIN_DISCORD_ROLE_MENTIONS` variable
-as a JSON object, for example:
+Site operators can configure the server-only `ADMIN_DISCORD_ROLE_MENTIONS` variable
+as a JSON object until preferences are saved on the site-administrator page, for example:
 
 ```json
 {"account_registered":"123456789012345678","group_created":"234567890123456789","group_deleted":"345678901234567890"}

@@ -10,10 +10,16 @@
     "games": "Juegos"
   },
   "adminNotifications": {
-    "roleMentions": "Menciones de rol por tipo de notificación",
-    "roleMentionsHint": "Opcional: pega un ID de rol de Discord por tipo (activa el modo de desarrollador, haz clic derecho en un rol y copia su ID). Déjalo vacío para no mencionar. El webhook debe tener permiso para mencionar ese rol. El operador del sitio configura las menciones generales, no aquí.",
+    "siteTitle": "Notificaciones de administración del sitio",
+    "siteDescription": "Alertas generales de cuentas, grupos y administración. Solo los administradores cuyos ID de Discord figuran en la lista del servidor pueden gestionar estos ajustes.",
+    "sitePrivate": "Las URL guardadas nunca se devuelven. El destino guardado sustituye al webhook del entorno; al desactivarlo no se vuelve al del entorno.",
+    "categoryHint": "Las categorías están activadas por defecto. Desactivarlas omite alertas nuevas y pendientes; los envíos ya iniciados pueden llegar. Reactivarlas no repite alertas omitidas. Los ID de rol opcionales deben tener entre 17 y 20 dígitos.",
+    "roleId": "ID de rol de Discord",
+    "accessDenied": "Se requiere acceso de administrador del sitio. Inicia sesión con una cuenta de Discord autorizada.",
+    "roleMentions": "Categorías de notificación y menciones de rol",
+    "roleMentionsHint": "Opcional: pega un ID de rol de Discord por tipo (activa el modo de desarrollador, haz clic derecho en un rol y copia su ID). Déjalo vacío para no mencionar. El webhook debe tener permiso para mencionar ese rol.",
     "noMention": "Sin mención de rol",
-    "saveRoles": "Guardar menciones de rol",
+    "saveRoles": "Guardar preferencias de notificación",
     "title": "Notificaciones privadas de administración",
     "description": "Envía cambios de miembros, roles, permisos y configuración de Discord a un canal privado de administración. También se informa de la eliminación del grupo. Las cuentas nuevas y la creación o eliminación de grupos usan el webhook del administrador del sitio.",
     "configured": "Hay un webhook de administración configurado.",
@@ -21,7 +27,7 @@
     "webhook": "URL nueva o de reemplazo del webhook de administración",
     "private": "Solo los administradores del grupo pueden cambiar este destino. Las URL guardadas nunca se devuelven al navegador. Usa un canal privado de Discord; estas alertas contienen información administrativa.",
     "disable": "Desactivar webhook de administración",
-    "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL, los ID de rol y las migraciones 015–016, y actualiza.",
+    "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL, los ID de rol y las migraciones 015–017, y actualiza.",
     "history": "Historial de notificaciones de administración",
     "delivery": "Los cambios en cola se procesan cada minuto, cinco por lote. Solo se registran cambios nuevos. Los límites de frecuencia se reintentan hasta cinco veces; los envíos inciertos no se reintentan automáticamente. Comprueba Discord antes de reintentar. Algunos cambios del servidor no tienen autor identificable. Las alertas de salida no distinguen entre abandono, expulsión o eliminación de la cuenta.",
     "kinds": {
@@ -42,7 +48,7 @@
       "sent": "Enviado",
       "failed": "Fallido",
       "uncertain": "Envío incierto — comprueba Discord",
-      "skipped": "Omitido — sin destino configurado"
+      "skipped": "Omitido — categoría desactivada o sin destino"
     }
   },
   "eventRoster": {

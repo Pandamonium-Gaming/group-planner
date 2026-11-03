@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
 import { PERMISSIONS, ROLE_CONFIG } from '@/lib/permissions';
-import { isAdminRoleMentions, isDiscordRoleId } from '@/lib/adminNotifications';
+import { isAdminRoleMentions, isDiscordRoleId, type AdminCategorySettings, type AdminRoleMentions } from '@/lib/adminNotifications';
 
 export const ADMIN_EVENT_TITLES = {
   account_registered: 'New account registered',
@@ -66,15 +66,17 @@ function roleName(value: string) {
 }
 
 function configurationLink(event: AdminNotification, slug?: string | null) {
-  if (!slug || event.kind === 'group_deleted') return undefined;
+  if (event.destination === 'group' && event.kind === 'group_deleted') return undefined;
   const site = process.env.NEXT_PUBLIC_SITE_URL;
   if (!site) return undefined;
   const base = new URL(site);
   if (!['https:', 'http:'].includes(base.protocol) || base.username || base.password) {
     throw new Error('Invalid configured site URL for admin notification links');
   }
+  if (event.destination === 'site') return new URL('/admin/notifications', base.origin).href;
+  if (!slug) return undefined;
   const section = event.kind === 'permissions_changed' ? 'permissions'
-    : event.kind === 'webhook_changed' ? Object.keys(event.changes).some(key => key.startsWith('admin_') || key === 'notification_role_mentions') ? 'admin' : 'discord'
+    : event.kind === 'webhook_changed' ? Object.keys(event.changes).some(key => key.startsWith('admin_') || key === 'notification_role_mentions' || key === 'notification_preferences') ? 'admin' : 'discord'
       : event.kind.startsWith('member_') || event.kind === 'role_changed' ? 'members' : '';
   return new URL(`/${encodeURIComponent(slug)}/settings${section ? `#${section}` : ''}`, base.origin).href;
 }
@@ -167,21 +169,42 @@ export async function processAdminNotifications(client: SupabaseClient) {
   if (error) throw new Error('Unable to claim admin notifications');
   const events: AdminNotification[] = data || [];
   const settled = await Promise.allSettled(events.map(async event => {
+    const configQuery = event.destination === 'site'
+      ? client.from('site_admin_discord').select('categories,webhook_override,destination_id,role_mentions').eq('id', true)
+      : client.from('group_admin_discord').select('categories').eq('group_id', event.group_id);
+    const { data: configData, error: configError } = await configQuery.maybeSingle();
+    if (configError) throw new Error('Unable to verify notification category');
+    const config: {
+      categories: AdminCategorySettings;
+      webhook_override?: boolean;
+      destination_id?: string | null;
+      role_mentions?: AdminRoleMentions | null;
+    } | null = configData;
+    if (config?.categories?.[event.kind] === false) {
+      const { data: skipped, error: skipError } = await client.from('admin_discord_notifications')
+        .update({ status: 'skipped', error: 'Notification category disabled' })
+        .eq('id', event.id).eq('status', 'processing').select('id').single();
+      if (skipError || !skipped) throw new Error('Unable to record disabled notification');
+      return 'skipped';
+    }
     let webhook: string | null = null;
+    let destinationId = event.destination_id;
     if (event.destination === 'site') {
-      webhook = process.env.ADMIN_DISCORD_WEBHOOK_URL || null;
-    } else if (event.destination_id) {
+      if (config?.webhook_override) destinationId = config.destination_id ?? null;
+      else webhook = process.env.ADMIN_DISCORD_WEBHOOK_URL || null;
+    }
+    if ((event.destination === 'group' || config?.webhook_override) && destinationId) {
       const { data: destination, error: destinationError } = await client.from('admin_discord_destinations')
-        .select('webhook_url').eq('id', event.destination_id).single();
+        .select('webhook_url').eq('id', destinationId).single();
       if (destinationError) throw new Error('Unable to load private admin destination; claimed delivery will become uncertain');
       webhook = destination.webhook_url;
     }
     const details: NotificationDetails = {};
     if (webhook) {
       if (event.destination === 'site') {
-        const config: unknown = JSON.parse(process.env.ADMIN_DISCORD_ROLE_MENTIONS || '{}');
-        if (!isAdminRoleMentions(config)) throw new Error('Invalid site admin role mention configuration');
-        details.mentionRoleId = config[event.kind];
+        const roles: unknown = config?.role_mentions ?? JSON.parse(process.env.ADMIN_DISCORD_ROLE_MENTIONS || '{}');
+        if (!isAdminRoleMentions(roles)) throw new Error('Invalid site admin role mention configuration');
+        details.mentionRoleId = roles[event.kind];
       } else {
         details.mentionRoleId = event.mention_role_id;
       }
