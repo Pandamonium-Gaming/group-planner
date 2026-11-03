@@ -820,6 +820,12 @@
   "bank": {
     "title": "Groep bank",
     "gold": "Goud",
+    "goldShort": "g",
+    "silver": "Zilver",
+    "silverShort": "z",
+    "copper": "Koper",
+    "copperShort": "k",
+    "errorInsufficientGold": "Onvoldoende geld in de bank",
     "inventory": "Inventaris",
     "transactions": "Transacties",
     "requests": "Verzoeken",

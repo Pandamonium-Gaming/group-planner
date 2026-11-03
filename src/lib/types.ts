@@ -573,7 +573,7 @@ export interface GuildBank {
   description?: string;
   deposit_min_role: string;
   withdraw_min_role: string;
-  gold_balance: number;
+  gold_balance: number; // Integer copper for WoW Forever; whole gold for Ashes.
   created_at: string;
   updated_at: string;
 }
@@ -614,7 +614,7 @@ export interface BankTransaction {
   resource_id?: string;
   transaction_type: BankTransactionType;
   quantity: number;
-  gold_amount: number;
+  gold_amount: number; // Signed integer copper for WoW Forever; whole gold for Ashes.
   user_id?: string;
   character_id?: string;
   notes?: string;

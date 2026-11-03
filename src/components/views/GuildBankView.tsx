@@ -14,6 +14,7 @@ import {
 import { ResourceTransactionData } from '@/hooks/useGuildBank';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { BankTransactionForm } from '@/components/forms/BankTransactionForm';
+import { BankMoney } from '@/components/game-specific/BankMoney';
 
 interface GuildBankViewProps {
   bank: GuildBank;
@@ -22,6 +23,8 @@ interface GuildBankViewProps {
   resourceCatalog?: ResourceCatalog[];
   onDeposit?: (data: ResourceTransactionData) => Promise<void>;
   onWithdraw?: (data: ResourceTransactionData) => Promise<void>;
+  onDepositGold?: (amount: number, notes?: string) => Promise<void>;
+  onWithdrawGold?: (amount: number, notes?: string) => Promise<void>;
   isOfficer?: boolean;
 }
 
@@ -34,6 +37,8 @@ export function GuildBankView({
   resourceCatalog = [],
   onDeposit,
   onWithdraw,
+  onDepositGold,
+  onWithdrawGold,
   isOfficer = false,
 }: GuildBankViewProps) {
   const { t } = useLanguage();
@@ -102,9 +107,9 @@ export function GuildBankView({
           <div className="text-right">
             <div className="flex items-center gap-2 text-2xl font-bold text-yellow-400">
               <Coins className="w-6 h-6" />
-              {bank.gold_balance.toLocaleString()}
+              <BankMoney amount={bank.gold_balance} gameSlug={bank.game_slug} />
             </div>
-            <div className="text-xs text-slate-400">{t('bank.gold')}</div>
+            <div className="text-xs text-slate-400">{t(bank.game_slug === 'wowforever' ? 'bank.categories.currency' : 'bank.gold')}</div>
           </div>
         </div>
 
@@ -127,9 +132,9 @@ export function GuildBankView({
         </div>
 
         {/* Action Buttons */}
-        {(onDeposit || onWithdraw) && (
+        {(onDeposit || onWithdraw || onDepositGold || onWithdrawGold) && (
           <div className="flex gap-2 mt-4">
-            {onDeposit && (
+            {(onDeposit || onDepositGold) && (
               <button
                 onClick={() => setShowDepositForm(true)}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -138,7 +143,7 @@ export function GuildBankView({
                 {t('bank.deposit')}
               </button>
             )}
-            {onWithdraw && (
+            {(onWithdraw || onWithdrawGold) && (
               <button
                 onClick={() => setShowWithdrawForm(true)}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -291,7 +296,7 @@ export function GuildBankView({
                     </div>
                     <div>
                       <div className="font-medium text-white">
-                        {tx.resource?.name || (tx.gold_amount !== 0 ? t('bank.gold') : t('bank.adjustment'))}
+                        {tx.resource?.name || (tx.gold_amount !== 0 ? t(bank.game_slug === 'wowforever' ? 'bank.categories.currency' : 'bank.gold') : t('bank.adjustment'))}
                       </div>
                       <div className="text-xs text-slate-500">
                         {tx.user?.display_name || t('bank.system')} • {txDate.toLocaleDateString('en-GB', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })}
@@ -299,7 +304,8 @@ export function GuildBankView({
                     </div>
                   </div>
                   <div className={`font-bold ${isDeposit ? 'text-green-400' : 'text-red-400'}`}>
-                    {isDeposit ? '+' : ''}{tx.quantity !== 0 ? tx.quantity.toLocaleString() : tx.gold_amount.toLocaleString()}
+                    {isDeposit ? '+' : ''}{tx.quantity !== 0 ? tx.quantity.toLocaleString()
+                      : <BankMoney amount={tx.gold_amount} gameSlug={bank.game_slug} />}
                   </div>
                 </div>
               );
@@ -315,17 +321,21 @@ export function GuildBankView({
       onClose={() => setShowDepositForm(false)}
       onSubmit={handleDeposit}
       transactionType="deposit"
-      resourceCatalog={resourceCatalog}
+      resourceCatalog={onDeposit ? resourceCatalog : []}
+      onGoldSubmit={onDepositGold}
+      gameSlug={bank.game_slug}
     />
     <BankTransactionForm
       isOpen={showWithdrawForm}
       onClose={() => setShowWithdrawForm(false)}
       onSubmit={handleWithdraw}
       transactionType="withdraw"
-      resourceCatalog={resourceCatalog}
+      resourceCatalog={onWithdraw ? resourceCatalog : []}
       inventoryQuantity={getInventoryQuantity}
+      onGoldSubmit={onWithdrawGold}
+      goldBalance={bank.gold_balance}
+      gameSlug={bank.game_slug}
     />
     </>
   );
 }
-

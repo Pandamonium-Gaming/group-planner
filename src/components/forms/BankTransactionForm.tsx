@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Package, Search } from 'lucide-react';
+import { TrendingUp, TrendingDown, Package, Search, Coins } from 'lucide-react';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ResourceCatalog, ResourceCategory, RESOURCE_CATEGORY_CONFIG } from '@/lib/types';
+import { toWowCopper } from '@/games/wowforever/currency';
+import { BankMoney } from '@/components/game-specific/BankMoney';
 
 type TransactionType = 'deposit' | 'withdraw';
 
@@ -15,6 +17,9 @@ interface BankTransactionFormProps {
   transactionType: TransactionType;
   resourceCatalog: ResourceCatalog[];
   inventoryQuantity?: (resourceId: string) => number; // For withdraw limits
+  onGoldSubmit?: (amount: number, notes?: string) => Promise<void>;
+  goldBalance?: number;
+  gameSlug: string;
 }
 
 /**
@@ -27,6 +32,9 @@ export function BankTransactionForm({
   transactionType,
   resourceCatalog,
   inventoryQuantity,
+  onGoldSubmit,
+  goldBalance = 0,
+  gameSlug,
 }: BankTransactionFormProps) {
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,8 +42,10 @@ export function BankTransactionForm({
 
   // Form state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedResource, setSelectedResource] = useState<ResourceCatalog | null>(null);
+  const [selection, setSelection] = useState<{ type: 'resource'; resource: ResourceCatalog } | { type: 'gold' } | null>(null);
   const [quantity, setQuantity] = useState('');
+  const [silver, setSilver] = useState('');
+  const [copper, setCopper] = useState('');
   const [notes, setNotes] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ResourceCategory | 'all'>('all');
 
@@ -45,8 +55,11 @@ export function BankTransactionForm({
 
     const timerId = setTimeout(() => {
       setSearchQuery('');
-      setSelectedResource(null);
+      setSelection(null);
       setQuantity('');
+      setSilver('');
+      setCopper('');
+      setCategoryFilter('all');
       setNotes('');
       setError(null);
     }, 0);
@@ -60,9 +73,14 @@ export function BankTransactionForm({
     const matchesCategory = categoryFilter === 'all' || resource.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+  const isGold = selection?.type === 'gold';
+  const isWowGold = isGold && gameSlug === 'wowforever';
+  const selectedResource = selection?.type === 'resource' ? selection.resource : null;
+  const showGold = onGoldSubmit && (categoryFilter === 'all' || categoryFilter === 'currency')
+    && [t('bank.gold'), t('bank.silver'), t('bank.copper')].some(label => label.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Get available quantity for withdrawals
-  const availableQty = selectedResource && inventoryQuantity 
+  const availableQty = isGold ? goldBalance : selectedResource && inventoryQuantity
     ? inventoryQuantity(selectedResource.id) 
     : Infinity;
 
@@ -70,25 +88,37 @@ export function BankTransactionForm({
     e.preventDefault();
     setError(null);
 
-    if (!selectedResource) {
+    if (!selection) {
       setError(t('bank.errorSelectResource'));
       return;
     }
 
-    const qty = parseInt(quantity);
-    if (isNaN(qty) || qty <= 0) {
+    let qty: number;
+    try {
+      qty = isWowGold ? toWowCopper(Number(quantity), Number(silver), Number(copper)) : Number(quantity);
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      setError(t('bank.errorInvalidQuantity'));
+      return;
+    }
+    if (!Number.isSafeInteger(qty) || qty <= 0) {
       setError(t('bank.errorInvalidQuantity'));
       return;
     }
 
     if (transactionType === 'withdraw' && qty > availableQty) {
-      setError(t('bank.errorInsufficientResources'));
+      setError(t(isGold ? 'bank.errorInsufficientGold' : 'bank.errorInsufficientResources'));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onSubmit(selectedResource.id, qty, notes.trim() || undefined);
+      if (selection.type === 'gold') {
+        if (!onGoldSubmit) throw new Error('Gold transactions are unavailable');
+        await onGoldSubmit(qty, notes.trim() || undefined);
+      } else {
+        await onSubmit(selection.resource.id, qty, notes.trim() || undefined);
+      }
       onClose();
     } catch (err) {
       console.error('Transaction error:', err);
@@ -111,7 +141,7 @@ export function BankTransactionForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Resource Selection */}
-        {!selectedResource ? (
+        {!selection ? (
           <div className="space-y-3">
             {/* Search & Filter */}
             <div className="flex gap-2">
@@ -143,7 +173,18 @@ export function BankTransactionForm({
 
             {/* Resource List */}
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {filteredResources.length === 0 ? (
+              {showGold && (
+                <button type="button" onClick={() => setSelection({ type: 'gold' })}
+                  className="w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors">
+                  <span className="flex items-center gap-2 text-white">
+                    <Coins className="w-5 h-5 text-yellow-400" />
+                    {gameSlug === 'wowforever'
+                      ? `${t('bank.gold')} / ${t('bank.silver')} / ${t('bank.copper')}` : t('bank.gold')}
+                  </span>
+                  {transactionType === 'withdraw' && <BankMoney amount={goldBalance} gameSlug={gameSlug} />}
+                </button>
+              )}
+              {filteredResources.length === 0 && !showGold ? (
                 <div className="text-center py-4 text-slate-500 text-sm">
                   {t('loot.noMatchingItems')}
                 </div>
@@ -152,7 +193,7 @@ export function BankTransactionForm({
                   <button
                     key={resource.id}
                     type="button"
-                    onClick={() => setSelectedResource(resource)}
+                    onClick={() => setSelection({ type: 'resource', resource })}
                     className="w-full flex items-center justify-between p-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-left transition-colors"
                   >
                     <div className="flex items-center gap-2">
@@ -175,18 +216,24 @@ export function BankTransactionForm({
             <div className="flex items-center justify-between p-3 bg-slate-800 border border-amber-500/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <Package className="w-5 h-5 text-amber-400" />
+                  {isGold ? <Coins className="w-5 h-5 text-amber-400" /> : <Package className="w-5 h-5 text-amber-400" />}
                 </div>
                 <div>
-                  <div className="font-medium text-white">{selectedResource.name}</div>
+                  <div className="font-medium text-white">{selectedResource?.name || t('bank.gold')}</div>
                   <div className="text-xs text-slate-500">
-                    {RESOURCE_CATEGORY_CONFIG[selectedResource.category].icon} {t(`bank.categories.${selectedResource.category}`)}
+                    {t(`bank.categories.${selectedResource?.category || 'currency'}`)}
                   </div>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedResource(null)}
+                onClick={() => {
+                  setSelection(null);
+                  setQuantity('');
+                  setSilver('');
+                  setCopper('');
+                  setError(null);
+                }}
                 className="text-sm text-slate-400 hover:text-white"
               >
                 {t('common.change')}
@@ -195,8 +242,8 @@ export function BankTransactionForm({
 
             {/* Quantity */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                {t('loot.amount')} *
+              <label htmlFor="bank-transaction-amount" className="block text-sm font-medium text-slate-300 mb-1">
+                {isGold ? t('bank.gold') : t('loot.amount')}{!isWowGold && ' *'}
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -204,21 +251,42 @@ export function BankTransactionForm({
                   type="number"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  min="1"
-                  max={transactionType === 'withdraw' ? availableQty : undefined}
+                  min={isWowGold ? '0' : '1'}
+                  step="1"
+                  max={transactionType === 'withdraw' ? isWowGold ? Math.floor(availableQty / 10000) : availableQty : undefined}
                   placeholder="0"
                   className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
                 {transactionType === 'withdraw' && availableQty < Infinity && (
                   <button
                     type="button"
-                    onClick={() => setQuantity(availableQty.toString())}
+                    onClick={() => {
+                      setQuantity((isWowGold ? Math.floor(availableQty / 10000) : availableQty).toString());
+                      if (isWowGold) {
+                        setSilver((Math.floor(availableQty / 100) % 100).toString());
+                        setCopper((availableQty % 100).toString());
+                      }
+                    }}
                     className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm"
                   >
-                    Max ({availableQty})
+                    Max (<BankMoney amount={availableQty} gameSlug={isGold ? gameSlug : 'aoc'} />)
                   </button>
                 )}
               </div>
+              {isWowGold && <div className="mt-2 grid grid-cols-2 gap-2">
+                {(['silver', 'copper'] as const).map(coin => (
+                  <div key={coin}>
+                    <label htmlFor={`bank-transaction-${coin}`} className="mb-1 block text-sm font-medium text-slate-300">
+                      {t(`bank.${coin}`)}
+                    </label>
+                    <input id={`bank-transaction-${coin}`} type="number" min="0" max="99" step="1"
+                      value={coin === 'silver' ? silver : copper}
+                      onChange={event => coin === 'silver' ? setSilver(event.target.value) : setCopper(event.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white focus:border-amber-500 focus:outline-none" />
+                  </div>
+                ))}
+              </div>}
             </div>
 
             {/* Notes */}
@@ -240,7 +308,7 @@ export function BankTransactionForm({
 
         {/* Error */}
         {error && (
-          <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
+          <div role="alert" className="p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -256,7 +324,7 @@ export function BankTransactionForm({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || !selectedResource || !quantity}
+            disabled={isSubmitting || !selection || !(quantity || (isWowGold && (silver || copper)))}
             className={`px-6 py-2 ${bgClass} hover:opacity-90 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center gap-2`}
           >
             <Icon className="w-4 h-4" />
@@ -267,4 +335,3 @@ export function BankTransactionForm({
     </Modal>
   );
 }
-

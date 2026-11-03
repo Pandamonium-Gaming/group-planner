@@ -40,6 +40,7 @@ export function EconomyTabContent({
     initializeBank,
     deposit,
     withdraw,
+    adjustGold,
   } = useGuildBank(groupId, gameSlug);
 
   const {
@@ -112,6 +113,8 @@ export function EconomyTabContent({
             resourceCatalog={resourceCatalog}
             onDeposit={canDeposit ? deposit : undefined}
             onWithdraw={canWithdraw ? withdraw : undefined}
+            onDepositGold={canDeposit ? (amount, notes) => adjustGold(amount, notes) : undefined}
+            onWithdrawGold={canWithdraw ? (amount, notes) => adjustGold(-amount, notes) : undefined}
             isOfficer={isOfficer}
           />
         ) : (

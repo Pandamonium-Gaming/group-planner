@@ -386,6 +386,52 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
   });
 
   describe('Transactions', () => {
+    it.each([123456, -1])('sends signed money amounts (%i) to the atomic transaction and refreshes', async amount => {
+      const bankQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { ...mockBank, game_slug: 'wowforever' }, error: null }),
+      };
+      mockSupabase.from.mockReturnValueOnce(bankQuery as never);
+      const { result } = renderHook(() => useGuildBank('group-1', 'wowforever'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      const reads = mockSupabase.from.mock.calls.length;
+      await act(async () => { await result.current.adjustGold(amount, 'Money transfer'); });
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('apply_bank_gold_transaction', {
+        p_bank_id: 'bank-1', p_amount: amount, p_notes: 'Money transfer',
+      });
+      expect(mockSupabase.from.mock.calls.length).toBeGreaterThan(reads);
+      expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
+    });
+
+    it('propagates gold transaction failures without issuing separate balance or audit writes', async () => {
+      const bankQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: mockBank, error: null }),
+      };
+      mockSupabase.from.mockReturnValueOnce(bankQuery as never);
+      const { result } = renderHook(() => useGuildBank('group-1'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      const reads = mockSupabase.from.mock.calls.length;
+      mockSupabase.rpc.mockResolvedValueOnce({ data: null, error: new Error('Insufficient money in bank') } as never);
+      await expect(result.current.adjustGold(-50001)).rejects.toThrow('Insufficient money in bank');
+      expect(mockSupabase.from).toHaveBeenCalledTimes(reads);
+    });
+
+    it.each([0, NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid gold amount %s before writing', async amount => {
+      const bankQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: mockBank, error: null }),
+      };
+      mockSupabase.from.mockReturnValueOnce(bankQuery as never);
+      const { result } = renderHook(() => useGuildBank('group-1'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await expect(result.current.adjustGold(amount)).rejects.toThrow('Gold amount must be a non-zero safe integer');
+      expect(mockSupabase.rpc).not.toHaveBeenCalled();
+    });
+
     it('propagates an atomic deposit failure without refreshing the bank', async () => {
       const bankQuery = {
         select: jest.fn().mockReturnThis(),
