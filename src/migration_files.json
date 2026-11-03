@@ -17,5 +17,9 @@
   "015_admin_discord_notifications.sql",
   "016_admin_notification_role_mentions.sql",
   "017_admin_notification_categories.sql",
-  "018_trial_character_visibility.sql"
+  "018_trial_character_visibility.sql",
+  "019_admin_notification_game_deleted.sql",
+  "020_suppress_alert_flag.sql",
+  "021_delete_group_game.sql",
+  "022_fix_loaner_trigger.sql"
 ]

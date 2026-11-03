@@ -84,5 +84,5 @@ $$;
 REVOKE ALL ON FUNCTION public.save_admin_discord_preferences(uuid,jsonb,jsonb,uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_admin_discord_preferences(uuid,jsonb,jsonb,uuid) TO service_role;
 
-INSERT INTO public.migration_history(filename) VALUES ('018_admin_notification_game_deleted.sql') ON CONFLICT DO NOTHING;
+INSERT INTO public.migration_history(filename) VALUES ('019_admin_notification_game_deleted.sql') ON CONFLICT DO NOTHING;
 COMMIT;

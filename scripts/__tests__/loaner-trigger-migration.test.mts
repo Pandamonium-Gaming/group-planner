@@ -6,11 +6,11 @@ import { Client } from 'pg';
 
 const connectionString = process.env.GP_MIGRATION_TEST_DATABASE_URL;
 const migrationsDir = new URL('../../supabase/migrations/', import.meta.url);
-const MIGRATION = '021_fix_loaner_trigger.sql';
+const MIGRATION = '022_fix_loaner_trigger.sql';
 
 type Ctx = { client: Client; schema: string; t: (name: string) => string; member: string; other: string };
 
-/** Builds the production loaner-trigger state (baseline + 020's function rewrite) in a temp schema, then applies 021. */
+/** Builds the production loaner-trigger state (baseline + 021's function rewrite) in a temp schema, then applies 022. */
 async function withSchema(run: (ctx: Ctx) => Promise<void>) {
   const client = new Client({ connectionString, connectionTimeoutMillis: 15000, statement_timeout: 30000 });
   const schema = `loaner_test_${randomUUID().replaceAll('-', '')}`;
@@ -53,12 +53,12 @@ async function withSchema(run: (ctx: Ctx) => Promise<void>) {
     assert.ok(start > 0 && end > start, 'Loaner trigger section not found in baseline');
     await client.query(`SET LOCAL search_path = "${schema}"`);
     await client.query(baseline.slice(start, end + endMarker.length));
-    // Production also has migration 020's schema-qualified rewrite of the removal function.
-    const m020 = rewrite(await readFile(new URL('020_delete_group_game.sql', migrationsDir), 'utf8'));
-    const fnEnd = m020.indexOf('$$;');
-    const fnStart = m020.indexOf('CREATE OR REPLACE FUNCTION');
-    assert.ok(fnStart >= 0 && fnEnd > fnStart && m020.slice(fnStart, fnEnd).includes('remove_loaner_ships_for_pledge'));
-    await client.query(m020.slice(fnStart, fnEnd + 3));
+    // Production also has migration 021's schema-qualified rewrite of the removal function.
+    const m021 = rewrite(await readFile(new URL('021_delete_group_game.sql', migrationsDir), 'utf8'));
+    const fnEnd = m021.indexOf('$$;');
+    const fnStart = m021.indexOf('CREATE OR REPLACE FUNCTION');
+    assert.ok(fnStart >= 0 && fnEnd > fnStart && m021.slice(fnStart, fnEnd).includes('remove_loaner_ships_for_pledge'));
+    await client.query(m021.slice(fnStart, fnEnd + 3));
     await client.query(rewrite(await readFile(new URL(MIGRATION, migrationsDir), 'utf8')));
 
     await client.query(`INSERT INTO ${t('sc_loaner_matrix')}(pledged_ship, loaner_ship, loaner_type, notes) VALUES

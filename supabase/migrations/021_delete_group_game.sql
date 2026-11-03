@@ -72,7 +72,7 @@ BEGIN
     WHERE group_id = p_group_id AND game_slug <> ALL (v_slugs);
   IF NOT FOUND THEN RAISE EXCEPTION 'LAST_GAME'; END IF;
 
-  -- Migration 021 made remove_loaner_ships_for_pledge an AFTER DELETE trigger, so deleting a pledge and its
+  -- Migration 022 made remove_loaner_ships_for_pledge an AFTER DELETE trigger, so deleting a pledge and its
   -- loaners in one statement no longer aborts. Removing loaners first, then pledges, is kept as harmless.
   DELETE FROM public.character_ships cs USING public.members m
     WHERE cs.character_id = m.id AND m.group_id = p_group_id AND m.game_slug = ANY (v_slugs)
@@ -137,5 +137,5 @@ $$;
 REVOKE ALL ON FUNCTION public.delete_group_game(uuid, text, text, text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_group_game(uuid, text, text, text, uuid) TO service_role;
 
-INSERT INTO public.migration_history(filename) VALUES ('020_delete_group_game.sql') ON CONFLICT DO NOTHING;
+INSERT INTO public.migration_history(filename) VALUES ('021_delete_group_game.sql') ON CONFLICT DO NOTHING;
 COMMIT;

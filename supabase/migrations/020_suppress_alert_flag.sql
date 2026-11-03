@@ -92,5 +92,5 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.capture_admin_discord_change() FROM PUBLIC, anon, authenticated;
 
-INSERT INTO public.migration_history(filename) VALUES ('019_suppress_alert_flag.sql') ON CONFLICT DO NOTHING;
+INSERT INTO public.migration_history(filename) VALUES ('020_suppress_alert_flag.sql') ON CONFLICT DO NOTHING;
 COMMIT;

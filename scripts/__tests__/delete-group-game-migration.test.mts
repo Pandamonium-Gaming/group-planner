@@ -7,7 +7,7 @@ import { Client } from 'pg';
 const connectionString = process.env.GP_MIGRATION_TEST_DATABASE_URL;
 const migrationsDir = new URL('../../supabase/migrations/', import.meta.url);
 const repoRoot = new URL('../../', import.meta.url);
-const MIGRATION = '020_delete_group_game.sql';
+const MIGRATION = '021_delete_group_game.sql';
 
 // group_games stores the canonical slug; baseline migration 060 renamed legacy 'star-citizen' rows.
 const SLUG_ALIASES: Record<string, string> = { 'star-citizen': 'starcitizen' };
@@ -64,7 +64,7 @@ async function foreignKeys() {
   return keys;
 }
 
-/** Slug -> columns reset by the static CASE branches of migration 020. */
+/** Slug -> columns reset by the static CASE branches of migration 021. */
 function resetBranches(sql: string) {
   const branches = new Map<string, string[]>();
   for (const match of sql.matchAll(/WHEN\s+'([a-z0-9-]+)'\s+THEN\s+UPDATE\s+public\.groups\s+SET\s+([\s\S]*?)\s+WHERE\s+id\s*=\s*p_group_id/gi)) {
@@ -102,7 +102,7 @@ test('every member/event child foreign key cascades or nulls, and the relied-on 
   assert.deepEqual(blocking, [], 'A foreign key would block or skip deletion');
 });
 
-test('every game slug in src/config/games and every slug present in group_games migrations has a branch in migration 020', async () => {
+test('every game slug in src/config/games and every slug present in group_games migrations has a branch in migration 021', async () => {
   const sql = await readFile(new URL(MIGRATION, migrationsDir), 'utf8');
   const branches = resetBranches(sql);
   const slugs = new Map<string, string>();
@@ -255,7 +255,7 @@ async function withSchema(run: (ctx: Ctx) => Promise<void>) {
       );
     `);
     // The baseline Star Citizen loaner functions and triggers (unqualified names, session search_path). Migration
-    // 021 below replaces the removal trigger with its AFTER DELETE form, so the harness ends in the production state.
+    // 022 below replaces the removal trigger with its AFTER DELETE form, so the harness ends in the production state.
     const baseline = await readFile(new URL('000_baseline.sql', migrationsDir), 'utf8');
     const start = baseline.indexOf('CREATE OR REPLACE FUNCTION ship_id_to_display_name');
     const endMarker = 'EXECUTE FUNCTION remove_loaner_ships_for_pledge();';
@@ -267,8 +267,8 @@ async function withSchema(run: (ctx: Ctx) => Promise<void>) {
     await client.query(`SET LOCAL search_path = "${schema}", public`);
     for (const name of [
       '013_add_discord_webhook_logs.sql', '015_admin_discord_notifications.sql', '016_admin_notification_role_mentions.sql',
-      '017_admin_notification_categories.sql', '018_admin_notification_game_deleted.sql', '019_suppress_alert_flag.sql', MIGRATION,
-      '021_fix_loaner_trigger.sql',
+      '017_admin_notification_categories.sql', '019_admin_notification_game_deleted.sql', '020_suppress_alert_flag.sql', MIGRATION,
+      '022_fix_loaner_trigger.sql',
     ]) await migration(name);
     await run({ client, schema, t, fn: t('delete_group_game') });
   } finally {

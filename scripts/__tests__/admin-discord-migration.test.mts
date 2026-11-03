@@ -42,14 +42,14 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query(roleMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const categoryMigration = await readFile(new URL('../../supabase/migrations/017_admin_notification_categories.sql', import.meta.url), 'utf8');
     await client.query(categoryMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
-    const gameMigration = await readFile(new URL('../../supabase/migrations/018_admin_notification_game_deleted.sql', import.meta.url), 'utf8');
+    const gameMigration = await readFile(new URL('../../supabase/migrations/019_admin_notification_game_deleted.sql', import.meta.url), 'utf8');
     assert.match(gameMigration, /^BEGIN;\s/);
     assert.match(gameMigration, /COMMIT;\s*$/);
     await client.query('SAVEPOINT before_game_deleted');
     await assert.rejects(client.query(`INSERT INTO ${table('admin_discord_notifications')}(kind,destination) VALUES ('game_deleted','group')`), /check constraint/);
     await client.query('ROLLBACK TO SAVEPOINT before_game_deleted');
     await client.query(gameMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
-    const suppressMigration = await readFile(new URL('../../supabase/migrations/019_suppress_alert_flag.sql', import.meta.url), 'utf8');
+    const suppressMigration = await readFile(new URL('../../supabase/migrations/020_suppress_alert_flag.sql', import.meta.url), 'utf8');
     assert.match(suppressMigration, /^BEGIN;\s/);
     assert.match(suppressMigration, /COMMIT;\s*$/);
     await client.query(suppressMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));

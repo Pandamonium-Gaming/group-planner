@@ -6,7 +6,7 @@ BEGIN;
 -- trigger deleted a row the statement was about to delete, which aborts with "tuple to be ... was
 -- already modified by an operation triggered by the current command". As an AFTER DELETE trigger the
 -- statement's own deletions are already done, so it only removes loaners left behind.
--- Migration 020's comment describes this bug; its ordered character_ships deletes still work but are
+-- Migration 021's comment describes this bug; its ordered character_ships deletes still work but are
 -- no longer required.
 CREATE OR REPLACE FUNCTION public.remove_loaner_ships_for_pledge()
 RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
@@ -63,5 +63,5 @@ BEGIN
 END;
 $$;
 
-INSERT INTO public.migration_history(filename) VALUES ('021_fix_loaner_trigger.sql') ON CONFLICT DO NOTHING;
+INSERT INTO public.migration_history(filename) VALUES ('022_fix_loaner_trigger.sql') ON CONFLICT DO NOTHING;
 COMMIT;
