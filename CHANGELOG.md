@@ -48,6 +48,10 @@
   * Added `docker-compose.prod.stack.yml` to combine the production app override with a local Postgres container for self-hosted prod-style validation
   * Added production stack command examples to `README.md`
 
+### Security
+
+* Enforced effective guild-bank deposit and withdrawal permissions for currency transfers in the database and blocked direct bank-balance writes.
+
 ### Changed
 
 * Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.

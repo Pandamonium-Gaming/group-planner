@@ -35,12 +35,15 @@ CREATE FUNCTION public.apply_bank_gold_transaction(
 )
 RETURNS void
 LANGUAGE plpgsql
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
   v_balance bigint;
   v_new_balance numeric;
+  v_group_id uuid;
+  v_role text;
+  v_allowed boolean;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
@@ -49,10 +52,31 @@ BEGIN
     RAISE EXCEPTION 'Invalid currency amount' USING ERRCODE = '22023';
   END IF;
 
-  SELECT gold_balance INTO v_balance
+  SELECT group_id, gold_balance INTO v_group_id, v_balance
   FROM public.guild_banks WHERE id = p_bank_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Bank not found or inaccessible' USING ERRCODE = 'P0001';
+  END IF;
+  SELECT role INTO v_role
+  FROM public.group_members
+  WHERE group_id = v_group_id AND user_id = auth.uid()
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Bank not found or inaccessible' USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT COALESCE(
+    CASE WHEN p_amount > 0 THEN overrides.guild_bank_deposit ELSE overrides.guild_bank_withdraw END,
+    v_role IN ('admin', 'officer', 'member')
+  ) INTO v_allowed
+  FROM public.group_permission_overrides AS overrides
+  WHERE overrides.group_id = v_group_id AND overrides.role = v_role
+  FOR SHARE;
+  IF NOT FOUND THEN
+    v_allowed := v_role IN ('admin', 'officer', 'member');
+  END IF;
+  IF NOT v_allowed THEN
+    RAISE EXCEPTION 'Insufficient permission for bank transaction' USING ERRCODE = '42501';
   END IF;
   IF v_balance IS NULL THEN
     RAISE EXCEPTION 'Invalid bank balance' USING ERRCODE = '22023';
@@ -81,6 +105,11 @@ BEGIN
   );
 END;
 $$;
+
+REVOKE INSERT, UPDATE ON TABLE public.guild_banks FROM PUBLIC, anon, authenticated;
+GRANT INSERT (group_id, game_slug) ON TABLE public.guild_banks TO authenticated;
+GRANT UPDATE (name, description, deposit_min_role, withdraw_min_role, updated_at)
+  ON TABLE public.guild_banks TO authenticated;
 
 REVOKE ALL ON FUNCTION public.apply_bank_gold_transaction(uuid, bigint, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.apply_bank_gold_transaction(uuid, bigint, text) TO authenticated;
