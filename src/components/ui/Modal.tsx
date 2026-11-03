@@ -4,8 +4,27 @@ import { useEffect, useRef, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]';
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'summary',
+  'audio[controls]',
+  'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]:not([disabled])',
+].join(', ');
+
+const isTabbable = (el: HTMLElement) => {
+  const attr = el.getAttribute('tabindex');
+  if (attr !== null && Number(attr) < 0) return false;
+  return !el.closest('[inert], [hidden]');
+};
+
+// Open modals in open order; only the topmost handles Escape and Tab.
+const openModalStack: object[] = [];
 
 interface ModalProps {
   isOpen: boolean;
@@ -47,19 +66,34 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Capture the opener during render: React autofocuses children in the commit phase,
-  // before any effect runs, so reading it later could pick up the dialog's own input.
-  const openerCaptured = useRef(false);
-  if (isOpen && !openerCaptured.current && typeof document !== 'undefined') {
-    openerCaptured.current = true;
+  // Capture the opener during render on a closed -> open transition: React autofocuses
+  // children in the commit phase, before any effect runs, so reading it later could pick
+  // up the dialog's own input. It is deliberately not cleared by the effect cleanup, so
+  // StrictMode's simulated unmount/remount cannot lose it.
+  const wasOpen = useRef(false);
+  if (isOpen && !wasOpen.current && typeof document !== 'undefined') {
     previousActiveElement.current = document.activeElement as HTMLElement | null;
   }
+  wasOpen.current = isOpen;
+
+  // Focus taken from inside the dialog by a cleanup, handed back if the effect re-runs
+  // straight away (StrictMode's simulated remount) rather than the modal really closing.
+  const displacedFocus = useRef<HTMLElement | null>(null);
 
   // Escape, focus trap, scroll lock and focus restoration for the open lifecycle
   useEffect(() => {
     if (!isOpen) return;
 
+    const token = {};
+    openModalStack.push(token);
+
+    if (displacedFocus.current && document.contains(displacedFocus.current)) {
+      displacedFocus.current.focus();
+    }
+    displacedFocus.current = null;
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (openModalStack[openModalStack.length - 1] !== token) return;
       if (e.key === 'Escape') {
         onCloseRef.current();
         return;
@@ -71,7 +105,7 @@ export function Modal({
       // Query at key-press time so dynamic content is respected
       const focusable = Array.from(
         container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      ).filter(el => el.tabIndex >= 0);
+      ).filter(isTabbable);
 
       if (focusable.length === 0) {
         e.preventDefault();
@@ -101,13 +135,20 @@ export function Modal({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
+      const index = openModalStack.indexOf(token);
+      if (index !== -1) openModalStack.splice(index, 1);
+      const active = document.activeElement as HTMLElement | null;
+      const stolen = active && active !== document.body ? active : null;
+      displacedFocus.current = stolen;
+      // A StrictMode remount re-runs the effect synchronously; after that it is stale
+      Promise.resolve().then(() => {
+        if (displacedFocus.current === stolen) displacedFocus.current = null;
+      });
       // Restore focus to the opener when the modal closes
       const opener = previousActiveElement.current;
       if (opener && document.contains(opener)) {
         opener.focus();
       }
-      previousActiveElement.current = null;
-      openerCaptured.current = false;
     };
   }, [isOpen]);
 

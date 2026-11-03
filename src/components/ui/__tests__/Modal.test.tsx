@@ -109,4 +109,98 @@ describe('Modal focus management', () => {
     expect(onClose).toHaveBeenCalled();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('is StrictMode-safe: keeps autofocus on mount and restores the opener on close', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const ui = (open: boolean) => (
+      <React.StrictMode>
+        <Modal isOpen={open} onClose={() => {}} title="T"><input aria-label="auto" autoFocus /></Modal>
+      </React.StrictMode>
+    );
+    const { rerender } = render(ui(true));
+    expect(document.activeElement).toBe(screen.getByLabelText('auto'));
+    rerender(ui(false));
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it('recaptures the opener when a mounted modal is reopened', () => {
+    const a = document.createElement('button');
+    const b = document.createElement('button');
+    document.body.append(a, b);
+    const ui = (open: boolean) => <Modal isOpen={open} onClose={() => {}} title="T"><input aria-label="x" /></Modal>;
+    a.focus();
+    const { rerender } = render(ui(false));
+    rerender(ui(true));
+    rerender(ui(false));
+    expect(document.activeElement).toBe(a);
+    b.focus();
+    rerender(ui(true));
+    rerender(ui(false));
+    expect(document.activeElement).toBe(b);
+    a.remove();
+    b.remove();
+  });
+
+  it('skips a disabled element that has a tabindex', () => {
+    render(
+      <Modal isOpen onClose={() => {}} title="T" showCloseButton={false}>
+        <button>one</button>
+        <button disabled tabIndex={0}>dead</button>
+      </Modal>
+    );
+    screen.getByText('one').focus();
+    tab();
+    expect(document.activeElement).toBe(screen.getByText('one'));
+  });
+
+  it('only the topmost of stacked modals traps Tab and closes on Escape', () => {
+    const lower = jest.fn();
+    const upper = jest.fn();
+    render(
+      <>
+        <Modal isOpen onClose={lower} title="L"><button>l1</button><button>l2</button></Modal>
+        <Modal isOpen onClose={upper} title="U"><button>u1</button><button>u2</button></Modal>
+      </>
+    );
+    screen.getByText('u2').focus();
+    tab();
+    expect(document.activeElement).toBe(screen.getAllByLabelText('close')[1]);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(upper).toHaveBeenCalledTimes(1);
+    expect(lower).not.toHaveBeenCalled();
+  });
+
+  it('closes on backdrop click but not on content click', () => {
+    const onClose = jest.fn();
+    render(<Modal isOpen onClose={onClose} title="T"><button>in</button></Modal>);
+    fireEvent.click(screen.getByText('in'));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(document.querySelector('[aria-hidden="true"].absolute') as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('wraps Shift+Tab from the container and ignores other keys', () => {
+    render(<Modal isOpen onClose={() => {}} title="T"><button>in</button></Modal>);
+    const container = screen.getByText('T').parentElement!.parentElement as HTMLElement;
+    container.focus();
+    const ev = fireEvent.keyDown(document, { key: 'a' });
+    expect(ev).toBe(true);
+    expect(document.activeElement).toBe(container);
+    tab(true);
+    expect(document.activeElement).toBe(screen.getByText('in'));
+  });
+
+  it('does not throw or restore focus when the opener was removed', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const ui = (open: boolean) => <Modal isOpen={open} onClose={() => {}} title="T"><input aria-label="x" /></Modal>;
+    const { rerender } = render(ui(true));
+    opener.remove();
+    expect(() => rerender(ui(false))).not.toThrow();
+    expect(document.activeElement).toBe(document.body);
+  });
 });
