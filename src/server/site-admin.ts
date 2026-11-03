@@ -19,7 +19,7 @@ export async function siteAdminContext(request: NextRequest) {
     const { data, error } = await client.auth.getUser(token);
     if (error) throw new Error('Unable to verify site administrator identity');
     const identity = data.user?.identities?.find(item => item.provider === 'discord');
-    discordId = identity?.id;
+    discordId = identity?.identity_data?.sub;
   }
   return { client, userId, allowed: typeof discordId === 'string' && ids.includes(discordId) };
 }

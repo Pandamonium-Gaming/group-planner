@@ -438,10 +438,29 @@ it('authorizes legacy site admins only through verified Discord identities, not 
   process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
   getUser.mockResolvedValue({ data: { user: { id: 'admin-1', user_metadata: { provider_id: '123456789012345678' } } }, error: null });
   expect((await siteSettings(request(undefined, 'legacy-session'))).status).toBe(403);
-  getUser.mockResolvedValue({ data: { user: { id: 'admin-1', identities: [{ provider: 'discord', id: '123456789012345678' }] } }, error: null });
+  getUser.mockResolvedValue({ data: { user: { id: 'admin-1', identities: [{
+    provider: 'discord', id: '00000000-0000-4000-8000-000000000001',
+    identity_data: { sub: '123456789012345678' },
+  }] } }, error: null });
   expect((await siteSettings(request(undefined, 'legacy-session'))).status).toBe(200);
   expect(auth).not.toHaveBeenCalled();
   expect(selects).not.toHaveBeenCalledWith('users', expect.anything());
+});
+
+it.each([
+  { provider: 'discord', id: '123456789012345678' },
+  { provider: 'discord', id: 'identity-1', identity_data: { sub: '987654321098765432' } },
+  { provider: 'github', id: 'identity-1', identity_data: { sub: '123456789012345678' } },
+  { provider: 'discord', id: 'identity-1', identity_data: { sub: 123 } },
+])('does not grant site access from an internal ID, mismatched subject or other provider: %j', async identity => {
+  process.env.AUTH_STACK = 'v1';
+  process.env.SITE_ADMIN_DISCORD_IDS = '123456789012345678';
+  getUser.mockResolvedValue({ data: { user: {
+    id: 'admin-1', user_metadata: { provider_id: '123456789012345678' }, identities: [identity],
+  } }, error: null });
+  expect((await siteSettings(request(undefined, 'legacy-session'))).status).toBe(403);
+  expect((await saveSite(request({ categories: {}, role_mentions: {} }, 'legacy-session'))).status).toBe(403);
+  expect(rpc).not.toHaveBeenCalled();
 });
 
 it('validates site input, explicit overrides and configuration errors without exposing credentials', async () => {
