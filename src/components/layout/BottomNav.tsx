@@ -1,8 +1,8 @@
 "use client";
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-import { Users, Calendar, Grid3X3, Settings, Sword, Trophy, Handshake, Hammer, TrendingUp, Ship } from 'lucide-react';
+import { Users, Calendar, Grid3X3, Settings, Sword, Swords, Trophy, Handshake, Hammer, TrendingUp, Ship } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 import { Tab, GAME_TAB_EXCLUSIONS } from '@/components/common/tabs';
@@ -18,6 +18,7 @@ interface BottomNavProps {
 const ALL_NAV_ITEMS: { tab: Tab; icon: React.ElementType; labelKey: string; requiresManage?: boolean }[] = [
   { tab: 'characters', icon: Users, labelKey: 'nav.characters' },
   { tab: 'professions', icon: Hammer, labelKey: 'professionOverview.title' },
+  { tab: 'classes', icon: Swords, labelKey: 'classOverview.title' },
   { tab: 'events', icon: Calendar, labelKey: 'nav.events' },
   { tab: 'matrix', icon: Grid3X3, labelKey: 'nav.matrix' },
   { tab: 'ships', icon: Ship, labelKey: 'nav.guild-ships' },
@@ -40,6 +41,7 @@ export function BottomNav({ activeTab, canManage, gameSlug = 'aoc', groupSlug }:
     switch (tab) {
       case 'characters': return `${basePath}/characters`;
       case 'professions': return `${basePath}/professions`;
+      case 'classes': return `${basePath}/classes`;
       case 'events': return `${basePath}/events`;
       case 'matrix': return gameSlug === 'starcitizen' ? `${basePath}/hangar` : `${basePath}/matrix`;
       case 'parties': return `${basePath}/parties`;
@@ -57,6 +59,9 @@ export function BottomNav({ activeTab, canManage, gameSlug = 'aoc', groupSlug }:
 
   // Get custom label for specific game/tab combinations
   const getTabLabel = (tab: Tab, labelKey: string): string => {
+    if (gameSlug === 'wowforever' && tab === 'economy') {
+      return t('bank.title');
+    }
     if (gameSlug === 'starcitizen' && tab === 'matrix') {
       return t('nav.fleet');
     }

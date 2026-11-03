@@ -568,6 +568,7 @@ export const RESOURCE_CATEGORY_CONFIG: Record<ResourceCategory, { label: string;
 export interface GuildBank {
   id: string;
   group_id: string;
+  game_slug: string;
   name: string;
   description?: string;
   deposit_min_role: string;
@@ -580,6 +581,7 @@ export interface GuildBank {
 // Resource catalog item
 export interface ResourceCatalog {
   id: string;
+  game_slug: string;
   name: string;
   category: ResourceCategory;
   subcategory?: string;

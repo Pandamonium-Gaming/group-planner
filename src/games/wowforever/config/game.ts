@@ -17,7 +17,7 @@ export const WOW_FOREVER_CONFIG: GameConfig & {
     alliances: true,
     manage: true,
     professions: true,
-    economy: false,
+    economy: true,
     achievements: false,
     siege: false,
     ships: false,

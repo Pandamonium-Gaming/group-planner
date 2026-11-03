@@ -103,6 +103,7 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
       if (table === 'resource_catalog') {
         return {
           select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
           order: jest
             .fn()
             .mockReturnValueOnce({ order: jest.fn().mockResolvedValue({ data: [], error: null }) })
@@ -203,6 +204,29 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
   });
 
   describe('Bank Data Fetching', () => {
+    it.each(['aoc', 'wowforever'])('scopes both the bank and catalogue to %s', async gameSlug => {
+      const bankQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { ...mockBank, game_slug: gameSlug }, error: null }),
+      };
+      const catalogQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnValue({
+          order: jest.fn().mockResolvedValue({ data: mockCatalog, error: null }),
+        }),
+      };
+      mockSupabase.from.mockReturnValueOnce(bankQuery).mockReturnValueOnce(catalogQuery);
+
+      const { result } = renderHook(() => useGuildBank('group-1', gameSlug));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.error).toBeNull();
+      expect(bankQuery.eq).toHaveBeenCalledWith('group_id', 'group-1');
+      expect(bankQuery.eq).toHaveBeenCalledWith('game_slug', gameSlug);
+      expect(catalogQuery.eq).toHaveBeenCalledWith('game_slug', gameSlug);
+    });
+
     it('fetches bank data and transforms nested joins', async () => {
       const bankQuery = {
         select: jest.fn().mockReturnThis(),
@@ -212,6 +236,7 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
 
       const catalogQuery = {
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         order: jest
           .fn()
           .mockReturnValueOnce({
@@ -282,6 +307,19 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
   });
 
   describe('Bank Initialization', () => {
+    it('creates a bank for WoW without reusing the default Ashes scope', async () => {
+      const { result } = renderHook(() => useGuildBank('group-1', 'wowforever'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      const insertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: { ...mockBank, game_slug: 'wowforever' }, error: null }),
+      };
+      mockSupabase.from.mockReturnValueOnce(insertQuery);
+      await act(async () => { await result.current.initializeBank(); });
+      expect(insertQuery.insert).toHaveBeenCalledWith({ group_id: 'group-1', game_slug: 'wowforever' });
+    });
+
     it('initializeBank method is available', async () => {
       const bankQuery = {
         select: jest.fn().mockReturnThis(),
@@ -347,6 +385,30 @@ describe('useGuildBank Hook - Phase 2 Sprint 7', () => {
   });
 
   describe('Transactions', () => {
+    it('surfaces a rejected cross-game inventory write without recording a successful deposit', async () => {
+      const bankQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { ...mockBank, game_slug: 'wowforever' }, error: null }),
+      };
+      mockSupabase.from.mockReturnValueOnce(bankQuery);
+      const { result } = renderHook(() => useGuildBank('group-1', 'wowforever'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      const inventoryQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      const rejectedWrite = {
+        insert: jest.fn().mockResolvedValue({ error: new Error('BANK_RESOURCE_GAME_MISMATCH') }),
+      };
+      mockSupabase.from.mockClear();
+      mockSupabase.from.mockReturnValueOnce(inventoryQuery).mockReturnValueOnce(rejectedWrite);
+      await expect(result.current.deposit({ resource_id: 'ashes-ore', quantity: 5 }))
+        .rejects.toThrow('BANK_RESOURCE_GAME_MISMATCH');
+      expect(mockSupabase.from).not.toHaveBeenCalledWith('bank_transactions');
+    });
+
     it('deposit method is available', async () => {
       const bankQuery = {
         select: jest.fn().mockReturnThis(),

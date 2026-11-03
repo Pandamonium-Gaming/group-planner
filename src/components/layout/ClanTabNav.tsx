@@ -1,3 +1,4 @@
+import React from 'react';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { usePathname } from 'next/navigation';
 import { Tab } from '@/components/common/tabs';
@@ -17,6 +18,7 @@ export function ClanTabNav({ canManage, initialTab = 'characters', gameSlug = 'a
       if (!pathname) return initialTab;
     if (pathname.includes('/characters')) return 'characters';
     if (pathname.includes('/professions')) return 'professions';
+    if (pathname.includes('/classes')) return 'classes';
     if (pathname.includes('/events')) return 'events';
     if (pathname.includes('/parties')) return 'parties';
     if (pathname.includes('/matrix')) return 'matrix';
