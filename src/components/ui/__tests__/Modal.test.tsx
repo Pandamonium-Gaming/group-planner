@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Modal } from '../Modal';
 
 // Jest uses the classic JSX transform; Modal relies on a global React.
@@ -148,10 +148,11 @@ describe('Modal focus management', () => {
     render(
       <Modal isOpen onClose={() => {}} title="T" showCloseButton={false}>
         <button>one</button>
+        <button>two</button>
         <button disabled tabIndex={0}>dead</button>
       </Modal>
     );
-    screen.getByText('one').focus();
+    screen.getByText('two').focus();
     tab();
     expect(document.activeElement).toBe(screen.getByText('one'));
   });
@@ -202,5 +203,61 @@ describe('Modal focus management', () => {
     opener.remove();
     expect(() => rerender(ui(false))).not.toThrow();
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it('Escape closes the lower modal once the upper one is closed, and a single modal closes', () => {
+    const lower = jest.fn();
+    const ui = (upperOpen: boolean) => (
+      <>
+        <Modal isOpen onClose={lower} title="L"><button>l1</button></Modal>
+        <Modal isOpen={upperOpen} onClose={() => {}} title="U"><button>u1</button></Modal>
+      </>
+    );
+    const { rerender } = render(ui(true));
+    rerender(ui(false));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(lower).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the body scroll locked until the last stacked modal closes', () => {
+    const ui = (lowerOpen: boolean, upperOpen: boolean) => (
+      <>
+        <Modal isOpen={lowerOpen} onClose={() => {}} title="L">x</Modal>
+        <Modal isOpen={upperOpen} onClose={() => {}} title="U">x</Modal>
+      </>
+    );
+    const { rerender } = render(ui(true, true));
+    rerender(ui(true, false));
+    expect(document.body.style.overflow).toBe('hidden');
+    rerender(ui(false, false));
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('does not move focus during StrictMode mount', () => {
+    const events: string[] = [];
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const track = (e: React.FocusEvent) => events.push(e.type);
+    render(
+      <React.StrictMode>
+        <Modal isOpen onClose={() => {}} title="T"><input aria-label="auto" autoFocus onFocus={track} onBlur={track} /></Modal>
+      </React.StrictMode>
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText('auto'));
+    expect(events).not.toContain('blur');
+    expect(events.filter(e => e === 'focus').length).toBeLessThanOrEqual(1);
+    opener.remove();
+  });
+
+  it('restores focus to the opener when unmounted while open', async () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const { unmount } = render(<Modal isOpen onClose={() => {}} title="T"><input aria-label="x" autoFocus /></Modal>);
+    unmount();
+    await act(async () => {});
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
   });
 });

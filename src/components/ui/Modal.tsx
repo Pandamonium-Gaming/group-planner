@@ -76,21 +76,17 @@ export function Modal({
   }
   wasOpen.current = isOpen;
 
-  // Focus taken from inside the dialog by a cleanup, handed back if the effect re-runs
-  // straight away (StrictMode's simulated remount) rather than the modal really closing.
-  const displacedFocus = useRef<HTMLElement | null>(null);
+  // Restore scheduled by a cleanup that ran while the latest render still said "open"
+  // (an unmount, or StrictMode's simulated one); a re-run of the effect cancels it.
+  const pendingRestore = useRef<object | null>(null);
 
   // Escape, focus trap, scroll lock and focus restoration for the open lifecycle
   useEffect(() => {
+    pendingRestore.current = null;
     if (!isOpen) return;
 
     const token = {};
     openModalStack.push(token);
-
-    if (displacedFocus.current && document.contains(displacedFocus.current)) {
-      displacedFocus.current.focus();
-    }
-    displacedFocus.current = null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (openModalStack[openModalStack.length - 1] !== token) return;
@@ -134,20 +130,26 @@ export function Modal({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
       const index = openModalStack.indexOf(token);
       if (index !== -1) openModalStack.splice(index, 1);
-      const active = document.activeElement as HTMLElement | null;
-      const stolen = active && active !== document.body ? active : null;
-      displacedFocus.current = stolen;
-      // A StrictMode remount re-runs the effect synchronously; after that it is stale
-      Promise.resolve().then(() => {
-        if (displacedFocus.current === stolen) displacedFocus.current = null;
-      });
-      // Restore focus to the opener when the modal closes
+      // Keep the scroll lock while another modal is still open
+      if (openModalStack.length === 0) document.body.style.overflow = '';
+
       const opener = previousActiveElement.current;
-      if (opener && document.contains(opener)) {
-        opener.focus();
+      const restore = () => {
+        if (opener && document.contains(opener)) opener.focus();
+      };
+      if (!wasOpen.current) {
+        // Really closing: restore focus to the opener straight away
+        restore();
+      } else {
+        // Unmounting while open, or StrictMode's simulated unmount: defer so a
+        // immediate re-run of the effect can cancel it without moving focus
+        const pending = {};
+        pendingRestore.current = pending;
+        queueMicrotask(() => {
+          if (pendingRestore.current === pending) restore();
+        });
       }
     };
   }, [isOpen]);
