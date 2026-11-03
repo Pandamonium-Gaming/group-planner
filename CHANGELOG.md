@@ -4,6 +4,8 @@
 
 ### Added
 
+* Added permanent game deletion in Game Management. A group admin can delete an archived game's data for the group by typing the game name to confirm; this erases that game's members, events, game ship permissions and Discord webhook logs, and resets its per-game group settings. One `game_deleted` administration Discord alert is sent. Apply migrations 018 (notification kind), 019 (alert-suppression flag) and 020 (`delete_group_game` function) to Supabase before deploying.
+
 * Added per-category administration notification switches and a separate site-administrator notification page with private webhook, role and history controls. Migration 017 preserves enabled defaults and skips queued unsent alerts when disabled; site access requires a server-configured Discord identity allowlist.
 * Added private Discord administration alerts for new accounts, group creation/deletion, membership and role changes, permission overrides and webhook configuration changes. Migration 015 captures committed changes in a private delivery queue; group admins can configure a separate webhook and inspect delivery history. Site alerts use a server-only webhook and an authenticated, every-minute cron worker.
 * Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
@@ -40,6 +42,10 @@
   * Added production stack command examples to `README.md`
 
 ### Changed
+
+* Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.
+* Changed `DELETE /api/group/games` to require `{ groupId, gameSlug, confirmName }`: the caller must be a group admin, the game must be archived and `confirmName` must match the game name. It now deletes the game's data instead of only the `group_games` row.
+* Known limitation: recruitment applications with no game tag (the recruitment form does not set one yet) are not removed by game deletion, and group-wide tables without a game tag (parties, announcements, siege events, loot/DKP, guild banks and similar) are kept.
 
 * Made administration notification settings failures specific: the site and group routes now return a stable `code` with a secret-free message (for example an invalid `ADMIN_DISCORD_ROLE_MENTIONS` or `SITE_ADMIN_DISCORD_IDS`, missing Supabase credentials or unapplied migrations 015–017), log the underlying cause server-side, and the settings page shows the matching localised guidance.
 * Made Discord administration alerts readable with account names, friendly change labels, distinct colours and links to the relevant settings tabs. Group Settings now has linked tabs; migration 016 adds optional per-type group role mentions, with site-wide mentions configured separately through server environment settings.

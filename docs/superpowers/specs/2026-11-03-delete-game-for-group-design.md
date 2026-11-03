@@ -59,7 +59,7 @@ Group-wide tables with no game tag: `parties`, `announcements`, `siege_events`, 
 
 - Only a group `admin` may delete; the game must be archived (`group_games.archived = true`); otherwise reject.
 - The server re-checks admin role and archived state inside the database function, not only in the route, and locks the `group_games` row so concurrent archive/restore/delete cannot interleave.
-- Implemented as a single Postgres function (SECURITY DEFINER, `search_path = ''`, `EXECUTE` granted to `service_role` only), following the pattern of the character-transfer function in migration 011 and the save functions in 015–017. Migration number 018.
+- Implemented as a single Postgres function (SECURITY DEFINER, `search_path = ''`, `EXECUTE` granted to `service_role` only), following the pattern of the character-transfer function in migration 011 and the save functions in 015–017. Migrations 018 (notification kind), 019 (alert-suppression flag) and 020 (deletion function).
 - Confirmation text is validated on the server too: the request carries the typed name and the server compares it with the game's display name.
 - **Route (decided):** rework the existing `DELETE /api/group/games` ([route.ts](../../../src/app/api/group/games/route.ts)) to run the new deletion function instead of removing only the `group_games` row. Request body: `{ groupId, gameSlug, confirmName }`. It stays admin-only. It returns 409 if the game is not archived and 400 if `confirmName` does not match the game's display name. No new route.
 - **Remove the home-page card button (decided).** The red trash button on non-archived game cards ([page.tsx](../../../src/app/[group]/page.tsx), around line 455) and its `handleRemoveGame`/`removingGame` state are deleted. It removed only the `group_games` row, with no confirmation, and orphaned the game's data. Delete the now-unused `removeGameFromGroup` helper in [group-games.ts](../../../src/lib/group-games.ts) too; the settings dialog calls the API directly or through a new helper that sends the confirmation. Admins who used the card button now archive first, then delete from Game Management; record this behaviour change in the changelog.
@@ -94,3 +94,10 @@ The deletion function inserts the notification itself, inside the same transacti
 
 - Missing a per-game column or a newly added game-tagged table leaves residual data; the mapping test reduces but does not eliminate this.
 - Irreversible by design. The only protection is archive-first and the typed name.
+
+## Implementation notes
+
+- **Recruitment applications gap:** the function deletes `recruitment_applications` by `game_slug`, but the recruitment form does not currently set `game_slug`, so applications have NULL tags and are not removed. In practice applications are not erased by game deletion. Known limitation.
+- **Trigger re-created:** the `remove_loaner_ships_for_pledge` trigger function was re-created in migration 020 with `public.`-qualified names so it works inside the deletion function's `search_path = ''`.
+- **Pre-existing loaner-trigger bug:** that trigger is BEFORE DELETE, so deleting a Star Citizen member who has a pledged ship and its loaner aborts. The function therefore deletes ships in two ordered statements to avoid it. Follow-up: make the trigger AFTER DELETE.
+- **Modal focus:** the shared Modal has no focus trap; the delete dialog inherits that.
