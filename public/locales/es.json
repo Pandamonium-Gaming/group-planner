@@ -434,7 +434,14 @@
     "restore": "Restaurar",
     "archive": "Archivar",
     "noteLabel": "Nota:",
-    "note": "Archivar un juego lo oculta de la navegación y evita actualizaciones, pero todos los personajes, naves y otros datos permanecen en la base de datos y se pueden restaurar en cualquier momento."
+    "note": "Archivar un juego lo oculta de la navegación y evita actualizaciones, pero todos los personajes, naves y otros datos permanecen en la base de datos y se pueden restaurar en cualquier momento.",
+    "errors": {
+      "game_forbidden": "Solo un administrador del grupo puede eliminar un juego.",
+      "game_not_found": "No se encontró ese juego en este grupo.",
+      "game_not_archived": "Archiva el juego antes de eliminar sus datos.",
+      "game_confirmation": "El nombre escrito no coincide con el nombre del juego.",
+      "game_delete": "No se pudieron eliminar los datos del juego. Inténtalo de nuevo."
+    }
   },
   "members": {
     "title": "Miembros",

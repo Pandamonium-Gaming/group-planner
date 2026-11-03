@@ -436,7 +436,14 @@
     "restore": "Restore",
     "archive": "Archive",
     "noteLabel": "Note:",
-    "note": "Archiving a game hides it from navigation and prevents any updates, but all characters, ships, and other data remain in the database and can be restored at any time."
+    "note": "Archiving a game hides it from navigation and prevents any updates, but all characters, ships, and other data remain in the database and can be restored at any time.",
+    "errors": {
+      "game_forbidden": "Only a group administrator can delete a game.",
+      "game_not_found": "That game was not found for this group.",
+      "game_not_archived": "Archive the game before deleting its data.",
+      "game_confirmation": "The name you typed does not match the game name.",
+      "game_delete": "Unable to delete the game data. Please try again."
+    }
   },
   "members": {
     "title": "Members",

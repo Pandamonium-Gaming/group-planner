@@ -15,6 +15,11 @@ export const ADMIN_ERROR_MESSAGES = {
   group_save_webhook: 'Unable to save the group webhook',
   group_save_roles: 'Unable to save the group role mentions',
   group_save_preferences: 'Unable to save the group notification preferences',
+  game_forbidden: 'Only a group administrator can delete a game',
+  game_not_found: 'That game was not found for this group',
+  game_not_archived: 'Archive the game before deleting its data',
+  game_confirmation: 'The confirmation name does not match the game name',
+  game_delete: 'Unable to delete the game data',
   unknown: 'Unexpected server error',
 } as const;
 

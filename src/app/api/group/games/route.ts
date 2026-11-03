@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
+import { getGameConfig } from '@/config';
+import { AdminError, adminDatabaseError, adminFailure, type AdminErrorCode } from '@/server/admin-errors';
 
 type GroupMembershipRole = 'admin' | 'officer' | 'member' | 'trial' | 'pending' | null;
 
@@ -104,13 +106,24 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(request: NextRequest) {
-  const body = await request.json();
-  const groupId = body?.groupId as string | undefined;
-  const gameSlug = body?.gameSlug as string | undefined;
+const GAME_DELETE_ERRORS: Record<string, { code: AdminErrorCode; status: number }> = {
+  NOT_ADMIN: { code: 'game_forbidden', status: 403 },
+  GAME_NOT_FOUND: { code: 'game_not_found', status: 404 },
+  GAME_NOT_ARCHIVED: { code: 'game_not_archived', status: 409 },
+  CONFIRMATION_MISMATCH: { code: 'game_confirmation', status: 400 },
+};
 
-  if (!groupId || !gameSlug) {
-    return NextResponse.json({ error: 'Missing groupId or gameSlug' }, { status: 400 });
+// Slugs present in the game registry; getGameConfig() would silently fall back to AoC for anything else.
+const REGISTRY_SLUGS = new Set(['aoc', 'starcitizen', 'star-citizen', 'wowforever']);
+
+export async function DELETE(request: NextRequest) {
+  const body = await request.json().catch(() => null);
+  const groupId = body?.groupId;
+  const gameSlug = body?.gameSlug;
+  const confirmName = body?.confirmName;
+
+  if (typeof groupId !== 'string' || !groupId || typeof gameSlug !== 'string' || !gameSlug || typeof confirmName !== 'string' || !confirmName) {
+    return NextResponse.json({ error: 'Missing groupId, gameSlug or confirmName', code: 'bad_request' }, { status: 400 });
   }
 
   const { error, role, supabaseAdmin } = await getAuthorizedMembership(groupId);
@@ -119,17 +132,29 @@ export async function DELETE(request: NextRequest) {
   }
 
   if (role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return adminFailure(new AdminError('game_forbidden'), 'game_forbidden', 403);
   }
 
-  const { error: deleteError } = await supabaseAdmin
-    .from('group_games')
-    .delete()
-    .eq('group_id', groupId)
-    .eq('game_slug', gameSlug);
+  if (!REGISTRY_SLUGS.has(gameSlug)) {
+    return adminFailure(new AdminError('game_not_found', 'slug not in registry'), 'game_not_found', 404);
+  }
 
-  if (deleteError) {
-    return NextResponse.json({ error: 'Failed to remove game', details: deleteError.message }, { status: 500 });
+  const session = await auth();
+  const { error: rpcError } = await supabaseAdmin.rpc('delete_group_game', {
+    p_group_id: groupId,
+    p_game_slug: gameSlug,
+    p_confirm_name: confirmName,
+    p_expected_name: getGameConfig(gameSlug).name,
+    p_actor_id: session?.user?.id,
+  });
+
+  if (rpcError) {
+    const mapped = GAME_DELETE_ERRORS[rpcError.message?.trim()];
+    return adminFailure(
+      adminDatabaseError(mapped?.code ?? 'game_delete', rpcError),
+      mapped?.code ?? 'game_delete',
+      mapped?.status ?? 500,
+    );
   }
 
   return NextResponse.json({ success: true });
