@@ -4,6 +4,8 @@
 
 ### Added
 
+* Shared dialogs now trap Tab focus inside the open dialog and return focus to the control that opened them when they close; the dialog's Escape and focus handling no longer re-registers on every render.
+
 * Recruitment applications are now tagged with the game they are for. The public Apply form has a required game picker (the group's non-archived games, pre-selected when there is only one; every game for legacy groups with no game rows) and its class list follows the chosen game (Star Citizen has no class list, so the field is hidden). Tagged applications are removed when that game is deleted; `/api/clan-public` now also returns the group's `groupGames`.
 
 * Added permanent game deletion in Game Management. A group admin can delete an archived game's data for the group by typing the game name to confirm; this erases that game's members, events, game ship permissions and Discord webhook logs, and resets its per-game group settings. One `game_deleted` administration Discord alert is sent. Apply migrations 018 (notification kind), 019 (alert-suppression flag) and 020 (`delete_group_game` function) to Supabase before deploying.

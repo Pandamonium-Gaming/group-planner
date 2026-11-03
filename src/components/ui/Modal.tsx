@@ -4,6 +4,9 @@ import { useEffect, useRef, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]';
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +21,7 @@ interface ModalProps {
  * - Full-screen on mobile (< 640px)
  * - Centered overlay on desktop
  * - Closes with ESC key or clicking outside
+ * - Traps Tab focus inside and restores focus to the opener on close
  */
 export function Modal({
   isOpen,
@@ -39,31 +43,73 @@ export function Modal({
     xl: 'sm:max-w-xl',
   };
 
-  // Handle ESC key to close
+  // Keep the latest onClose without re-running the lifecycle effect when its identity changes
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Capture the opener during render: React autofocuses children in the commit phase,
+  // before any effect runs, so reading it later could pick up the dialog's own input.
+  const openerCaptured = useRef(false);
+  if (isOpen && !openerCaptured.current && typeof document !== 'undefined') {
+    openerCaptured.current = true;
+    previousActiveElement.current = document.activeElement as HTMLElement | null;
+  }
+
+  // Escape, focus trap, scroll lock and focus restoration for the open lifecycle
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const container = modalRef.current;
+      if (!container) return;
+      // Query at key-press time so dynamic content is respected
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter(el => el.tabIndex >= 0);
+
+      if (focusable.length === 0) {
+        e.preventDefault();
+        container.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (!container.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && (active === first || active === container)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Store current active element for focus restoration
-      previousActiveElement.current = document.activeElement as HTMLElement;
-      // Lock body scroll
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      // Restore focus when modal closes
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus();
+      // Restore focus to the opener when the modal closes
+      const opener = previousActiveElement.current;
+      if (opener && document.contains(opener)) {
+        opener.focus();
       }
+      previousActiveElement.current = null;
+      openerCaptured.current = false;
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Handle click outside to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -91,8 +137,9 @@ export function Modal({
       {/* Modal Content */}
       <div
         ref={modalRef}
+        tabIndex={-1}
         className={`
-          relative w-full bg-slate-900 border border-slate-700 shadow-xl
+          relative w-full outline-none bg-slate-900 border border-slate-700 shadow-xl
           h-full sm:h-auto sm:rounded-xl sm:mx-4 ${sizeClasses[size]}
           flex flex-col max-h-screen sm:max-h-[90vh]
           animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:fade-in duration-200
