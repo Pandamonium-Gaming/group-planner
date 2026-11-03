@@ -1,6 +1,6 @@
 BEGIN;
 
--- Rejects new game-tagged rows (members, events, recruitment applications) for a game the group no longer
+-- Rejects new game-tagged rows (members, events, recruitment applications, webhook logs) for a game the group no longer
 -- has enabled, so a stale form or a write racing delete_group_game cannot recreate a deleted game's data.
 --
 -- Rules:
@@ -67,6 +67,11 @@ CREATE TRIGGER events_require_enabled_game
 DROP TRIGGER IF EXISTS recruitment_applications_require_enabled_game ON public.recruitment_applications;
 CREATE TRIGGER recruitment_applications_require_enabled_game
   BEFORE INSERT ON public.recruitment_applications
+  FOR EACH ROW WHEN (NEW.game_slug IS NOT NULL) EXECUTE FUNCTION public.require_enabled_game();
+
+DROP TRIGGER IF EXISTS discord_webhook_logs_require_enabled_game ON public.discord_webhook_logs;
+CREATE TRIGGER discord_webhook_logs_require_enabled_game
+  BEFORE INSERT ON public.discord_webhook_logs
   FOR EACH ROW WHEN (NEW.game_slug IS NOT NULL) EXECUTE FUNCTION public.require_enabled_game();
 
 INSERT INTO public.migration_history(filename) VALUES ('023_validate_game_writes.sql') ON CONFLICT DO NOTHING;

@@ -72,6 +72,9 @@ const insertEvent = (ctx: Ctx, client: Client, group: string, game: string) =>
 const insertApplication = (ctx: Ctx, client: Client, group: string, game: string | null) =>
   client.query(`INSERT INTO ${ctx.t('recruitment_applications')}(group_id, discord_username, game_slug) VALUES ($1, 'applicant', $2) RETURNING id`,
     [group, game]);
+const insertWebhookLog = (ctx: Ctx, client: Client, group: string, game: string | null) =>
+  client.query(`INSERT INTO ${ctx.t('discord_webhook_logs')}(group_id, game_slug, kind, actor_id) VALUES ($1, $2, 'event', $3) RETURNING id`,
+    [group, game, ctx.users.admin]);
 
 async function count(ctx: Ctx, table: string, group: string, games: (string | null)[]) {
   const { rows } = await ctx.admin.query(
@@ -123,10 +126,11 @@ test('a stale form cannot recreate a deleted game\'s data', { skip: !connectionS
     ['member (legacy alias)', () => insertMember(ctx, ctx.admin, ctx.groups.A, 'star-citizen')],
     ['event', () => insertEvent(ctx, ctx.admin, ctx.groups.A, X)],
     ['recruitment application', () => insertApplication(ctx, ctx.admin, ctx.groups.A, X)],
+    ['webhook log', () => insertWebhookLog(ctx, ctx.admin, ctx.groups.A, X)],
   ] as const) {
     await assert.rejects(insert(), notEnabled, label);
   }
-  for (const table of ['members', 'events', 'recruitment_applications']) {
+  for (const table of ['members', 'events', 'recruitment_applications', 'discord_webhook_logs']) {
     assert.equal(await count(ctx, table, ctx.groups.A, [X, 'star-citizen']), 0, `${table}: nothing left behind`);
   }
 }));
@@ -136,7 +140,10 @@ test('writes for a game that is still enabled (archived or not) succeed', { skip
     await insertMember(ctx, ctx.admin, ctx.groups.A, game);
     await insertEvent(ctx, ctx.admin, ctx.groups.A, game);
     await insertApplication(ctx, ctx.admin, ctx.groups.A, game);
-    for (const table of ['members', 'events', 'recruitment_applications']) assert.equal(await count(ctx, table, ctx.groups.A, [game]), 1);
+    await insertWebhookLog(ctx, ctx.admin, ctx.groups.A, game);
+    for (const table of ['members', 'events', 'recruitment_applications', 'discord_webhook_logs']) {
+      assert.equal(await count(ctx, table, ctx.groups.A, [game]), 1);
+    }
   }
   // A game the group never enabled is refused too.
   await assert.rejects(insertMember(ctx, ctx.admin, ctx.groups.A, 'ror'), notEnabled);
@@ -164,7 +171,9 @@ test('recruitment applications without a game are always accepted', { skip: !con
   await deleteX(ctx);
   await insertApplication(ctx, ctx.admin, ctx.groups.A, null);
   await insertApplication(ctx, ctx.admin, ctx.groups.legacy, null);
+  await insertWebhookLog(ctx, ctx.admin, ctx.groups.A, null);
   assert.equal(await count(ctx, 'recruitment_applications', ctx.groups.A, [null]), 1);
+  assert.equal(await count(ctx, 'discord_webhook_logs', ctx.groups.A, [null]), 1);
 }));
 
 test('works for roles that cannot read group_games; the function is not directly callable', { skip: !connectionString }, () => withCommittedSchema(async ctx => {
@@ -225,4 +234,64 @@ test('an insert that commits first is removed by the deletion waiting on it', { 
   const { rows } = await ctx.admin.query(`SELECT id FROM ${ctx.t('members')} WHERE id = $1`, [created.id]);
   assert.deepEqual(rows, [], 'The concurrently inserted member is deleted with the game');
   assert.equal(await count(ctx, 'members', ctx.groups.A, [X, 'star-citizen']), 0);
+}));
+
+test('a character transfer and stale deletion use the same parent-first lock order', { skip: !connectionString }, () => withCommittedSchema(async ctx => {
+  const deleter = await ctx.connect();
+  const writer = await ctx.connect();
+  const transferFunction = ctx.t('transfer_group_characters');
+  const lockKey = Number.parseInt(randomUUID().slice(0, 7), 16);
+  const document = {
+    format: 'group-planner-characters',
+    version: 1,
+    game_slug: X,
+    characters: [{
+      id: randomUUID(),
+      owner: { discord_id: null, label: null },
+      data: { name: 'Imported pilot', level: 1, is_main: false },
+      professions: [],
+      ships: [],
+    }],
+  };
+
+  await ctx.admin.query(`UPDATE ${ctx.t('group_games')} SET archived = false WHERE group_id = $1 AND game_slug = $2`,
+    [ctx.groups.A, X]);
+  await ctx.admin.query(`
+    CREATE FUNCTION ${ctx.t('pause_member_insert')}() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      PERFORM pg_advisory_xact_lock(${lockKey}, 42);
+      RETURN NEW;
+    END
+    $$;
+    CREATE TRIGGER aaa_pause_member_insert BEFORE INSERT ON ${ctx.t('members')}
+      FOR EACH ROW EXECUTE FUNCTION ${ctx.t('pause_member_insert')}();
+  `);
+  const preview = await writer.query(`SELECT ${transferFunction}($1, $2, $3::jsonb) AS result`,
+    [ctx.groups.A, X, JSON.stringify(document)]);
+
+  const writerPid = await pidOf(writer);
+  const deleterPid = await pidOf(deleter);
+  await ctx.admin.query('SELECT pg_advisory_lock($1, 42)', [lockKey]);
+  await writer.query('BEGIN');
+  let transfer: ReturnType<typeof track> | undefined;
+  let deletion: ReturnType<typeof track> | undefined;
+  try {
+    transfer = track(writer.query(`SELECT ${transferFunction}($1, $2, $3::jsonb, true, $4)`,
+      [ctx.groups.A, X, JSON.stringify(document), preview.rows[0].result.token]));
+    await waitUntilBlocked(ctx.admin, writerPid);
+    deletion = track(deleteX(ctx, deleter));
+    await waitUntilBlocked(ctx.admin, deleterPid);
+  } finally {
+    await ctx.admin.query('SELECT pg_advisory_unlock($1, 42)', [lockKey]);
+  }
+
+  assert.ok(transfer);
+  const transferOutcome = await transfer.result;
+  assert.ok(transferOutcome.ok, `Transfer should finish first: ${transferOutcome.ok ? '' : transferOutcome.error.message}`);
+  await writer.query('COMMIT');
+  assert.ok(deletion);
+  const deletionOutcome = await deletion.result;
+  assert.equal(deletionOutcome.ok, false, 'The stale deletion must revalidate the now-active game');
+  if (!deletionOutcome.ok) assert.match(deletionOutcome.error.message, /GAME_NOT_ARCHIVED/);
+  assert.equal(await count(ctx, 'members', ctx.groups.A, [X]), 1, 'The successful import remains intact');
 }));

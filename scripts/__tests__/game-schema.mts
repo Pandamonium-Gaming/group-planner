@@ -8,7 +8,7 @@ const COLUMN_PREFIXES = ['aoc', 'sc', 'ror', 'wowforever'];
 
 /** Migrations applied on top of the stubs, in production order. */
 export const GAME_SCHEMA_MIGRATIONS = [
-  '013_add_discord_webhook_logs.sql', '015_admin_discord_notifications.sql', '016_admin_notification_role_mentions.sql',
+  '011_add_character_transfer.sql', '013_add_discord_webhook_logs.sql', '015_admin_discord_notifications.sql', '016_admin_notification_role_mentions.sql',
   '017_admin_notification_categories.sql', '019_admin_notification_game_deleted.sql', '020_suppress_alert_flag.sql',
   '021_delete_group_game.sql', '022_fix_loaner_trigger.sql', '023_validate_game_writes.sql',
 ];
@@ -39,15 +39,17 @@ export async function createGameSchema(client: Client, schema: string) {
   const rewrite = (source: string) => {
     assert.match(source, /^BEGIN;\s/);
     assert.match(source, /COMMIT;\s*$/);
-    return source.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`);
+    return source.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '')
+      .replaceAll('public.', `"${schema}".`).replaceAll('auth.uid()', `${t('uid')}()`);
   };
   const migration = async (name: string) => client.query(rewrite(await readFile(new URL(name, migrationsDir), 'utf8')));
   await client.query(`CREATE SCHEMA "${schema}"`);
+  await client.query(`CREATE FUNCTION ${t('uid')}() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$`);
   const perGame = [...(await groupsPerGameColumns()).values()];
   // Stubs mirror 000_baseline.sql column names and ON DELETE actions for every table touched.
   await client.query(`
     CREATE TABLE ${t('migration_history')} (filename text PRIMARY KEY);
-    CREATE TABLE ${t('users')} (id uuid PRIMARY KEY, display_name text, discord_username text);
+    CREATE TABLE ${t('users')} (id uuid PRIMARY KEY, display_name text, discord_id text, discord_username text);
     CREATE TABLE ${t('groups')} (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), slug varchar(50) UNIQUE NOT NULL, name varchar(100) NOT NULL,
       created_at timestamptz DEFAULT now(), created_by uuid REFERENCES ${t('users')}(id) ON DELETE SET NULL,
@@ -68,12 +70,17 @@ export async function createGameSchema(client: Client, schema: string) {
     );
     CREATE TABLE ${t('members')} (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), group_id uuid REFERENCES ${t('groups')}(id) ON DELETE CASCADE,
-      user_id uuid REFERENCES ${t('users')}(id) ON DELETE SET NULL, name varchar(100) NOT NULL,
-      game_slug text NOT NULL DEFAULT 'aoc'
+      user_id uuid REFERENCES ${t('users')}(id) ON DELETE SET NULL, discord_id text, name varchar(100) NOT NULL,
+      game_slug text NOT NULL DEFAULT 'aoc', level integer, is_main boolean, rank text, preferred_role text[],
+      race text, primary_archetype text, secondary_archetype text, ror_faction text, ror_class text,
+      wow_race text, wow_faction text, wow_class text, wow_main_spec text, wow_secondary_spec text,
+      wow_profession_1 text, wow_profession_2 text, wow_profession_1_rank integer, wow_profession_2_rank integer,
+      subscriber_tier text, subscriber_since timestamptz, subscriber_ships_month integer
     );
     CREATE TABLE ${t('member_professions')} (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), member_id uuid REFERENCES ${t('members')}(id) ON DELETE CASCADE,
-      profession varchar(50) NOT NULL, rank integer NOT NULL, UNIQUE(member_id, profession)
+      profession varchar(50) NOT NULL, rank integer NOT NULL, artisan_level integer, quality_score integer,
+      UNIQUE(member_id, profession)
     );
     CREATE TABLE ${t('events')} (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(), group_id uuid NOT NULL REFERENCES ${t('groups')}(id) ON DELETE CASCADE,
