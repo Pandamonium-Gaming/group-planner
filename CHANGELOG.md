@@ -49,6 +49,7 @@
 
 ### Fixed
 
+* Fixed Trial members being unable to save characters because the character read policy rejected newly inserted rows. Migration 018 aligns character visibility with approved roles; failed character saves now remain in the form instead of replacing the group page with a connection error.
 * Fixed site administrator access with Supabase Discord login by matching the verified provider subject instead of Supabase's internal identity ID.
 * Removed the duplicate Pending role selector from permission settings; Pending remains immutable.
 * Aligned guest RSVP class storage with game registry IDs using migration 014; existing UUID values are preserved and displayed as unknown rather than incorrectly mapped to a class.

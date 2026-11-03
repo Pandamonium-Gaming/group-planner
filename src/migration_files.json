@@ -16,5 +16,6 @@
   "014_guest_rsvp_class_registry_ids.sql",
   "015_admin_discord_notifications.sql",
   "016_admin_notification_role_mentions.sql",
-  "017_admin_notification_categories.sql"
+  "017_admin_notification_categories.sql",
+  "018_trial_character_visibility.sql"
 ]

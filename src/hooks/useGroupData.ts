@@ -360,8 +360,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
         .select();
 
       if (insertError) {
-        setError(handleAsyncError(insertError, 'Failed to add character', { context: 'addCharacter', gameSlug: targetGameSlug }));
-        throw insertError;
+        throw new Error(handleAsyncError(insertError, 'Failed to add character', { context: 'addCharacter', gameSlug: targetGameSlug }));
       }
 
       insertedData = (insertedRows || []) as Array<{ id: string }>;
