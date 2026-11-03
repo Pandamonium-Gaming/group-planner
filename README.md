@@ -87,6 +87,78 @@ never webhook URLs, tokens or message payloads. A pending record means the
 final delivery status is unknown: check the channel before retrying.
 If the log cannot be created, delivery is stopped rather than sent untracked.
 
+### Private Discord administration alerts
+
+Apply [migration 015](./supabase/migrations/015_admin_discord_notifications.sql)
+before deploying this feature. Set these **server-only** environment variables
+separately for each environment:
+
+* `ADMIN_DISCORD_WEBHOOK_URL`: private site administration channel for newly
+  created application accounts and group creation/deletion. Existing account
+  logins and profile refreshes do not produce registration alerts.
+* `CRON_SECRET`: a strong random secret. The delivery endpoint requires
+  `Authorization: Bearer <CRON_SECRET>`; Vercel Cron supplies this automatically.
+
+Group administrators configure a separate webhook in **Group Settings →
+Private administration notifications**. This destination receives membership
+requests, joins, departures/removals, role changes, permission override changes,
+Discord configuration changes and group deletion. It never falls back to the
+site, event, announcement or welcome channel. Use a private Discord channel.
+Saving a new destination queues a configuration-change alert to that channel;
+disabling it queues a final alert to the previous destination.
+
+Database triggers capture changes from both authentication stacks and direct
+database writes in the same transaction. Rolled-back writes produce no alerts.
+Only changes after migration 015 are captured; there is no historical backfill.
+Group/user deletion cannot erase queued notifications. A removal alert does not
+distinguish voluntary departure, administrator removal or account deletion.
+There is no new banning mechanism.
+
+Messages identify the subject and show role/permission before-and-after values.
+Absent overrides are labelled as default, not as a guessed effective permission.
+Actor IDs come from authenticated database requests where available; service-role
+changes without that identity explicitly say the actor is unavailable. Admin
+webhook saves identify the verified administrator. Messages use native Discord
+timestamps and suppress all mentions. No emails or webhook URLs appear in alerts.
+Webhook configuration alerts identify changed fields, never credential values.
+Large permission diffs are truncated to Discord's field limit; the private queue
+retains the complete change metadata.
+
+The authenticated `/api/admin/notifications/deliver` worker claims five queued
+deliveries per invocation using row locks. Vercel Cron runs it every minute on
+**production**; this requires a Vercel plan supporting that frequency. For local,
+preview or development deployments, use an external scheduler with the same
+authorization header. Separate databases, secrets and channels prevent
+cross-environment delivery.
+
+Rate-limited responses are rescheduled (at least one minute, at most five total
+attempts). Timeouts, network errors, server errors and interrupted workers are
+marked uncertain rather than blindly retried. Interrupted claims become uncertain
+after five minutes. Check Discord before any manual recovery; exactly-once
+delivery cannot be guaranteed by Discord webhooks. Missing destinations are
+recorded as skipped and do not replay automatically after configuration.
+The group settings panel shows paginated delivery status and sanitised errors.
+Site-wide delivery history is service-role-only in
+`admin_discord_notifications`; it is not exposed to group administrators.
+
+Admin destinations live in a separate service-role-only table, never in the
+member-readable group record. Saved URLs are not returned to the browser.
+Queued group deliveries retain their original destination even after replacement
+or deletion. Destination versions and audit metadata are retained for service-side
+investigation; administrators managing retention must preserve destinations still
+referenced by queued deliveries. Delivery history contains no webhook credentials,
+emails or complete Discord message payloads.
+
+To run the migration regression against a development PostgreSQL database,
+set `GP_MIGRATION_TEST_DATABASE_URL` and run:
+
+```powershell
+node --import tsx --test scripts\__tests__\admin-discord-migration.test.mts
+```
+
+The test uses an isolated schema and rolls back all changes. It never sends real
+Discord messages.
+
 ### Event class composition
 
 Expand a member-view event to see class totals and a roster with separate

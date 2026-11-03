@@ -1,4 +1,36 @@
 {
+  "adminNotifications": {
+    "title": "Notificaciones privadas de administración",
+    "description": "Envía cambios de miembros, roles, permisos y configuración de Discord a un canal privado de administración. También se informa de la eliminación del grupo. Las cuentas nuevas y la creación o eliminación de grupos usan el webhook del administrador del sitio.",
+    "configured": "Hay un webhook de administración configurado.",
+    "notConfigured": "No hay ningún webhook de administración configurado.",
+    "webhook": "URL nueva o de reemplazo del webhook de administración",
+    "private": "Solo los administradores del grupo pueden cambiar este destino. Las URL guardadas nunca se devuelven al navegador. Usa un canal privado de Discord; estas alertas contienen información administrativa.",
+    "disable": "Desactivar webhook de administración",
+    "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL y la migración 015, y actualiza.",
+    "history": "Historial de notificaciones de administración",
+    "delivery": "Los cambios en cola se procesan cada minuto, cinco por lote. Solo se registran cambios nuevos. Los límites de frecuencia se reintentan hasta cinco veces; los envíos inciertos no se reintentan automáticamente. Comprueba Discord antes de reintentar. Algunos cambios del servidor no tienen autor identificable. Las alertas de salida no distinguen entre abandono, expulsión o eliminación de la cuenta.",
+    "kinds": {
+      "account_registered": "Cuenta nueva",
+      "group_created": "Grupo creado",
+      "group_deleted": "Grupo eliminado",
+      "member_joined": "Miembro incorporado",
+      "member_left_or_removed": "Miembro fuera del grupo",
+      "member_requested": "Solicitud de ingreso",
+      "member_request_closed": "Solicitud de ingreso cerrada",
+      "role_changed": "Rol de miembro cambiado",
+      "permissions_changed": "Permisos personalizados cambiados",
+      "webhook_changed": "Configuración de Discord cambiada"
+    },
+    "statuses": {
+      "pending": "En cola / reintento programado",
+      "processing": "Envío en curso",
+      "sent": "Enviado",
+      "failed": "Fallido",
+      "uncertain": "Envío incierto — comprueba Discord",
+      "skipped": "Omitido — sin destino configurado"
+    }
+  },
   "eventRoster": {
     "title": "Composición de clases",
     "description": "Los asistentes y los posibles asistentes se cuentan por separado, incluidos los invitados. Las clases y especializaciones usan los perfiles actuales; no se asigna automáticamente un personaje principal.",

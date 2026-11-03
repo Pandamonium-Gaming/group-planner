@@ -4,6 +4,10 @@
   "buildCommand": "corepack yarn build",
   "crons": [
     {
+      "path": "/api/admin/notifications/deliver",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/sync/achievements",
       "schedule": "0 0 * * *"
     },

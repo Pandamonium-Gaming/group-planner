@@ -1,4 +1,36 @@
 {
+  "adminNotifications": {
+    "title": "Private administration notifications",
+    "description": "Send membership, role, permission and Discord configuration changes to a private admin channel. Group deletion is also reported. New accounts and group creation/deletion use the site administrator webhook.",
+    "configured": "An admin webhook is configured.",
+    "notConfigured": "No admin webhook configured.",
+    "webhook": "New or replacement admin webhook URL",
+    "private": "Only group administrators can change this destination. Saved URLs are never returned to the browser. Use a private Discord channel; these alerts contain administrative information.",
+    "disable": "Disable admin webhook",
+    "failed": "Unable to load or save admin notifications. Check administrator access, the webhook URL and migration 015, then refresh.",
+    "history": "Admin notification history",
+    "delivery": "Queued changes are processed every minute, five per batch. Only new changes are captured. Rate limits are retried up to five attempts; uncertain deliveries are not retried automatically. Check Discord before retrying. Some server-side changes have no identifiable actor. Removal alerts cannot distinguish leaving, removal or account deletion.",
+    "kinds": {
+      "account_registered": "New account",
+      "group_created": "Group created",
+      "group_deleted": "Group deleted",
+      "member_joined": "Member joined",
+      "member_left_or_removed": "Member left or removed",
+      "member_requested": "Membership requested",
+      "member_request_closed": "Membership request closed",
+      "role_changed": "Member role changed",
+      "permissions_changed": "Permission overrides changed",
+      "webhook_changed": "Discord configuration changed"
+    },
+    "statuses": {
+      "pending": "Queued / retry scheduled",
+      "processing": "Delivery in progress",
+      "sent": "Sent",
+      "failed": "Failed",
+      "uncertain": "Delivery uncertain — check Discord",
+      "skipped": "Skipped — no configured destination"
+    }
+  },
   "eventRoster": {
     "title": "Class composition",
     "description": "Attending and Maybe are counted separately, including guests. Classes and main specs use current character profiles; unlinked signups are not assigned a main character.",
