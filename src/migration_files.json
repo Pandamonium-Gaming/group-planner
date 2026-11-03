@@ -21,5 +21,6 @@
   "019_admin_notification_game_deleted.sql",
   "020_suppress_alert_flag.sql",
   "021_delete_group_game.sql",
-  "022_fix_loaner_trigger.sql"
+  "022_fix_loaner_trigger.sql",
+  "023_validate_game_writes.sql"
 ]

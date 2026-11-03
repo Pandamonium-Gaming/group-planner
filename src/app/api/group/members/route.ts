@@ -5,6 +5,7 @@ import type { GroupRole } from '@/lib/permissions';
 import { getCurrentMonthKey, getSubscriberShips } from '@/games/starcitizen/config/subscriber-ships';
 import { removeSubscriberShips, syncSubscriberShips, updateSubscriberTier, type SubscriberTier } from '@/lib/subscriberShips';
 import { getWowForeverFaction, isValidWowForeverSelection, resetChangedWowProfessionRanks } from '@/games/wowforever/config';
+import { gameNotEnabledResponse, isGameNotEnabledError } from '@/server/game-write-errors';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -467,6 +468,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
+        if (isGameNotEnabledError(insertError)) return gameNotEnabledResponse();
         return NextResponse.json({ error: 'Failed to create character', details: insertError.message }, { status: 500 });
       }
 

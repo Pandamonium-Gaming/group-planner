@@ -12,6 +12,7 @@ const insert = jest.fn();
 const update = jest.fn();
 const select = jest.fn();
 const previous = { id: 'event', group_id: 'group', created_by: 'admin', game_slug: 'wowforever', event_type: 'farming_gear' };
+let singleError: { message: string } | null = null;
 
 function request(payload: unknown) {
   return { json: async () => payload } as NextRequest;
@@ -19,6 +20,7 @@ function request(payload: unknown) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  singleError = null;
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
   createClient.mockReturnValue({
@@ -27,7 +29,7 @@ beforeEach(() => {
         select: (columns: string) => { select(table, columns); return query; }, eq: () => query, neq: () => query,
         gte: () => query, order: () => query, limit: () => query,
         maybeSingle: async () => ({ data: table === 'group_members' ? { role: 'admin' } : previous, error: null }),
-        single: async () => ({ data: previous, error: null }),
+        single: async () => (singleError ? { data: null, error: singleError } : { data: previous, error: null }),
         insert: (data: unknown) => { insert(data); return query; },
         update: (data: unknown) => { update(data); return query; },
         then: (resolve: (value: { error: null }) => unknown) => resolve({ error: null }),
@@ -72,4 +74,20 @@ it('allows retaining a legacy type or choosing a new one, without changing games
   expect((await POST(request({ action: 'update_event', group_id: 'group', id: 'event',
     updates: { game_slug: 'aoc' } }))).status).toBe(400);
   expect(update).not.toHaveBeenCalled();
+});
+
+it('returns 409 game_not_enabled when a stale form creates an event for a removed game', async () => {
+  singleError = { message: 'GAME_NOT_ENABLED' };
+  const response = await POST(request({ action: 'create_event', group_id: 'group',
+    event: { event_type: 'dungeon', game_slug: 'wowforever' } }));
+  expect(response.status).toBe(409);
+  expect(await response.json()).toEqual({ error: 'This game is no longer enabled for the group', code: 'game_not_enabled' });
+});
+
+it('keeps other event insert failures as 500', async () => {
+  singleError = { message: 'boom' };
+  const response = await POST(request({ action: 'create_event', group_id: 'group',
+    event: { event_type: 'dungeon', game_slug: 'wowforever' } }));
+  expect(response.status).toBe(500);
+  expect(await response.json()).toEqual({ error: 'Failed to create event', details: 'boom' });
 });

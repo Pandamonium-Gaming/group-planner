@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { auth } from '@/auth';
 import { roleHasPermission, type GroupRole } from '@/lib/permissions';
 import { isEventTypeAllowedForGame } from '@/lib/events';
+import { gameNotEnabledResponse, isGameNotEnabledError } from '@/server/game-write-errors';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -213,6 +214,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
+        if (isGameNotEnabledError(error)) return gameNotEnabledResponse();
         return NextResponse.json({ error: 'Failed to create event', details: error.message }, { status: 500 });
       }
 
