@@ -222,6 +222,26 @@ node --import tsx --test scripts\__tests__\admin-discord-migration.test.mts
 The test uses an isolated schema and rolls back all changes. It never sends real
 Discord messages.
 
+### Trial character saves
+
+Apply [migration 018](./supabase/migrations/018_trial_character_visibility.sql)
+to allow Trial members to read characters as well as create them. Character
+saves return the inserted row, so both the insert and read policies must permit
+the role. Pending users and non-members remain excluded. Save failures stay in
+the character form rather than replacing the group page with a connection error.
+
+The regression runs automatically against disposable PostgreSQL in CI. To run
+it locally, set `GP_MIGRATION_TEST_DATABASE_URL` to a loopback PostgreSQL database
+named `group_planner_rehearsal_validation`, then run:
+
+```powershell
+node --import tsx --test scripts\__tests__\trial-character-migration.test.mts
+```
+
+It reproduces the failure before migration, checks approved roles afterward,
+verifies pending and unrelated accounts remain denied, and rolls back its
+isolated schema and test role.
+
 ### Event class composition
 
 Expand a member-view event to see class totals and a roster with separate
