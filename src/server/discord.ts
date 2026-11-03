@@ -4,11 +4,12 @@ import { auth } from '@/auth';
 import { getServerAuthStack } from '@/lib/authStack';
 import type { DiscordWebhookPayload, WebhookContext } from '@/lib/discord';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
+import { AdminError } from '@/server/admin-errors';
 
 export async function webhookSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Server missing Supabase service credentials');
+  if (!url || !key) throw new AdminError('server_credentials', `${url ? '' : 'NEXT_PUBLIC_SUPABASE_URL '}${key ? '' : 'SUPABASE_SERVICE_ROLE_KEY'}`.trim() + ' not set');
   const client = createClient(url, key);
   let userId = getServerAuthStack() === 'v2' ? (await auth())?.user?.id : undefined;
   if (!userId) {

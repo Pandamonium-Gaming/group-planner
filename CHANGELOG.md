@@ -41,6 +41,7 @@
 
 ### Changed
 
+* Made administration notification settings failures specific: the site and group routes now return a stable `code` with a secret-free message (for example an invalid `ADMIN_DISCORD_ROLE_MENTIONS` or `SITE_ADMIN_DISCORD_IDS`, missing Supabase credentials or unapplied migrations 015–017), log the underlying cause server-side, and the settings page shows the matching localised guidance.
 * Made Discord administration alerts readable with account names, friendly change labels, distinct colours and links to the relevant settings tabs. Group Settings now has linked tabs; migration 016 adds optional per-type group role mentions, with site-wide mentions configured separately through server environment settings.
 * Updated application and development dependencies while keeping TypeScript on the compatible 6.0 release line and ESLint on version 9 for lint plugin compatibility.
 * Separated strict application build type-checking from Jest test files; test compilation remains validated by the test runner.

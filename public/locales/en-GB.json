@@ -28,6 +28,23 @@
     "private": "Only group administrators can change this destination. Saved URLs are never returned to the browser. Use a private Discord channel; these alerts contain administrative information.",
     "disable": "Disable admin webhook",
     "failed": "Unable to load or save admin notifications. Check administrator access, the webhook URL, role IDs and migrations 015–017, then refresh.",
+    "errors": {
+      "server_credentials": "The server is missing its Supabase credentials. Check the Supabase URL and service role key environment variables.",
+      "site_allowlist": "SITE_ADMIN_DISCORD_IDS is invalid. It must hold comma-separated Discord user IDs of 17–20 digits.",
+      "site_identity": "Unable to verify your Discord identity. Sign out and in again.",
+      "site_role_config": "Role mentions are invalid. ADMIN_DISCORD_ROLE_MENTIONS must be a JSON object such as {\"group_created\":\"<role ID>\"}, and any saved role IDs must be 17–20 digits.",
+      "site_config_load": "Unable to read the site notification settings. Check that migrations 015–017 are applied.",
+      "site_history_load": "Unable to read the site notification history. Check that migrations 015–017 are applied.",
+      "site_save_webhook": "Unable to save the site webhook. Check the server logs.",
+      "site_save_preferences": "Unable to save the site notification preferences. Check the server logs.",
+      "group_access": "Unable to verify your group administrator access. Refresh and try again.",
+      "group_config_load": "Unable to read the group notification settings. Check that migrations 015–017 are applied.",
+      "group_history_load": "Unable to read the group notification history. Check that migrations 015–017 are applied.",
+      "group_save_webhook": "Unable to save the group webhook. Check the server logs.",
+      "group_save_roles": "Unable to save the group role mentions. Check the server logs.",
+      "group_save_preferences": "Unable to save the group notification preferences. Check the server logs.",
+      "unknown": "Unexpected server error. Check the server logs."
+    },
     "history": "Admin notification history",
     "delivery": "Queued changes are processed every minute, five per batch. Only new changes are captured. Rate limits are retried up to five attempts; uncertain deliveries are not retried automatically. Check Discord before retrying. Some server-side changes have no identifiable actor. Removal alerts cannot distinguish leaving, removal or account deletion.",
     "kinds": {
