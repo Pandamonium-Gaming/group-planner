@@ -12,7 +12,7 @@ function isOpaqueRankToken(value: string): boolean {
 }
 
 export function normalizeGameId(gameSlug: string): 'aoc' | 'sc' | 'ror' | 'wowforever' {
-  if (gameSlug === 'starcitizen' || gameSlug === 'star-citizen') return 'sc';
+  if (gameSlug === 'sc' || gameSlug === 'starcitizen' || gameSlug === 'star-citizen') return 'sc';
   if (gameSlug === 'ror' || gameSlug === 'returnofreckoning' || gameSlug === 'return-of-reckoning') return 'ror';
   if (gameSlug === 'wowforever') return 'wowforever';
   return 'aoc';
@@ -93,7 +93,7 @@ export function getDefaultGameRanks(gameSlug: string): GameRank[] {
     return [];
   }
 
-  const config = getGameConfig(gameSlug) as Record<string, unknown>;
+  const config = getGameConfig(normalizeGameId(gameSlug) === 'sc' ? 'starcitizen' : gameSlug) as Record<string, unknown>;
   const rawRanks = Array.isArray(config?.ranks) ? config.ranks : [];
   return normalizeRanks(rawRanks);
 }
@@ -130,10 +130,10 @@ export function isGameRankEnabled(group: Clan | null, gameSlug: string): boolean
   return getDefaultGameRanks(gameSlug).length > 0;
 }
 
-export function resolveConfiguredRankLabel(
+export function resolveConfiguredRank(
   ranks: GameRank[],
   rankValue: string | null | undefined
-): string | null {
+): GameRank | null {
   if (!rankValue) {
     return null;
   }
@@ -145,22 +145,28 @@ export function resolveConfiguredRankLabel(
 
   const byId = ranks.find((rank) => rank.id === normalizedValue);
   if (byId) {
-    return byId.name;
+    return byId;
   }
 
   const lowerValue = normalizedValue.toLowerCase();
 
   const byIdCaseInsensitive = ranks.find((rank) => rank.id.toLowerCase() === lowerValue);
   if (byIdCaseInsensitive) {
-    return byIdCaseInsensitive.name;
+    return byIdCaseInsensitive;
   }
 
-  const byName = ranks.find((rank) => rank.name.toLowerCase() === lowerValue);
-  if (byName) {
-    return byName.name;
-  }
+  return ranks.find((rank) => rank.name.toLowerCase() === lowerValue) || null;
+}
 
-  if (isOpaqueRankToken(normalizedValue)) {
+export function resolveConfiguredRankLabel(
+  ranks: GameRank[],
+  rankValue: string | null | undefined
+): string | null {
+  const rank = resolveConfiguredRank(ranks, rankValue);
+  if (rank) return rank.name;
+
+  const normalizedValue = rankValue?.trim();
+  if (!normalizedValue || isOpaqueRankToken(normalizedValue)) {
     return null;
   }
 

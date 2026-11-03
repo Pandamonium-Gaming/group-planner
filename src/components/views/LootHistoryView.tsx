@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { History, Gift, User, Calendar, Search } from 'lucide-react';
 import { LootHistoryWithDetails, ITEM_RARITY_CONFIG, ItemRarity } from '@/lib/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 interface LootHistoryViewProps {
   history: LootHistoryWithDetails[];
@@ -166,7 +167,7 @@ function LootHistoryItem({
           {item.awarded_to_character && (
             <div className="flex items-center gap-2 mt-2 text-sm">
               <User className="w-4 h-4 text-green-400" />
-              <span className="text-green-400">{item.awarded_to_character.name}</span>
+              <span className="text-green-400">{item.awarded_to_character.name} <GuildRankBadge characterId={item.awarded_to} /></span>
               {item.dkp_cost > 0 && (
                 <span className="text-slate-500">
                   (-{item.dkp_cost} DKP)
@@ -188,4 +189,3 @@ function LootHistoryItem({
     </div>
   );
 }
-

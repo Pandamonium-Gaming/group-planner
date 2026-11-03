@@ -7,6 +7,7 @@ import { ARCHETYPES, getClassName, type ArchetypeId } from '@/lib/characters';
 import { ROR_CLASSES } from '@/games/returnofreckooning/config';
 import { getWowForeverClass } from '@/games/wowforever/config';
 import { WowClassIcon } from '@/components/game-specific/WowCharacterIcons';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 function isArchetype(value: string | null | undefined): value is ArchetypeId {
   return !!value && Object.prototype.hasOwnProperty.call(ARCHETYPES, value);
@@ -36,11 +37,13 @@ export function EventClassRoster({ event }: { event: Pick<EventWithRsvps, 'game_
       id: `member-${rsvp.id}`, status: rsvp.status,
       name: rsvp.character?.name || rsvp.user?.display_name || t('eventRoster.unknownCharacter'),
       owner: rsvp.character?.name ? rsvp.user?.display_name : null,
+      characterId: rsvp.character?.id || rsvp.character_id,
       guest: false, linked: !!rsvp.character,
       ...characterClass(game, rsvp.character),
     })),
     ...(event.guest_rsvps || []).map(guest => ({
       id: `guest-${guest.id}`, status: guest.status, name: guest.guest_name, owner: null,
+      characterId: null,
       guest: true, linked: false,
       ...characterClass(game, undefined, guest.class_id),
     })),
@@ -95,6 +98,7 @@ export function EventClassRoster({ event }: { event: Pick<EventWithRsvps, 'game_
                       {row.wowId && <WowClassIcon classId={row.wowId} />}
                       <div className="min-w-0 break-words">
                         <p className="text-slate-200">{row.name}{row.owner && ` (${row.owner})`}
+                          {' '}<GuildRankBadge characterId={row.characterId} />
                           {row.guest && <span className="text-slate-400"> · {t('eventRoster.guest')}</span>}
                         </p>
                         <p className="text-xs text-slate-400">

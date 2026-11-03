@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { CaravanEventWithDetails, CaravanStatus } from '@/lib/types';
 import { CaravanData } from '@/hooks/useCaravans';
 import { CaravanForm } from '@/components/forms/CaravanForm';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 interface CaravanListViewProps {
   caravans: CaravanEventWithDetails[];
@@ -170,6 +171,7 @@ export function CaravanListView({
                       }`}
                     >
                       {escort.character?.name || 'Unknown'}
+                      {' '}<GuildRankBadge characterId={escort.character_id} />
                     </span>
                   ))}
                   {caravan.escorts.length > 8 && (
@@ -207,4 +209,3 @@ export function CaravanListView({
     </>
   );
 }
-

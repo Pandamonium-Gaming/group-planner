@@ -1,5 +1,7 @@
 'use client';
 
+import { GuildRankBadge, GuildRankText } from '@/components/characters/GuildRankBadge';
+
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Ship, Plus, Trash2, Loader2, AlertCircle,
@@ -530,6 +532,7 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
               {playerCharacters.map(char => (
                 <option key={char.id} value={char.id}>
                   {char.name}
+                  <GuildRankText characterId={char.id} />
                 </option>
               ))}
             </select>
@@ -610,7 +613,7 @@ export function FleetView({ characters, userId, canManage, groupId }: FleetViewP
                 const ships = characterShips[char.id] || [];
                 return (
                   <div key={char.id} className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                    <h4 className="font-semibold text-white mb-4">{char.name}</h4>
+                    <h4 className="font-semibold text-white mb-4">{char.name} <GuildRankBadge characterId={char.id} /></h4>
                     
                     {ships.length === 0 ? (
                       <p className="text-slate-400 text-sm">{t('fleet.noShipsYet')}</p>

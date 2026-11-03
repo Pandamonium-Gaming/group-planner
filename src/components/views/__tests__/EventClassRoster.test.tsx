@@ -3,6 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import { EventClassRoster } from '../EventClassRoster';
 import type { EventCharacter, EventRsvp, GuestEventRsvp } from '@/lib/events';
 import en from '../../../../public/locales/en-GB.json';
+import { GuildRankProvider } from '@/contexts/GuildRankContext';
+import type { Clan } from '@/lib/types';
 
 jest.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({ t: (key: string) => {
@@ -120,4 +122,27 @@ it('shows an explicit empty state', () => {
   render(<EventClassRoster event={{ game_slug: 'wowforever', rsvps: [signup('1', 'declined', null)] }} />);
   expect(screen.getByText('No attending or tentative signups yet.')).toBeInTheDocument();
   expect(screen.queryByRole('table')).not.toBeInTheDocument();
+});
+
+it('shows a linked alt owner rank without assigning a rank to guests or unlinked attendees', () => {
+  const group: Clan = {
+    id: 'group', name: 'Guild', slug: 'guild', created_at: '',
+    wowforever_ranks_enabled: true,
+    wowforever_custom_ranks: [{ id: 'captain', name: 'Captain', hierarchy: 1 }],
+  };
+  render(<GuildRankProvider group={group} gameSlug="wowforever"
+    characters={[{ id: 'alt', user_id: 'owner-1' }]}
+    members={[{ user_id: 'owner-1', guild_rank: 'captain' }]}>
+    <EventClassRoster event={{
+      game_slug: 'wowforever',
+      rsvps: [
+        signup('1', 'attending', { id: 'alt', name: 'Fire Alt', wow_class: 'mage' }),
+        signup('2', 'attending', null),
+      ],
+      guest_rsvps: [guest('1', 'attending', 'mage')],
+    }} />
+  </GuildRankProvider>);
+  const row = screen.getByText('Fire Alt (Owner 1)').closest('li')!;
+  expect(within(row).getByText('Captain')).toBeInTheDocument();
+  expect(screen.getAllByText('Captain')).toHaveLength(1);
 });

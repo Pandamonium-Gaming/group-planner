@@ -13,7 +13,7 @@ describe('gameRankSettings', () => {
     it('normalizes Star Citizen aliases to sc', () => {
       expect(normalizeGameId('starcitizen')).toBe('sc');
       expect(normalizeGameId('star-citizen')).toBe('sc');
-      expect(normalizeGameId('sc')).toBe('aoc');
+      expect(normalizeGameId('sc')).toBe('sc');
     });
 
     it('normalizes RoR aliases to ror', () => {
@@ -61,6 +61,11 @@ describe('gameRankSettings', () => {
 
     it('returns empty defaults for RoR', () => {
       expect(getDefaultGameRanks('ror')).toEqual([]);
+    });
+
+    it('uses the same default ranks for every Star Citizen alias', () => {
+      expect(getDefaultGameRanks('sc')).toEqual(getDefaultGameRanks('starcitizen'));
+      expect(getDefaultGameRanks('star-citizen')).toEqual(getDefaultGameRanks('starcitizen'));
     });
   });
 

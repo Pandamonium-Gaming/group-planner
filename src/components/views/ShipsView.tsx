@@ -1,5 +1,7 @@
 'use client';
 
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
+
 import { useState, useEffect } from 'react';
 import { 
   Ship, Loader2, AlertCircle, Trash2,
@@ -502,7 +504,7 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
                                     const badge = getOwnershipBadge(ship);
                                     return (
                                     <div key={ship.id} className="flex items-center justify-between text-sm">
-                                      <span className="text-slate-300">{ship.characterName}</span>
+                                      <span className="text-slate-300">{ship.characterName} <GuildRankBadge characterId={ship.character_id} /></span>
                                       <span className={`text-xs px-2 py-0.5 rounded ${badge.className}`} style={badge.style}>
                                         {badge.label}
                                       </span>
@@ -588,7 +590,7 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
                                     const badge = getOwnershipBadge(ship);
                                     return (
                                     <div key={ship.id} className="flex items-center justify-between text-sm">
-                                      <span className="text-slate-300">{ship.characterName}</span>
+                                      <span className="text-slate-300">{ship.characterName} <GuildRankBadge characterId={ship.character_id} /></span>
                                       <span className={`text-xs px-2 py-0.5 rounded ${badge.className}`} style={badge.style}>
                                         {badge.label}
                                       </span>
@@ -625,5 +627,4 @@ export function ShipsView({ characters, userId, canManage, groupId, gameSlug = '
     </div>
   );
 }
-
 

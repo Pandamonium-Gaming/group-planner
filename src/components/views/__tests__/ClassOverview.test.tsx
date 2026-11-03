@@ -5,7 +5,8 @@ import { ClassOverview } from '../ClassOverview';
 import en from '../../../../public/locales/en-GB.json';
 import es from '../../../../public/locales/es.json';
 import nl from '../../../../public/locales/nl.json';
-import type { CharacterWithProfessions } from '@/lib/types';
+import type { CharacterWithProfessions, Clan } from '@/lib/types';
+import { GuildRankProvider } from '@/contexts/GuildRankContext';
 
 const character: CharacterWithProfessions = {
   id: 'main', group_id: 'group', user_id: 'user', name: 'Aster', race: null,
@@ -96,4 +97,26 @@ it('shows an explicit unsupported state for games without classes', async () => 
   renderOverview([character], 'starcitizen');
   expect(await screen.findByText(en.classOverview.unsupported)).toBeInTheDocument();
   expect(screen.queryByRole('article')).not.toBeInTheDocument();
+});
+
+it('keeps player rank badges with characters when filtering mains and alts', async () => {
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => en });
+  const characters = [character, { ...character, id: 'alt', name: 'Briar', is_main: false }];
+  const group: Clan = {
+    id: 'group', name: 'Guild', slug: 'guild', created_at: '',
+    wowforever_ranks_enabled: true,
+    wowforever_custom_ranks: [{ id: 'captain', name: 'Captain', hierarchy: 1 }],
+  };
+  render(<LanguageProvider>
+    <GuildRankProvider group={group} gameSlug="wowforever" characters={characters}
+      members={[{ user_id: 'user', guild_rank: 'captain' }]}>
+      <LoadedOverview characters={characters} gameSlug="wowforever" groupSlug="guild" />
+    </GuildRankProvider>
+  </LanguageProvider>);
+  await screen.findByRole('heading', { name: 'Classes', level: 1 });
+  expect(screen.getAllByLabelText('Guild rank: Captain')).toHaveLength(2);
+  fireEvent.change(screen.getByLabelText(en.professionOverview.filter), { target: { value: 'alt' } });
+  expect(screen.queryByText('Aster')).not.toBeInTheDocument();
+  const alt = screen.getByRole('link', { name: 'Briar' }).closest('li')!;
+  expect(within(alt).getByLabelText('Guild rank: Captain')).toBeInTheDocument();
 });

@@ -290,6 +290,7 @@
     "allGamesEnabled": "Todos los juegos disponibles ya están habilitados."
   },
   "character": {
+    "guildRank": "Rango de hermandad",
     "owner": "Propietario",
     "ownerUnknown": "Propietario no disponible",
     "unclaimed": "Sin propietario",

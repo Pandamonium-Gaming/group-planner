@@ -1,5 +1,7 @@
 'use client';
 
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Hammer, Users, CheckCircle2 } from 'lucide-react';
@@ -84,6 +86,7 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                           className="min-w-0 flex-1 truncate text-sm text-slate-200 hover:text-indigo-300" title={character.name}>
                           {character.name}
                         </Link>
+                        <GuildRankBadge characterId={character.id} />
                         <span className="max-w-24 truncate text-xs text-slate-400" title={t('character.owner')}>
                           {character.user_id
                             ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')

@@ -290,6 +290,7 @@
     "allGamesEnabled": "Alle beschikbare spellen zijn al ingeschakeld."
   },
   "character": {
+    "guildRank": "Gilderang",
     "owner": "Eigenaar",
     "ownerUnknown": "Eigenaar niet beschikbaar",
     "unclaimed": "Niet geclaimd",

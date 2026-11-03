@@ -9,6 +9,7 @@ import { ARCHETYPES, getClassName } from '@/lib/characters';
 import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 import type { CharacterWithProfessions } from '@/lib/types';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 export function ClassOverview({ characters, gameSlug, groupSlug }: {
   characters: CharacterWithProfessions[];
@@ -92,6 +93,7 @@ export function ClassOverview({ characters, gameSlug, groupSlug }: {
                     return (
                       <li key={character.id} className="flex items-center gap-2 p-3">
                         {faction && <WowFactionIcon faction={faction} />}
+                        <GuildRankBadge characterId={character.id} />
                         <div className="min-w-0 flex-1">
                           <Link href={`/${groupSlug}/${gameSlug}/characters`}
                             className="block truncate text-sm text-slate-200 hover:text-indigo-300" title={character.name}>
