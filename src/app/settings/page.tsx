@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { COMMON_TIMEZONES } from '@/lib/events';
 import { InlineFooter } from '@/components/layout/Footer';
 import { getClientAuthStack } from '@/lib/authStack';
+import { SiteAdminLink } from '@/components/settings/SiteAdminLink';
 
 export default function SettingsPage() {
   const { user, profile, loading, refresh } = useAuthContext();
@@ -139,6 +140,7 @@ export default function SettingsPage() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-5 sm:space-y-6">
+        <SiteAdminLink />
         {/* Profile Section */}
         <section className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-5 sm:p-6 space-y-5">
           <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">

@@ -40,6 +40,8 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query(sql);
     const roleMigration = await readFile(new URL('../../supabase/migrations/016_admin_notification_role_mentions.sql', import.meta.url), 'utf8');
     await client.query(roleMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
+    const categoryMigration = await readFile(new URL('../../supabase/migrations/017_admin_notification_categories.sql', import.meta.url), 'utf8');
+    await client.query(categoryMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const rows = async () => (await client.query(`SELECT * FROM ${table('admin_discord_notifications')} ORDER BY created_at, id`)).rows;
     await client.query(`INSERT INTO ${table('users')} VALUES ($1,'Admin','admin'),($2,'Member','member')`, [admin, member]);
     assert.equal((await rows()).filter(row => row.kind === 'account_registered').length, 2);
@@ -109,6 +111,47 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query(`SELECT ${table('save_group_admin_discord')}($1,null,$2)`, [group, admin]);
     assert.ok((await rows()).some(row => row.kind === 'webhook_changed' && row.changes.admin_webhook?.after === false && row.destination_id === destination));
     await client.query(`SELECT ${table('save_group_admin_discord')}($1,$2,$3)`, [group, secretUrl, admin]);
+    await client.query('SAVEPOINT category_checks');
+    const pendingRole = (await rows()).find(row => row.kind === 'role_changed' && row.status === 'pending');
+    assert.ok(pendingRole, 'Categories default to enabled');
+    await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,$2,$3,$4)`,
+      [group, JSON.stringify({ role_changed: false, webhook_changed: false }), JSON.stringify({ role_changed: roleId }), admin]);
+    assert.equal((await rows()).find(row => row.id === pendingRole.id).status, 'skipped');
+    assert.ok((await rows()).filter(row => row.destination === 'site').every(row => row.status === 'pending'), 'Group switches must not affect site alerts');
+    await client.query(`INSERT INTO ${table('group_members')} VALUES ($1,$2,$3,'member',null)`, [membership, group, member]);
+    await client.query(`UPDATE ${table('group_members')} SET role='officer' WHERE id=$1`, [membership]);
+    const disabledRoles = (await rows()).filter(row => row.kind === 'role_changed');
+    assert.ok(disabledRoles.every(row => row.status === 'skipped'));
+    assert.ok(disabledRoles.some(row => row.mention_role_id === roleId), 'Disabled events retain mention snapshots and audit data');
+    await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,'{}','{}',$2)`, [group, admin]);
+    assert.equal((await rows()).find(row => row.id === pendingRole.id).status, 'skipped', 'Re-enabling never replays old alerts');
+    await client.query(`UPDATE ${table('group_members')} SET role='member' WHERE id=$1`, [membership]);
+    assert.ok((await rows()).some(row => row.kind === 'role_changed' && row.status === 'pending'));
+    await client.query(`SELECT ${table('save_admin_discord_preferences')}(null,'{"account_registered":false}','{}',$1)`, [admin]);
+    assert.ok((await rows()).filter(row => row.kind === 'account_registered').every(row => row.status === 'skipped'));
+    const newAccount = randomUUID();
+    await client.query(`INSERT INTO ${table('users')} VALUES ($1,'New account','new')`, [newAccount]);
+    assert.equal((await rows()).find(row => row.subject_id === newAccount).status, 'skipped');
+    assert.ok((await rows()).some(row => row.destination === 'group' && row.kind === 'role_changed' && row.status === 'pending'), 'Site switches must not affect group alerts');
+    await client.query(`SELECT ${table('save_site_admin_discord_webhook')}($1,$2)`, [secretUrl, admin]);
+    const site = (await client.query(`SELECT * FROM ${table('site_admin_discord')}`)).rows[0];
+    assert.equal(site.webhook_override, true);
+    assert.ok(site.destination_id);
+    assert.deepEqual(site.categories, { account_registered: false }, 'Webhook writes must preserve preferences');
+    await client.query(`SELECT ${table('save_site_admin_discord_webhook')}(null,$1)`, [admin]);
+    const disabledSite = (await client.query(`SELECT * FROM ${table('site_admin_discord')}`)).rows[0];
+    assert.equal(disabledSite.webhook_override, true);
+    assert.equal(disabledSite.destination_id, null, 'Explicit disabling must not restore environment fallback');
+    for (const [categories, roles] of [[[], {}], [{ unknown: false }, {}], [{ role_changed: 'false' }, {}], [{}, { role_changed: '@everyone' }]]) {
+      await client.query('SAVEPOINT invalid_preferences');
+      await assert.rejects(client.query(`SELECT ${table('save_admin_discord_preferences')}($1,$2,$3,$4)`,
+        [group, JSON.stringify(categories), JSON.stringify(roles), admin]), /Invalid preferences|Unknown notification category/);
+      await client.query('ROLLBACK TO SAVEPOINT invalid_preferences');
+    }
+    await client.query('SAVEPOINT denied_preferences');
+    await assert.rejects(client.query(`SELECT ${table('save_admin_discord_preferences')}($1,'{}','{}',$2)`, [group, member]), /Administrator access required/);
+    await client.query('ROLLBACK TO SAVEPOINT denied_preferences');
+    await client.query('ROLLBACK TO SAVEPOINT category_checks');
     const beforeDelete = (await rows()).length;
     await client.query(`DELETE FROM ${table('groups')} WHERE id=$1`, [group]);
     assert.equal((await rows()).length, beforeDelete + 2, 'Deletion must notify site and private group channel without cascade noise');
@@ -118,19 +161,19 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     assert.ok(!JSON.stringify(await rows()).includes('private-test-token'), 'Audit rows must not contain webhook secrets');
 
     for (const role of ['anon', 'authenticated']) {
-      for (const name of ['admin_discord_destinations', 'group_admin_discord', 'admin_discord_notifications']) {
+      for (const name of ['admin_discord_destinations', 'group_admin_discord', 'admin_discord_notifications', 'site_admin_discord']) {
         const { rows: access } = await client.query('SELECT has_table_privilege($1,$2,\'SELECT\') AS read, has_table_privilege($1,$2,\'INSERT,UPDATE,DELETE\') AS write', [role, `${schema}.${name}`]);
         assert.deepEqual(access[0], { read: false, write: false });
       }
-      for (const signature of ['claim_admin_discord_notifications()', 'save_group_admin_discord(uuid,text,uuid)', 'capture_admin_discord_change()', 'save_group_admin_discord_roles(uuid,jsonb,uuid)', 'capture_admin_discord_mention()']) {
+      for (const signature of ['claim_admin_discord_notifications()', 'save_group_admin_discord(uuid,text,uuid)', 'capture_admin_discord_change()', 'save_group_admin_discord_roles(uuid,jsonb,uuid)', 'capture_admin_discord_mention()', 'save_admin_discord_preferences(uuid,jsonb,jsonb,uuid)', 'save_site_admin_discord_webhook(text,uuid)', 'filter_admin_discord_category()']) {
         const { rows: execute } = await client.query('SELECT has_function_privilege($1,$2,\'EXECUTE\') AS allowed', [role, `${schema}.${signature}`]);
         assert.equal(execute[0].allowed, false);
       }
     }
     const { rows: protectedTables } = await client.query(`
       SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE n.nspname=$1 AND c.relname IN ('admin_discord_destinations','group_admin_discord','admin_discord_notifications')`, [schema]);
-    assert.equal(protectedTables.length, 3);
+      WHERE n.nspname=$1 AND c.relname IN ('admin_discord_destinations','group_admin_discord','admin_discord_notifications','site_admin_discord')`, [schema]);
+    assert.equal(protectedTables.length, 4);
     assert.ok(protectedTables.every(row => row.relrowsecurity === true));
     const first = (await client.query(`SELECT * FROM ${table('claim_admin_discord_notifications')}()`)).rows;
     const second = (await client.query(`SELECT * FROM ${table('claim_admin_discord_notifications')}()`)).rows;

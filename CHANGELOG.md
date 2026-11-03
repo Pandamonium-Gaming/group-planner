@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added per-category administration notification switches and a separate site-administrator notification page with private webhook, role and history controls. Migration 017 preserves enabled defaults and skips queued unsent alerts when disabled; site access requires a server-configured Discord identity allowlist.
 * Added private Discord administration alerts for new accounts, group creation/deletion, membership and role changes, permission overrides and webhook configuration changes. Migration 015 captures committed changes in a private delivery queue; group admins can configure a separate webhook and inspect delivery history. Site alerts use a server-only webhook and an authenticated, every-minute cron worker.
 * Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
 * Added event reposts to Discord and administrator-only, paginated webhook logs for events, announcements, tests, reminders and member welcomes. Migration 013 stores delivery metadata only, never webhook credentials or message payloads.
@@ -48,6 +49,7 @@
 
 ### Fixed
 
+* Removed the duplicate Pending role selector from permission settings; Pending remains immutable.
 * Aligned guest RSVP class storage with game registry IDs using migration 014; existing UUID values are preserved and displayed as unknown rather than incorrectly mapped to a class.
 
 * Enforced saved-event authorization for every event notification path and honoured group permission overrides for Discord delivery and reposts.

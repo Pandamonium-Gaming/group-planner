@@ -10,10 +10,16 @@
     "games": "Spellen"
   },
   "adminNotifications": {
-    "roleMentions": "Rolvermeldingen per meldingstype",
-    "roleMentionsHint": "Optioneel: plak één Discord-rol-ID per type (schakel ontwikkelaarsmodus in, klik met rechts op een rol en kopieer de rol-ID). Laat leeg voor geen vermelding. De webhook moet die rol mogen vermelden. Sitebrede vermeldingen worden door de sitebeheerder ingesteld, niet hier.",
+    "siteTitle": "Meldingen voor sitebeheer",
+    "siteDescription": "Sitebrede meldingen over accounts, groepen en beheer. Alleen sitebeheerders op de Discord-ID-lijst van de server kunnen deze instellingen beheren.",
+    "sitePrivate": "Opgeslagen webhook-URL's worden nooit teruggestuurd. Een opgeslagen bestemming vervangt de omgevingswebhook; uitschakelen valt niet terug op de omgeving.",
+    "categoryHint": "Categorieën zijn standaard ingeschakeld. Uitschakelen slaat nieuwe en wachtende meldingen over; al gestarte leveringen kunnen nog aankomen. Opnieuw inschakelen herhaalt geen overgeslagen meldingen. Optionele rol-ID's moeten 17–20 cijfers bevatten.",
+    "roleId": "Discord-rol-ID",
+    "accessDenied": "Toegang als sitebeheerder is vereist. Meld je aan met een toegestaan Discord-account.",
+    "roleMentions": "Meldingscategorieën en rolvermeldingen",
+    "roleMentionsHint": "Optioneel: plak één Discord-rol-ID per type (schakel ontwikkelaarsmodus in, klik met rechts op een rol en kopieer de rol-ID). Laat leeg voor geen vermelding. De webhook moet die rol mogen vermelden.",
     "noMention": "Geen rolvermelding",
-    "saveRoles": "Rolvermeldingen opslaan",
+    "saveRoles": "Meldingsvoorkeuren opslaan",
     "title": "Privémeldingen voor beheerders",
     "description": "Stuur wijzigingen in leden, rollen, rechten en Discord-instellingen naar een privékanaal voor beheerders. Verwijdering van de groep wordt ook gemeld. Nieuwe accounts en het aanmaken of verwijderen van groepen gebruiken de webhook van de sitebeheerder.",
     "configured": "Er is een beheerderswebhook ingesteld.",
@@ -21,7 +27,7 @@
     "webhook": "Nieuwe of vervangende URL voor de beheerderswebhook",
     "private": "Alleen groepsbeheerders kunnen deze bestemming wijzigen. Opgeslagen URL's worden nooit naar de browser teruggestuurd. Gebruik een privé Discord-kanaal; deze meldingen bevatten beheerdersinformatie.",
     "disable": "Beheerderswebhook uitschakelen",
-    "failed": "Beheerdersmeldingen konden niet worden geladen of opgeslagen. Controleer beheerderstoegang, de webhook-URL, rol-ID's en migraties 015–016 en vernieuw daarna.",
+    "failed": "Beheerdersmeldingen konden niet worden geladen of opgeslagen. Controleer beheerderstoegang, de webhook-URL, rol-ID's en migraties 015–017 en vernieuw daarna.",
     "history": "Geschiedenis van beheerdersmeldingen",
     "delivery": "Wijzigingen in de wachtrij worden elke minuut verwerkt, vijf per batch. Alleen nieuwe wijzigingen worden vastgelegd. Bij snelheidslimieten volgen maximaal vijf pogingen; onzekere leveringen worden niet automatisch herhaald. Controleer Discord voordat je opnieuw probeert. Sommige serverwijzigingen hebben geen herkenbare uitvoerder. Vertrekmeldingen maken geen onderscheid tussen vertrek, verwijdering of accountverwijdering.",
     "kinds": {
@@ -42,7 +48,7 @@
       "sent": "Verzonden",
       "failed": "Mislukt",
       "uncertain": "Bezorging onzeker — controleer Discord",
-      "skipped": "Overgeslagen — geen bestemming ingesteld"
+      "skipped": "Overgeslagen — categorie uitgeschakeld of geen bestemming"
     }
   },
   "eventRoster": {

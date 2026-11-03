@@ -98,12 +98,67 @@ it('shows save failures and retains the unsaved value for correction', async () 
 it('saves per-type role mentions without replacing the private webhook', async () => {
   render(<AdminDiscordSettings groupId="group-1" />);
   await screen.findByText('An admin webhook is configured.');
-  const input = screen.getByLabelText('Member role changed');
+  const input = screen.getByLabelText('Member role changed — Discord role ID');
   fireEvent.change(input, { target: { value: '123456789012345678' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Save role mentions' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save notification preferences' }));
   await screen.findByText('Saved!');
   expect(fetchMock).toHaveBeenCalledWith('/api/group/admin-notifications', expect.objectContaining({
-    method: 'POST', body: JSON.stringify({ group_id: 'group-1', role_mentions: { role_changed: '123456789012345678' } }),
+    method: 'POST', body: JSON.stringify({ group_id: 'group-1', role_mentions: { role_changed: '123456789012345678' }, categories: {} }),
   }));
   expect(screen.getByLabelText('New or replacement admin webhook URL')).toHaveValue('');
+});
+
+it('defaults group categories to enabled and saves disabling separately from the webhook', async () => {
+  render(<AdminDiscordSettings groupId="group-1" />);
+  await screen.findByText('An admin webhook is configured.');
+  expect(screen.getAllByRole('checkbox')).toHaveLength(8);
+  for (const checkbox of screen.getAllByRole('checkbox')) expect(checkbox).toBeChecked();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Member role changed' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save notification preferences' }));
+  await screen.findByText('Saved!');
+  expect(fetchMock).toHaveBeenCalledWith('/api/group/admin-notifications', expect.objectContaining({
+    method: 'POST', body: JSON.stringify({ group_id: 'group-1', role_mentions: {}, categories: { role_changed: false } }),
+  }));
+  expect(screen.queryByRole('checkbox', { name: 'New account' })).not.toBeInTheDocument();
+});
+
+it('shows only site categories and uses the separately protected site endpoint', async () => {
+  render(<AdminDiscordSettings siteWide />);
+  await screen.findByText('An admin webhook is configured.');
+  expect(screen.getAllByRole('checkbox')).toHaveLength(4);
+  expect(screen.queryByRole('checkbox', { name: 'Member role changed' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'New account' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save notification preferences' }));
+  await screen.findByText('Saved!');
+  expect(fetchMock).toHaveBeenCalledWith('/api/admin/notifications/settings', expect.objectContaining({
+    method: 'POST', body: JSON.stringify({ role_mentions: {}, categories: { account_registered: false } }),
+  }));
+});
+
+it('explains denied site access without rendering editable controls or history', async () => {
+  fetchMock.mockResolvedValue({ ok: false, status: 403 });
+  render(<AdminDiscordSettings siteWide />);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Site administrator access is required');
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+});
+
+it('loads disabled categories and preserves unsaved changes while paging history', async () => {
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({
+    configured: true, categories: { role_changed: false }, role_mentions: {}, logs: [], hasMore: true,
+  }) });
+  render(<AdminDiscordSettings groupId="group-1" />);
+  await screen.findByText('An admin webhook is configured.');
+  const category = screen.getByRole('checkbox', { name: 'Member role changed' });
+  expect(category).not.toBeChecked();
+  fireEvent.click(category);
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(category).toBeEnabled());
+  expect(category).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Save notification preferences' }));
+  await screen.findByText('Saved!');
+  expect(fetchMock).toHaveBeenCalledWith('/api/group/admin-notifications', expect.objectContaining({
+    method: 'POST', body: JSON.stringify({ group_id: 'group-1', role_mentions: {}, categories: { role_changed: true } }),
+  }));
 });

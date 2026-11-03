@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { webhookHeaders } from '@/lib/webhookClient';
-import { ADMIN_NOTIFICATION_KINDS, type AdminRoleMentions } from '@/lib/adminNotifications';
+import { ADMIN_NOTIFICATION_KINDS, SITE_NOTIFICATION_KINDS, type AdminRoleMentions, type AdminCategorySettings } from '@/lib/adminNotifications';
 
 interface AdminLog {
   id: string;
@@ -14,13 +14,14 @@ interface AdminLog {
   created_at: string;
 }
 
-export function AdminDiscordSettings({ groupId }: { groupId: string }) {
+export function AdminDiscordSettings({ groupId, siteWide = false }: { groupId?: string; siteWide?: boolean }) {
   const { t } = useLanguage();
   const [webhook, setWebhook] = useState('');
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
+  const [denied, setDenied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [page, setPage] = useState(0);
@@ -29,26 +30,38 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
   const [roleMentions, setRoleMentions] = useState<AdminRoleMentions>({});
   const [rolesDirty, setRolesDirty] = useState(false);
   const rolesEdited = useRef(false);
+  const [categories, setCategories] = useState<AdminCategorySettings>({});
+  const endpoint = siteWide ? '/api/admin/notifications/settings' : '/api/group/admin-notifications';
+  const kinds = siteWide ? [...SITE_NOTIFICATION_KINDS, 'webhook_changed'] as const
+    : ADMIN_NOTIFICATION_KINDS.filter(kind => kind !== 'account_registered' && kind !== 'group_created');
 
   useEffect(() => {
     let active = true;
     async function load() {
       setLoading(true);
       setError(false);
+      setDenied(false);
       try {
-        const response = await fetch(`/api/group/admin-notifications?group_id=${encodeURIComponent(groupId)}&page=${page}`, {
+        const response = await fetch(`${endpoint}?group_id=${encodeURIComponent(groupId || '')}&page=${page}`, {
           credentials: 'include', cache: 'no-store', headers: await webhookHeaders(),
         });
+        if (siteWide && (response.status === 401 || response.status === 403)) {
+          if (active) { setDenied(true); setLogs([]); }
+          return;
+        }
         if (!response.ok) throw new Error(`Unable to load admin notifications (${response.status})`);
-        const data = await response.json() as { configured: boolean; role_mentions?: AdminRoleMentions; logs: AdminLog[]; hasMore: boolean };
+        const data = await response.json() as { configured: boolean; role_mentions?: AdminRoleMentions; categories?: AdminCategorySettings; logs: AdminLog[]; hasMore: boolean };
         if (active) {
           setConfigured(data.configured);
           setLogs(data.logs);
           setHasMore(data.hasMore);
-          if (!rolesEdited.current) setRoleMentions(data.role_mentions || {});
+          if (!rolesEdited.current) {
+            setRoleMentions(data.role_mentions || {});
+            setCategories(data.categories || {});
+          }
         }
       } catch {
-        console.error('[admin-discord] Unable to load private group notification settings');
+        console.error('[admin-discord] Unable to load private notification settings');
         if (active) { setError(true); setLogs([]); }
       } finally {
         if (active) setLoading(false);
@@ -56,24 +69,24 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
     }
     void load();
     return () => { active = false; };
-  }, [groupId, page, refresh]);
+  }, [groupId, page, refresh, endpoint, siteWide]);
 
   async function saveRoles() {
     setSaving(true);
     setSaved(false);
     setError(false);
     try {
-      const response = await fetch('/api/group/admin-notifications', {
+      const response = await fetch(endpoint, {
         method: 'POST', credentials: 'include', headers: await webhookHeaders(),
-        body: JSON.stringify({ group_id: groupId, role_mentions: roleMentions }),
+        body: JSON.stringify({ group_id: groupId, role_mentions: roleMentions, categories }),
       });
-      if (!response.ok) throw new Error('Unable to save admin role mentions');
+      if (!response.ok) throw new Error('Unable to save notification preferences');
       setRolesDirty(false);
       rolesEdited.current = false;
       setSaved(true);
       setRefresh(value => value + 1);
     } catch {
-      console.error('[admin-discord] Unable to save notification role mentions');
+      console.error('[admin-discord] Unable to save notification preferences');
       setError(true);
     } finally {
       setSaving(false);
@@ -85,7 +98,7 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
     setSaved(false);
     setError(false);
     try {
-      const response = await fetch('/api/group/admin-notifications', {
+      const response = await fetch(endpoint, {
         method: 'POST', credentials: 'include', headers: await webhookHeaders(),
         body: JSON.stringify({ group_id: groupId, webhook_url: disable ? '' : webhook.trim() }),
       });
@@ -95,17 +108,19 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
       setSaved(true);
       setRefresh(value => value + 1);
     } catch {
-      console.error('[admin-discord] Unable to save private group notification settings');
+      console.error('[admin-discord] Unable to save private notification settings');
       setError(true);
     } finally {
       setSaving(false);
     }
   }
 
+  if (denied) return <p role="alert" className="text-red-400">{t('adminNotifications.accessDenied')}</p>;
+
   return (
-    <section aria-label={t('adminNotifications.title')} className="bg-slate-900 rounded-lg border border-slate-700 p-4 sm:p-6 space-y-4">
-      <h3 className="text-lg font-semibold text-white">{t('adminNotifications.title')}</h3>
-      <p className="text-sm text-slate-400">{t('adminNotifications.description')}</p>
+    <section aria-label={t(siteWide ? 'adminNotifications.siteTitle' : 'adminNotifications.title')} className="bg-slate-900 rounded-lg border border-slate-700 p-4 sm:p-6 space-y-4">
+      <h3 className="text-lg font-semibold text-white">{t(siteWide ? 'adminNotifications.siteTitle' : 'adminNotifications.title')}</h3>
+      <p className="text-sm text-slate-400">{t(siteWide ? 'adminNotifications.siteDescription' : 'adminNotifications.description')}</p>
       <p className="text-sm text-slate-300">{t(configured ? 'adminNotifications.configured' : 'adminNotifications.notConfigured')}</p>
       <form className="space-y-3" onSubmit={event => { event.preventDefault(); void save(false); }}>
         <label htmlFor="admin-discord-webhook" className="block text-sm text-slate-300">{t('adminNotifications.webhook')}</label>
@@ -113,7 +128,7 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
           onChange={event => { setWebhook(event.target.value); setSaved(false); }}
           disabled={loading || saving} required maxLength={2048}
           className="w-full min-w-0 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white" />
-        <p className="text-xs text-slate-400">{t('adminNotifications.private')}</p>
+        <p className="text-xs text-slate-400">{t(siteWide ? 'adminNotifications.sitePrivate' : 'adminNotifications.private')}</p>
         <div className="flex flex-wrap gap-3">
           <button type="submit" disabled={loading || saving || !webhook.trim()} className="px-3 py-2 rounded bg-purple-700 text-white disabled:opacity-50">
             {t(saving ? 'common.saving' : 'common.save')}
@@ -124,11 +139,21 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
       </form>
       <form className="space-y-3" onSubmit={event => { event.preventDefault(); void saveRoles(); }}>
         <h4 className="text-white font-medium">{t('adminNotifications.roleMentions')}</h4>
+        <p className="text-xs text-slate-400">{t('adminNotifications.categoryHint')}</p>
         <p className="text-xs text-slate-400">{t('adminNotifications.roleMentionsHint')}</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {ADMIN_NOTIFICATION_KINDS.filter(kind => kind !== 'account_registered' && kind !== 'group_created').map(kind => (
-            <label key={kind} className="block text-sm text-slate-300">
-              {t(`adminNotifications.kinds.${kind}`)}
+          {kinds.map(kind => (
+            <div key={kind} className="text-sm text-slate-300 border border-slate-700 rounded p-3 space-y-2">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={categories[kind] !== false} disabled={loading || saving}
+                  onChange={event => {
+                    setCategories(previous => ({ ...previous, [kind]: event.target.checked }));
+                    setRolesDirty(true); rolesEdited.current = true; setSaved(false);
+                  }} />
+                {t(`adminNotifications.kinds.${kind}`)}
+              </label>
+              <label className="block">
+                <span className="sr-only">{t(`adminNotifications.kinds.${kind}`)} — {t('adminNotifications.roleId')}</span>
               <input type="text" inputMode="numeric" pattern="[0-9]{17,20}" maxLength={20}
                 value={roleMentions[kind] || ''} disabled={loading || saving}
                 placeholder={t('adminNotifications.noMention')}
@@ -145,7 +170,8 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
                   setSaved(false);
                 }}
                 className="block w-full min-w-0 mt-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white" />
-            </label>
+              </label>
+            </div>
           ))}
         </div>
         <button type="submit" disabled={loading || saving || !rolesDirty}
