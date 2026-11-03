@@ -95,9 +95,22 @@ Creation and Return of Reckoning; Star Citizen has no class composition panel.
 WoW characters include their main spec, and Ashes classes use the saved
 primary/secondary archetype combination. These are current profile values,
 not snapshots taken at signup. Guests count by their recorded class.
+Apply [migration 014](./supabase/migrations/014_guest_rsvp_class_registry_ids.sql)
+before deploying: guest class storage now accepts game registry IDs such as
+`mage` and `ironbreaker` instead of UUIDs. Existing UUIDs are preserved but
+remain unknown because no UUID-to-class registry exists. Blank guest classes
+remain valid. This does not add a class selector to the existing guest forms.
 Unlinked or deleted characters appear as unknown rather than being replaced
 by the owner's main character. Declined signups are excluded.
 The detailed class roster is not displayed on public event views.
+
+The database regression test uses an isolated schema and rolls back all
+changes. Run it against a development PostgreSQL database by supplying
+`GP_MIGRATION_TEST_DATABASE_URL` and running:
+
+```powershell
+node --import tsx --test scripts\__tests__\guest-class-migration.test.mts
+```
 
 Vercel runs installation and builds through Corepack, using the Yarn version
 declared in `package.json`. Installation is immutable so deployments use the

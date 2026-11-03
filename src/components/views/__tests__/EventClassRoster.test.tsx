@@ -89,6 +89,28 @@ it('uses primary Ashes archetype when no secondary archetype is selected', () =>
   expectTotals('Mage', 0, 1);
 });
 
+it.each(['wowforever', 'aoc', 'ror'])('preserves legacy UUID guest classes as unknown under %s', game => {
+  render(<EventClassRoster event={{
+    game_slug: game, rsvps: [],
+    guest_rsvps: [
+      guest('1', 'attending', '00000000-0000-4000-8000-000000000001'),
+      guest('2', 'maybe', null),
+    ],
+  }} />);
+  expectTotals('Class not recorded', 1, 1);
+  expect(screen.getByText('Guest 1')).toBeInTheDocument();
+  expect(screen.getByText('Guest 2')).toBeInTheDocument();
+});
+
+it('resolves persisted RoR registry IDs for guest classes', () => {
+  render(<EventClassRoster event={{
+    game_slug: 'ror', rsvps: [],
+    guest_rsvps: [guest('1', 'attending', 'ironbreaker'), guest('2', 'maybe', 'archmage')],
+  }} />);
+  expectTotals('Ironbreaker', 1, 0);
+  expectTotals('Archmage', 0, 1);
+});
+
 it.each(['starcitizen', 'sc', 'unsupported'])('does not render a class panel for %s', game => {
   const { container } = render(<EventClassRoster event={{ game_slug: game, rsvps: [] }} />);
   expect(container).toBeEmptyDOMElement();

@@ -46,6 +46,8 @@
 
 ### Fixed
 
+* Aligned guest RSVP class storage with game registry IDs using migration 014; existing UUID values are preserved and displayed as unknown rather than incorrectly mapped to a class.
+
 * Enforced saved-event authorization for every event notification path and honoured group permission overrides for Discord delivery and reposts.
 
 * Fixed missing WoW and v2 event notifications by using authenticated server-side game webhook and role fallbacks. Notification failures now warn without treating saved events or announcements as unsaved.

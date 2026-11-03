@@ -195,6 +195,7 @@ export interface GuestEventRsvp {
   allied_group_id: string | null;
   guest_name: string;
   guest_email?: string | null;
+  // Game registry ID; legacy UUID values remain readable but have no class mapping.
   class_id: string | null;
   role: EventRole;
   status: 'attending' | 'maybe' | 'declined';
