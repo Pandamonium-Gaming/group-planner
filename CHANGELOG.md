@@ -5,11 +5,9 @@
 ### Added
 
 * Shared dialogs now trap Tab focus inside the open dialog and return focus to the control that opened them when they close; the dialog's Escape and focus handling no longer re-registers on every render.
-
 * Recruitment applications are now tagged with the game they are for. The public Apply form has a required game picker (the group's non-archived games, pre-selected when there is only one; every game for legacy groups with no game rows) and its class list follows the chosen game (Star Citizen has no class list, so the field is hidden). Tagged applications are removed when that game is deleted; `/api/clan-public` now also returns the group's `groupGames`.
-
-* Added permanent game deletion in Game Management. A group admin can delete an archived game's data for the group by typing the game name to confirm; this erases that game's members, events, game ship permissions and Discord webhook logs, and resets its per-game group settings. One `game_deleted` administration Discord alert is sent. Apply migrations 018 (notification kind), 019 (alert-suppression flag) and 020 (`delete_group_game` function) to Supabase before deploying.
-
+* Added permanent game deletion in Game Management. A group admin can delete an archived game's data for the group by typing the game name to confirm; this erases that game's members, events, game ship permissions and Discord webhook logs, and resets its per-game group settings. One `game_deleted` administration Discord alert is sent. Apply migrations 018 (notification kind), 019 (alert-suppression flag), 020 (`delete_group_game` function) and 021 (loaner trigger fix, below) to Supabase before deploying.
+* Game deletion keeps some data. Applications submitted before they were tagged with a game have no game and are kept, as are group-wide tables without a game tag (parties, announcements, siege events, loot/DKP, guild banks and similar). A group's last remaining game cannot be deleted (`LAST_GAME` / `game_last`), because the home page treats a group with no `group_games` rows as having every game enabled (legacy groups were never backfilled) and would show the deleted game again; add another game first, or keep the last one archived.
 * Added per-category administration notification switches and a separate site-administrator notification page with private webhook, role and history controls. Migration 017 preserves enabled defaults and skips queued unsent alerts when disabled; site access requires a server-configured Discord identity allowlist.
 * Added private Discord administration alerts for new accounts, group creation/deletion, membership and role changes, permission overrides and webhook configuration changes. Migration 015 captures committed changes in a private delivery queue; group admins can configure a separate webhook and inspect delivery history. Site alerts use a server-only webhook and an authenticated, every-minute cron worker.
 * Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
@@ -49,9 +47,6 @@
 
 * Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.
 * Changed `DELETE /api/group/games` to require `{ groupId, gameSlug, confirmName }`: the caller must be a group admin, the game must be archived and `confirmName` must match the game name. It now deletes the game's data instead of only the `group_games` row.
-* Known limitation: a group's last remaining game cannot be deleted (`LAST_GAME` / `game_last`), because the home page treats a group with no `group_games` rows as having every game enabled (legacy groups were never backfilled) and would show the deleted game again. Add another game first, or keep the last one archived.
-* Fixed the `game_deleted` Discord alert showing the game name as an "Affected account"; the Delete permanently button is now shown to group admins only.
-* Known limitation: recruitment applications submitted before applications were tagged with a game have no game and are kept by game deletion, as are group-wide tables without a game tag (parties, announcements, siege events, loot/DKP, guild banks and similar) are kept.
 
 * Made administration notification settings failures specific: the site and group routes now return a stable `code` with a secret-free message (for example an invalid `ADMIN_DISCORD_ROLE_MENTIONS` or `SITE_ADMIN_DISCORD_IDS`, missing Supabase credentials or unapplied migrations 015–017), log the underlying cause server-side, and the settings page shows the matching localised guidance.
 * Made Discord administration alerts readable with account names, friendly change labels, distinct colours and links to the relevant settings tabs. Group Settings now has linked tabs; migration 016 adds optional per-type group role mentions, with site-wide mentions configured separately through server environment settings.
@@ -62,6 +57,7 @@
 
 ### Fixed
 
+* Fixed the `game_deleted` Discord alert showing the game name as an "Affected account"; the Delete permanently button is now shown to group admins only.
 * Fixed deleting Star Citizen characters that own a pledged ship and its auto-granted loaner, including when a whole group is deleted: the loaner-removal trigger now fires AFTER DELETE instead of aborting with "tuple ... already modified". `add_loaner_ships_for_pledge` is now schema-qualified and search-path-safe. Also removed a stray `);` from `000_baseline.sql` that stopped the baseline applying to a fresh database. Apply migration 021 (`021_fix_loaner_trigger.sql`) to Supabase before deploying.
 * Fixed site administrator access with Supabase Discord login by matching the verified provider subject instead of Supabase's internal identity ID.
 * Removed the duplicate Pending role selector from permission settings; Pending remains immutable.

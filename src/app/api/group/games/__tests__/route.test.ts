@@ -64,7 +64,7 @@ describe('DELETE /api/group/games', () => {
 
   it('ignores any expected name the client sends', async () => {
     await DELETE(request({ ...valid, confirmName: 'Wrong', expectedName: 'Wrong' }));
-    expect(rpc.mock.calls[0][1]).toMatchObject({ p_confirm_name: 'Wrong', p_expected_name: 'Star Citizen' });
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_confirm_name: 'Wrong', p_expected_name: GAMES.starcitizen.name });
   });
 
   it('rejects unauthenticated requests', async () => {

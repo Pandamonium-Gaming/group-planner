@@ -254,7 +254,8 @@ async function withSchema(run: (ctx: Ctx) => Promise<void>) {
         ownership_type text NOT NULL, notes text, UNIQUE(character_id, ship_id, ownership_type)
       );
     `);
-    // The real Star Citizen loaner triggers, verbatim from the baseline (unqualified names, session search_path).
+    // The baseline Star Citizen loaner functions and triggers (unqualified names, session search_path). Migration
+    // 021 below replaces the removal trigger with its AFTER DELETE form, so the harness ends in the production state.
     const baseline = await readFile(new URL('000_baseline.sql', migrationsDir), 'utf8');
     const start = baseline.indexOf('CREATE OR REPLACE FUNCTION ship_id_to_display_name');
     const endMarker = 'EXECUTE FUNCTION remove_loaner_ships_for_pledge();';
@@ -267,6 +268,7 @@ async function withSchema(run: (ctx: Ctx) => Promise<void>) {
     for (const name of [
       '013_add_discord_webhook_logs.sql', '015_admin_discord_notifications.sql', '016_admin_notification_role_mentions.sql',
       '017_admin_notification_categories.sql', '018_admin_notification_game_deleted.sql', '019_suppress_alert_flag.sql', MIGRATION,
+      '021_fix_loaner_trigger.sql',
     ]) await migration(name);
     await run({ client, schema, t, fn: t('delete_group_game') });
   } finally {
@@ -361,7 +363,7 @@ test('deletes only the target group and game', { skip: !connectionString }, () =
   const before = await snapshot(ctx, s);
   const full = before['A/starcitizen'] as Record<string, number>;
   assert.ok(Object.values(full).every(count => count > 0), `Seed must populate every A/X table: ${JSON.stringify(full)}`);
-  assert.equal(full.character_ships, 3, 'Pledged ship auto-grants a loaner via the real baseline trigger');
+  assert.equal(full.character_ships, 3, 'Pledged ship auto-grants a loaner via the add trigger');
   await call(ctx, s.groups.A, X, 'Star Citizen', 'Star Citizen', s.users.adminA);
   const after = await snapshot(ctx, s);
   const zero = Object.fromEntries(Object.keys(full).map(key => [key, 0]));
@@ -463,6 +465,12 @@ test('rejects', { skip: !connectionString }, () => withSchema(async ctx => {
     await ctx.client.query('ROLLBACK TO SAVEPOINT reject');
     assert.deepEqual(await snapshot(ctx, s), before, `${label}: all rows intact`);
   }
+}));
+
+test('rejects a group that does not exist with NOT_ADMIN', { skip: !connectionString }, () => withSchema(async ctx => {
+  const s = await seed(ctx);
+  await assert.rejects(call(ctx, randomUUID(), X, 'Star Citizen', 'Star Citizen', s.users.adminA),
+    (error: Error) => { assert.equal(error.message, 'NOT_ADMIN'); return true; });
 }));
 
 test('refuses to delete the last remaining game, checked after confirmation', { skip: !connectionString }, () => withSchema(async ctx => {

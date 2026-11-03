@@ -87,7 +87,7 @@ export function adminNotificationPayload(event: AdminNotification, details: Noti
   const role = details.mentionRoleId;
   if (role && !isDiscordRoleId(role)) throw new Error('Invalid configured Discord role ID');
   const gameName = event.kind === 'game_deleted' && typeof event.changes.game === 'string' ? event.changes.game : null;
-  const changes = Object.entries(event.changes).filter(([field]) => !(gameName && field === 'game')).map(([field, change]) => {
+  const changes = Object.entries(event.changes).filter(([field]) => !(event.kind === 'game_deleted' && field === 'game')).map(([field, change]) => {
     const name = field === 'admin_webhook' ? 'Admin webhook'
       : Object.prototype.hasOwnProperty.call(PERMISSIONS, field) ? PERMISSIONS[field as keyof typeof PERMISSIONS].name
         : label(field);

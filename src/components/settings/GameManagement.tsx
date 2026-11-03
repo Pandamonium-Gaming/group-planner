@@ -284,7 +284,7 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
               {game.archived && canDeleteGames && (
                 <button
                   onClick={() => openDelete(game)}
-                  disabled={actionInProgress === game.slug || !canEditSettings}
+                  disabled={actionInProgress === game.slug}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 size={16} />

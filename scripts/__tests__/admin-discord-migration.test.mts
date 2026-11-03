@@ -127,7 +127,10 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     assert.ok(pendingRole, 'Categories default to enabled');
     await client.query(`INSERT INTO ${table('admin_discord_notifications')}(kind,destination,group_id,changes) VALUES ('game_deleted','group',$1,'{"game":"Test Game"}')`, [group]);
     await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,'{"game_deleted":true}','{}',$2)`, [group, admin]);
+    const stored = async () => (await client.query(`SELECT categories, role_mentions FROM ${table('group_admin_discord')} WHERE group_id=$1`, [group])).rows[0];
+    assert.equal((await stored()).categories.game_deleted, true, 'game_deleted category is stored');
     await client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,$2,$3)`, [group, JSON.stringify({ game_deleted: roleId }), admin]);
+    assert.equal((await stored()).role_mentions.game_deleted, roleId, 'game_deleted role mention is stored');
     await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,$2,$3,$4)`,
       [group, JSON.stringify({ role_changed: false, webhook_changed: false }), JSON.stringify({ role_changed: roleId }), admin]);
     assert.equal((await rows()).find(row => row.id === pendingRole.id).status, 'skipped');
@@ -174,6 +177,17 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query(`UPDATE ${table('groups')} SET group_webhook_url='https://discord.com/api/webhooks/1/changed-b' WHERE id=$1`, [group]);
     await client.query("SELECT set_config('app.suppress_admin_config_alert','',true)");
     assert.equal(await configAlerts(), configBefore + 1, 'Suppression flag queues no alert');
+    // The flag only silences the per-column config alert; other capture branches are unaffected.
+    await client.query('SAVEPOINT suppressed_role');
+    const suppressedMembership = randomUUID();
+    await client.query(`INSERT INTO ${table('group_members')} VALUES ($1,$2,$3,'member',null)`, [suppressedMembership, group, member]);
+    const roleAlerts = async () => (await rows()).filter(row => row.kind === 'role_changed').length;
+    const roleBefore = await roleAlerts();
+    await client.query("SELECT set_config('app.suppress_admin_config_alert','on',true)");
+    await client.query(`UPDATE ${table('group_members')} SET role='officer' WHERE id=$1`, [suppressedMembership]);
+    await client.query("SELECT set_config('app.suppress_admin_config_alert','',true)");
+    assert.equal(await roleAlerts(), roleBefore + 1, 'Suppression flag must not silence role_changed alerts');
+    await client.query('ROLLBACK TO SAVEPOINT suppressed_role');
     const beforeDelete = (await rows()).length;
     await client.query(`DELETE FROM ${table('groups')} WHERE id=$1`, [group]);
     assert.equal((await rows()).length, beforeDelete + 2, 'Deletion must notify site and private group channel without cascade noise');

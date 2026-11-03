@@ -535,3 +535,9 @@ it('formats game_deleted with a Game field, no settings link section and categor
   expect(isAdminCategorySettings({ game_deleted: false })).toBe(true);
   expect(isAdminRoleMentions({ game_deleted: '123456789012345678' })).toBe(true);
 });
+
+it('renders no Game field or generic changed line when a game_deleted game is not a string', () => {
+  const payload = adminNotificationPayload({ ...notification, kind: 'game_deleted', subject_name: null, changes: { game: 42 } as never }, { groupSlug: 'guild' });
+  expect(payload.embeds[0].fields.find(field => field.name === 'Game')).toBeUndefined();
+  expect(payload.embeds[0].fields.find(field => field.name === 'Changes')).toBeUndefined();
+});

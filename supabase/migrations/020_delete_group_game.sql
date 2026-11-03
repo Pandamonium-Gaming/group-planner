@@ -42,6 +42,10 @@ DECLARE
   v_group_name text;
   v_destination uuid;
 BEGIN
+  -- Lock order matches the other admin functions (and group deletion): groups, group_members, group_games.
+  -- A missing group leaves v_group_name null and fails the admin check below with NOT_ADMIN, as before.
+  SELECT name INTO v_group_name FROM public.groups WHERE id = p_group_id FOR UPDATE;
+
   PERFORM 1 FROM public.group_members
     WHERE group_id = p_group_id AND user_id = p_actor_id AND role = 'admin' FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ADMIN'; END IF;
@@ -52,12 +56,14 @@ BEGIN
   IF v_archived IS NOT TRUE THEN RAISE EXCEPTION 'GAME_NOT_ARCHIVED'; END IF;
 
   IF p_expected_name IS NULL OR p_expected_name = ''
-    OR p_confirm_name COLLATE "C" IS DISTINCT FROM p_expected_name COLLATE "C" THEN
+    OR p_confirm_name IS DISTINCT FROM p_expected_name THEN
     RAISE EXCEPTION 'CONFIRMATION_MISMATCH';
   END IF;
 
   -- Baseline migration 060 renamed 'star-citizen' to 'starcitizen', but rows written outside that
-  -- migration (e.g. the baseline's game_ship_permissions seed) can still carry the legacy tag.
+  -- migration (e.g. the baseline's game_ship_permissions seed) can still carry the legacy tag. The legacy
+  -- tag is only swept when p_game_slug is 'starcitizen', i.e. after that row passed the archived and
+  -- confirmation checks above, so it is never deleted on its own authority.
   v_slugs := CASE WHEN p_game_slug = 'starcitizen' THEN ARRAY['starcitizen', 'star-citizen'] ELSE ARRAY[p_game_slug] END;
 
   -- A group with no group_games rows is read as "every game enabled" (legacy groups were never
@@ -66,9 +72,8 @@ BEGIN
     WHERE group_id = p_group_id AND game_slug <> ALL (v_slugs);
   IF NOT FOUND THEN RAISE EXCEPTION 'LAST_GAME'; END IF;
 
-
-  -- remove_loaner_ships_for_pledge is a BEFORE DELETE trigger that deletes sibling loaner rows; within
-  -- one cascading delete that aborts with "tuple already modified". Remove loaners first, then pledges.
+  -- Migration 021 made remove_loaner_ships_for_pledge an AFTER DELETE trigger, so deleting a pledge and its
+  -- loaners in one statement no longer aborts. Removing loaners first, then pledges, is kept as harmless.
   DELETE FROM public.character_ships cs USING public.members m
     WHERE cs.character_id = m.id AND m.group_id = p_group_id AND m.game_slug = ANY (v_slugs)
       AND cs.ownership_type IS DISTINCT FROM 'pledged';
@@ -120,7 +125,6 @@ BEGIN
   PERFORM pg_catalog.set_config('app.suppress_admin_config_alert', COALESCE(v_previous_flag, ''), true);
 
   -- Queued last; carries names only, never a webhook URL, token or role ID.
-  SELECT name INTO v_group_name FROM public.groups WHERE id = p_group_id;
   SELECT destination_id INTO v_destination FROM public.group_admin_discord WHERE group_id = p_group_id;
   INSERT INTO public.admin_discord_notifications(
     kind, destination, destination_id, group_id, group_name, actor_id, subject_name, changes

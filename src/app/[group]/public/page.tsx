@@ -42,10 +42,17 @@ export default function PublicGroupPage({ params }: { params: Promise<{ group: s
         }
 
         const publicData = await response.json();
-        
+
+        // A missing game list must not be read as "legacy group, offer every game".
+        if (!Array.isArray(publicData.groupGames)) {
+          setData(null);
+          setLoading(false);
+          return;
+        }
+
         setData({
           group: publicData.group,
-          groupGames: publicData.groupGames || [],
+          groupGames: publicData.groupGames,
           memberCount: publicData.memberCount || 0,
           professionCoverage: 75, // Could calculate this
           upcomingEvents: publicData.upcomingEvents || 0,

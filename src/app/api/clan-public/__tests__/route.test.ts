@@ -28,3 +28,21 @@ it('returns the group games (with archived flag) for the recruitment form', asyn
   const body = await res.json();
   expect(body.groupGames).toEqual(games);
 });
+
+it('returns 500 rather than an empty games list when the group_games query fails', async () => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://x';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
+  const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  createClient.mockReturnValue({
+    from: (t: string) => chain(
+      t === 'groups' ? { data: { id: 'g1', is_public: true }, error: null }
+      : t === 'group_games' ? { data: null, error: { message: 'boom' } }
+      : { count: 1, data: null, error: null }),
+  });
+  const res = await GET({ url: 'http://l/api/clan-public?slug=s' } as never);
+  expect(res.status).toBe(500);
+  const body = await res.json();
+  expect(body.groupGames).toBeUndefined();
+  expect(spy).toHaveBeenCalled();
+  spy.mockRestore();
+});

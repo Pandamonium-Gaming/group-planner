@@ -65,14 +65,20 @@ export async function GET(request: NextRequest) {
       .eq('group_id', clan.id);
 
     // Games the group has configured (public, non-sensitive); used by the recruitment form
-    const { data: groupGames } = await supabaseAdmin
+    const { data: groupGames, error: gamesError } = await supabaseAdmin
       .from('group_games')
       .select('game_slug, archived')
       .eq('group_id', clan.id);
 
+    // An empty list means "legacy group, every game"; never fabricate it from a failed query.
+    if (gamesError || !groupGames) {
+      console.error('Error fetching public clan games:', gamesError);
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
+
     return NextResponse.json({
       clan,
-      groupGames: groupGames || [],
+      groupGames,
       memberCount: memberCount || 0,
       characterCount: characterCount || 0,
       upcomingEvents: eventCount || 0,
