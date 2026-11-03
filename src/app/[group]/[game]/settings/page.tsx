@@ -15,7 +15,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getConfiguredGameRanks, isGameRankEnabled } from '@/lib/gameRankSettings';
 
 export default function SettingsPage() {
-  const { group, groupSlug, gameSlug, userId, hasPermission, membership, refreshGroupData } = useGameLayoutContext();
+  const { group, groupSlug, gameSlug, userId, hasPermission, membership, refreshGroupData, refreshMembership } = useGameLayoutContext();
   const { t } = useLanguage();
 
   // Settings page needs full membership management functions
@@ -76,7 +76,10 @@ export default function SettingsPage() {
       {gameHasRanks && canManageMembers && (
         <RankManagement
           members={members}
-          onUpdateRank={updateRank}
+          onUpdateRank={async (id, rank) => {
+            await updateRank(id, rank);
+            await refreshMembership();
+          }}
           currentUserId={userId}
           currentUserRole={(membership.role || 'member') as GroupRole}
           gameSlug={gameSlug}

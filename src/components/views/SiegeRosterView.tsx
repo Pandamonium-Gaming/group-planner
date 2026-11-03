@@ -1,5 +1,7 @@
 'use client';
 
+import { GuildRankBadge, GuildRankText } from '@/components/characters/GuildRankBadge';
+
 import { useState } from 'react';
 import { Swords, Users, CheckCircle, Clock, UserPlus, Crown, Calendar } from 'lucide-react';
 import { 
@@ -196,6 +198,7 @@ export function SiegeRosterView({
                       >
                         {entry.is_leader && <Crown className="w-3 h-3 text-amber-400" />}
                         <span>{entry.character?.name || t('siege.unknown')}</span>
+                        <GuildRankBadge characterId={entry.character_id} />
                         {entry.status === 'checked_in' && <CheckCircle className="w-3 h-3" />}
                         {entry.status === 'confirmed' && <Clock className="w-3 h-3" />}
                         
@@ -265,6 +268,7 @@ export function SiegeRosterView({
               {availableCharacters.map((char) => (
                 <option key={char.id} value={char.id}>
                   {char.name}
+                  <GuildRankText characterId={char.id} />
                 </option>
               ))}
             </select>
@@ -294,4 +298,3 @@ export function SiegeRosterView({
     </div>
   );
 }
-

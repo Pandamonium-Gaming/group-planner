@@ -6,12 +6,14 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Users, Link2 } from 'lucide-react';
 import { ProfessionHealth } from './ProfessionHealth';
 import { SupplyChainView } from './SupplyChainView';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 interface ClanMatrixProps {
   members: MemberWithProfessions[];
 }
 
 interface MemberInfo {
+  id: string;
   name: string;
   level: number;
 }
@@ -33,7 +35,7 @@ function calculateProfessionStats(members: MemberWithProfessions[]): ProfessionS
     for (const member of members) {
       const memberProf = member.professions.find((p) => p.profession === profession.id);
       if (memberProf) {
-        byRank[memberProf.rank].push({ name: member.name, level: memberProf.artisan_level });
+        byRank[memberProf.rank].push({ id: member.id, name: member.name, level: memberProf.artisan_level });
         totalCoverage++;
         if (memberProf.rank > highestRank) {
           highestRank = memberProf.rank;
@@ -130,7 +132,11 @@ function ProfessionCard({ stats, showDependencies }: { stats: ProfessionStats; s
                   {RANK_NAMES[rank]}:
                 </span>
                 <span className="text-slate-300 ml-2">
-                  {stats.byRank[rank].map(m => `${m.name} (L${m.level})`).join(', ')}
+                  {stats.byRank[rank].map((member, index) => (
+                    <span key={member.id}>
+                      {index > 0 && ', '}{member.name} (L{member.level}) <GuildRankBadge characterId={member.id} />
+                    </span>
+                  ))}
                 </span>
               </div>
             );
@@ -261,4 +267,3 @@ export function ClanMatrix({ members }: ClanMatrixProps) {
     </div>
   );
 }
-

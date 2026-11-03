@@ -1,5 +1,7 @@
 'use client';
 
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
+
 import { Trophy, TrendingUp, TrendingDown, Medal } from 'lucide-react';
 import { DKPPointsWithCharacter } from '@/lib/types';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -71,6 +73,7 @@ export function DKPLeaderboard({
               <span className="text-2xl mb-1">{medals[idx]}</span>
               <span className="text-sm font-medium text-white truncate max-w-full px-2">
                 {entry.character?.name || t('loot.unknown')}
+                {' '}<GuildRankBadge characterId={entry.character_id} />
               </span>
               <span className="text-lg font-bold text-amber-400 mb-2">
                 {entry.current_points.toLocaleString()}
@@ -96,6 +99,7 @@ export function DKPLeaderboard({
                 <div>
                   <div className="font-medium text-white">
                     {entry.character?.name || t('loot.unknown')}
+                    {' '}<GuildRankBadge characterId={entry.character_id} />
                   </div>
                   <div className="text-xs text-slate-500 flex items-center gap-2">
                     <span className="flex items-center gap-0.5 text-green-400">
@@ -124,4 +128,3 @@ export function DKPLeaderboard({
     </div>
   );
 }
-

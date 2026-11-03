@@ -5,6 +5,7 @@ import { MemberWithProfessions, RANK_COLORS } from '@/lib/types';
 import { PROFESSION_BY_ID, PROFESSIONS_BY_TIER, TIER_CONFIG, getFullDependencyChain } from '@/lib/professions';
 import { ChevronRight, Users, AlertTriangle, CheckCircle, Link2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 
 interface SupplyChainViewProps {
   members: MemberWithProfessions[];
@@ -17,20 +18,20 @@ interface CrafterInfo {
     id: string;
     name: string;
     tier: string;
-    providers: { name: string; rank: number }[];
+    providers: { id: string; name: string; rank: number }[];
     hasMaster: boolean;
   }[];
-  crafters: { name: string; rank: number }[];
+  crafters: { id: string; name: string; rank: number }[];
 }
 
 function getCrafterInfo(members: MemberWithProfessions[]): CrafterInfo[] {
   return PROFESSIONS_BY_TIER.crafting.map(prof => {
     // Get all crafters for this profession
-    const crafters: { name: string; rank: number }[] = [];
+    const crafters: CrafterInfo['crafters'] = [];
     for (const member of members) {
       const mp = member.professions.find(p => p.profession === prof.id);
       if (mp) {
-        crafters.push({ name: member.name, rank: mp.rank });
+        crafters.push({ id: member.id, name: member.name, rank: mp.rank });
       }
     }
 
@@ -38,12 +39,12 @@ function getCrafterInfo(members: MemberWithProfessions[]): CrafterInfo[] {
     const depIds = getFullDependencyChain(prof.id);
     const dependencies = depIds.map(depId => {
       const depProf = PROFESSION_BY_ID.get(depId)!;
-      const providers: { name: string; rank: number }[] = [];
+      const providers: CrafterInfo['crafters'] = [];
       
       for (const member of members) {
         const mp = member.professions.find(p => p.profession === depId);
         if (mp) {
-          providers.push({ name: member.name, rank: mp.rank });
+          providers.push({ id: member.id, name: member.name, rank: mp.rank });
         }
       }
 
@@ -139,6 +140,7 @@ function SupplyChainCard({ info }: { info: CrafterInfo }) {
                     className={`text-xs px-2 py-0.5 rounded ${RANK_COLORS[c.rank as 1|2|3|4]?.bg || 'bg-slate-800'} ${RANK_COLORS[c.rank as 1|2|3|4]?.text || 'text-slate-300'}`}
                   >
                     {c.name}
+                    {' '}<GuildRankBadge characterId={c.id} />
                   </span>
                 ))}
               </div>
@@ -177,6 +179,7 @@ function SupplyChainCard({ info }: { info: CrafterInfo }) {
                               className={`text-xs px-1.5 py-0.5 rounded ${RANK_COLORS[p.rank as 1|2|3|4]?.bg || 'bg-slate-800'} ${RANK_COLORS[p.rank as 1|2|3|4]?.text || 'text-slate-300'}`}
                             >
                               {p.name}
+                              {' '}<GuildRankBadge characterId={p.id} />
                             </span>
                           ))}
                           {dep.providers.length > 3 && (
@@ -242,4 +245,3 @@ export function SupplyChainView({ members }: SupplyChainViewProps) {
     </div>
   );
 }
-

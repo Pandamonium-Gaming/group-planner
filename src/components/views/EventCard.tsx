@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { postEventNotification } from '@/lib/webhookClient';
 import { EventClassRoster } from './EventClassRoster';
+import { GuildRankBadge } from '@/components/characters/GuildRankBadge';
 import { CharacterWithProfessions } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AnonymousGuestForm } from '@/components/forms/AnonymousGuestForm';
@@ -78,13 +79,14 @@ export function EventCard({
       .map(char => {
         const mainChar = characters.find(c => c.user_id === char.user_id && c.is_main);
         const displayChar = mainChar || char;
-        return [char.user_id, { userId: char.user_id, characterName: displayChar.name }];
+        return [char.user_id, { userId: char.user_id, characterName: displayChar.name, characterId: displayChar.id }];
       })
   ).values());
 
   // Helper function to format attendee name (show char + discord name)
-  const formatAttendeeName = (rsvp: EventWithRsvps['rsvps'][0]): string => {
+  const formatAttendeeName = (rsvp: EventWithRsvps['rsvps'][0]) => {
     let charName = rsvp.character?.name;
+    let characterId = rsvp.character?.id || rsvp.character_id;
     const userName = rsvp.user?.display_name;
     
     // If no character linked but user exists, find their main character
@@ -92,17 +94,12 @@ export function EventCard({
       const userMainChar = characters.find(c => c.user_id === rsvp.user_id && c.is_main);
       if (userMainChar) {
         charName = userMainChar.name;
+        characterId = userMainChar.id;
       }
     }
     
-    if (charName && userName) {
-      return `${charName} (${userName})`;
-    } else if (charName) {
-      return charName;
-    } else if (userName) {
-      return userName;
-    }
-    return 'Unknown';
+    const name = charName && userName ? `${charName} (${userName})` : charName || userName || 'Unknown';
+    return <>{name} {charName && <GuildRankBadge characterId={characterId} />}</>;
   };
 
   // Wrapper for RSVP calls with error handling and loading state
@@ -668,6 +665,7 @@ export function EventCard({
                           }`}
                         >
                           {user.characterName}
+                          {' '}<GuildRankBadge characterId={user.characterId} />
                         </button>
                       ))}
                     </div>
@@ -704,6 +702,7 @@ export function EventCard({
                           }`}
                         >
                           {character.name}
+                          <GuildRankBadge characterId={character.id} />
                           {character.is_main && <span className="text-xs text-yellow-400">★</span>}
                         </button>
                       ));

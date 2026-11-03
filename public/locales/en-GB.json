@@ -290,6 +290,7 @@
     "allGamesEnabled": "All available games are already enabled."
   },
   "character": {
+    "guildRank": "Guild rank",
     "owner": "Owner",
     "ownerUnknown": "Owner not available",
     "unclaimed": "Unclaimed",

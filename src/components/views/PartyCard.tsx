@@ -8,6 +8,7 @@ import { PartyWithRoster, PartyRole, PARTY_ROLES, CharacterWithProfessions } fro
 import { ARCHETYPES } from '@/lib/characters';
 import { ChevronDown, ChevronUp, Users, Trash2, UserPlus, Check, X, Edit2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { GuildRankBadge, GuildRankText } from '@/components/characters/GuildRankBadge';
 
 interface PartyCardProps {
   party: PartyWithRoster;
@@ -177,6 +178,7 @@ export function PartyCard({
                         <div className="flex items-center gap-2">
                           {archetype && <span>{archetype.icon}</span>}
                           <span className="text-white">{char?.name || 'Unknown'}</span>
+                          <GuildRankBadge characterId={r.character_id} />
                           {r.is_confirmed && (
                             <Check size={14} className="text-green-400" />
                           )}
@@ -267,6 +269,7 @@ export function PartyCard({
                       return (
                         <option key={c.id} value={c.id}>
                           {arch?.icon || ''} {c.name}
+                          <GuildRankText characterId={c.id} />
                         </option>
                       );
                     })}
@@ -311,4 +314,3 @@ export function PartyCard({
     </div>
   );
 }
-

@@ -4,6 +4,8 @@
 
 ### Added
 
+* Included migration `025_atomic_bank_resource_transactions.sql` from main, providing atomic guild-bank resource transactions and the matching migration-history entry.
+* Added small coloured guild-rank badges beside characters across member rosters, class and profession overviews, events, parties, fleets, siege rosters, caravans and loot views, with rank names in character selectors. Badges use the player's membership rank and each game's configured rank names and hierarchy; unranked players, guests and disabled ranks have no badge.
 * Enabled Guild Bank for WoW Forever with a separate bank, inventory, history and starter WoW item catalogue per group and game. Apply migration 024 before deploying; existing bank balances and items remain with Ashes. WoW does not show Freeholds or Caravans, and deleting a game now removes its bank.
 * Added a Classes overview for WoW Forever, Ashes of Creation and Return of Reckoning with class counts, percentages, main/alt filters and character lists. Ashes groups by primary archetype; characters without a recorded class remain visible.
 * Shared dialog windows now trap Tab focus inside the open dialog and return focus to the control that opened them when they close; the dialog's Escape and focus handling no longer re-registers on every render.
@@ -61,6 +63,7 @@
 
 * Made each guild-bank resource inventory update and audit entry atomic, so a failed audit insert cannot leave a deposit or withdrawal partially committed.
 * Kept Ashes caravan creation restricted to group officers and admins when guild-bank permissions are customized.
+* Fixed the `sc` alias reading Ashes rank settings instead of Star Citizen rank settings.
 * Fixed the public group page crashing when it loaded: it read `group` from the public API response, which returns `clan`. The page now reads the right field, so the application form is reachable again.
 * Fixed the `game_deleted` Discord alert showing the game name as an "Affected account"; the Delete permanently button is now shown to group admins only.
 * Fixed deleting Star Citizen characters that own a pledged ship and its auto-granted loaner, including when a whole group is deleted: the loaner-removal trigger now fires AFTER DELETE instead of aborting with "tuple ... already modified". `add_loaner_ships_for_pledge` is now schema-qualified and search-path-safe. Also removed a stray `);` from `000_baseline.sql` that stopped the baseline applying to a fresh database. Apply migration 022 (`022_fix_loaner_trigger.sql`) to Supabase before deploying.

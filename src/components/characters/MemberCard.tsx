@@ -15,6 +15,7 @@ import { Clan } from '@/lib/types';
 import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRankSettings';
 import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
+import { GuildRankBadge } from './GuildRankBadge';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -188,6 +189,7 @@ export function CharacterCard({
                     </span>
                   )}
                   <h3 className="text-white font-semibold truncate">{character.name}</h3>
+                  <GuildRankBadge characterId={character.id} />
                   <span className="truncate text-xs text-slate-400" title={t('character.owner')}>
                     {character.user_id
                       ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
@@ -270,12 +272,15 @@ export function CharacterCard({
                   <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
                     <span>Alt of</span>
                     <span className="text-amber-400">{mainCharacterName}</span>
+                    <GuildRankBadge characterId={character.id} />
                   </div>
                 )}
                 {altCharacters.length > 0 && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
                     <span>Alts:</span>
-                    <span className="text-slate-400">{altCharacters.map(a => a.name).join(', ')}</span>
+                    <span className="text-slate-400">{altCharacters.map((alt, index) => (
+                      <span key={alt.id}>{index > 0 && ', '}{alt.name} <GuildRankBadge characterId={alt.id} /></span>
+                    ))}</span>
                   </div>
                 )}
               </div>

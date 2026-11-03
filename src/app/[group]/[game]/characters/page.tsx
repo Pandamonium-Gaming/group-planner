@@ -21,6 +21,7 @@ export default function CharactersPage() {
     setProfessionRank,
     membership,
     refreshGroupData,
+    refreshMembership,
   } = useGameLayoutContext();
   const { isGameArchived } = useArchiveStatus();
   
@@ -55,6 +56,7 @@ export default function CharactersPage() {
         editingCharacter={editingCharacter}
         onSubmit={async (id, data) => {
           await updateCharacter(id, data);
+          await refreshMembership();
           setEditingCharacter(null);
         }}
         onCancel={() => setEditingCharacter(null)}

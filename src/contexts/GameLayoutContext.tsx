@@ -17,6 +17,7 @@ interface GameLayoutContextValue {
   deleteCharacter: (id: string) => Promise<void>;
   setProfessionRank: (characterId: string, professionId: string, rank: RankLevel | null, level?: number, quality?: number) => Promise<void>;
   refreshGroupData: () => Promise<void>;
+  refreshMembership: () => Promise<void>;
   
   // Legacy aliases
   updateMember: (id: string, name: string) => Promise<void>;

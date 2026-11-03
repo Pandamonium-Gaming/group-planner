@@ -18,6 +18,7 @@ import { InlineFooter } from '@/components/layout/Footer';
 import { ArchivedGameBanner } from '@/components/common/ArchivedGameBanner';
 import { ArchiveStatusProvider } from '@/contexts/ArchiveStatusContext';
 import { GameLayoutProvider } from '@/contexts/GameLayoutContext';
+import { GuildRankProvider } from '@/contexts/GuildRankContext';
 import { DynamicFavicon } from '@/components/common/DynamicFavicon';
 import { Users } from 'lucide-react';
 import { getAllGames } from '@/lib/games';
@@ -82,9 +83,11 @@ export default function GameLayout({
 
   const {
     membership,
+    members,
     loading: membershipLoading,
     apply,
     canManageMembers,
+    refresh: refreshMembership,
   } = useGroupMembership(group?.id || null, user?.id || null, gameSlug);
 
   const { hasPermission } = usePermissions(group?.id || undefined);
@@ -211,6 +214,7 @@ export default function GameLayout({
     deleteCharacter,
     setProfessionRank,
     refreshGroupData,
+    refreshMembership,
     updateMember,
     deleteMember,
     membership,
@@ -243,7 +247,9 @@ export default function GameLayout({
           {/* Dynamic Content Area */}
           <main className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto px-4 py-6 pb-4">
-              {children}
+              <GuildRankProvider group={group} gameSlug={gameSlug} characters={characters} members={members}>
+                {children}
+              </GuildRankProvider>
             </div>
           </main>
 
