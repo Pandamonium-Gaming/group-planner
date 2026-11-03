@@ -9,6 +9,8 @@ export interface GroupPermissionsSnapshot {
 
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_ROLE_PERMISSIONS, getRoleHierarchy, PERMISSIONS } from '@/lib/permissions';
+import { getDataBackend } from '@/server/data/backend';
+import { getPrisma } from '@/server/data/prisma';
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -66,6 +68,24 @@ export async function getGroupPermissionsSnapshot(
 ): Promise<GroupPermissionsSnapshot | null> {
   if (!groupId || userIds.length === 0) {
     return null;
+  }
+
+  if (getDataBackend() === 'postgres') {
+    const database = getPrisma();
+    const memberships = await database.group_members.findMany({
+      where: { group_id: groupId, user_id: { in: userIds } }, select: { role: true, user_id: true },
+    });
+    const valid = memberships.filter((row): row is MembershipRow =>
+      row.user_id !== null && ['admin', 'officer', 'member', 'trial', 'pending'].includes(row.role));
+    const selected = chooseHighestRoleMembership(valid);
+    if (!selected) return null;
+    const overrides = await database.group_permission_overrides.findUnique({
+      where: { group_id_role: { group_id: groupId, role: selected.role } },
+    });
+    return {
+      groupId, userId: selected.user_id, role: selected.role,
+      permissions: applyOverrides(selected.role, overrides),
+    };
   }
 
   const supabaseAdmin = getSupabaseAdmin();

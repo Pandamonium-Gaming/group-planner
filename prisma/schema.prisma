@@ -1,0 +1,1730 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["authjs", "public"]
+}
+
+model accounts {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String       @db.Uuid
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         BigInt?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+  users              authjs_users @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, providerAccountId])
+  @@schema("authjs")
+}
+
+model sessions {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String       @unique
+  userId       String       @db.Uuid
+  expires      DateTime     @db.Timestamptz(6)
+  users        authjs_users @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "sessions_user_id_idx")
+  @@schema("authjs")
+}
+
+model authjs_users {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?  @db.Timestamptz(6)
+  image         String?
+  accounts      accounts[]
+  sessions      sessions[]
+
+  @@map("users")
+  @@schema("authjs")
+}
+
+model verification_token {
+  identifier String
+  token      String
+  expires    DateTime @db.Timestamptz(6)
+
+  @@id([identifier, token])
+  @@schema("authjs")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model achievement_definitions {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String                      @db.VarChar(100)
+  description               String
+  category                  achievement_category
+  icon                      String?                     @db.VarChar(50)
+  requirement_type          String                      @db.VarChar(50)
+  requirement_value         Int
+  is_hidden                 Boolean?                    @default(false)
+  points                    Int?                        @default(10)
+  sort_order                Int?                        @default(0)
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  achievement_notifications achievement_notifications[]
+  group_achievements        group_achievements[]
+
+  @@index([category], map: "idx_achievement_definitions_category")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model achievement_notifications {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                String                  @db.Uuid
+  achievement_id          String                  @db.Uuid
+  is_sent                 Boolean?                @default(false)
+  sent_at                 DateTime?               @db.Timestamptz(6)
+  created_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  achievement_definitions achievement_definitions @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups                  groups                  @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([group_id], map: "idx_achievement_notifications_group")
+  @@index([is_sent], map: "idx_achievement_notifications_sent")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model activity_log {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id           String          @db.Uuid
+  user_id            String?         @db.Uuid
+  character_id       String?         @db.Uuid
+  activity_type      activity_type
+  description        String?
+  related_event_id   String?         @db.Uuid
+  related_siege_id   String?         @db.Uuid
+  related_caravan_id String?         @db.Uuid
+  created_at         DateTime?       @default(now()) @db.Timestamptz(6)
+  members            members?        @relation(fields: [character_id], references: [id], onUpdate: NoAction)
+  groups             groups          @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  caravan_events     caravan_events? @relation(fields: [related_caravan_id], references: [id], onUpdate: NoAction)
+  siege_events       siege_events?   @relation(fields: [related_siege_id], references: [id], onUpdate: NoAction)
+  users              public_users?   @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_activity_log_created")
+  @@index([group_id], map: "idx_activity_log_group")
+  @@index([activity_type], map: "idx_activity_log_type")
+  @@index([user_id], map: "idx_activity_log_user")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admin_discord_destinations {
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webhook_url                 String
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  admin_discord_notifications admin_discord_notifications[]
+  group_admin_discord         group_admin_discord[]
+  site_admin_discord          site_admin_discord[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admin_discord_notifications {
+  id                         String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                   String?                     @db.Uuid
+  group_name                 String?
+  actor_id                   String?                     @db.Uuid
+  subject_id                 String?                     @db.Uuid
+  subject_name               String?
+  kind                       String
+  destination                String
+  destination_id             String?                     @db.Uuid
+  changes                    Json                        @default("{}")
+  status                     String                      @default("pending")
+  attempts                   Int                         @default(0)
+  available_at               DateTime                    @default(now()) @db.Timestamptz(6)
+  claimed_at                 DateTime?                   @db.Timestamptz(6)
+  http_status                Int?
+  error                      String?
+  created_at                 DateTime                    @default(now()) @db.Timestamptz(6)
+  mention_role_id            String?
+  admin_discord_destinations admin_discord_destinations? @relation(fields: [destination_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([group_id, created_at(sort: Desc)], map: "admin_discord_group_idx")
+  @@index([available_at, created_at], map: "admin_discord_pending_idx", where: raw("(status = 'pending'::text)"))
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alliance_event_participation {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id        String          @db.Uuid
+  group_id        String          @db.Uuid
+  confirmed_count Int?            @default(0)
+  notes           String?
+  updated_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  alliance_events alliance_events @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups          groups          @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, group_id])
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alliance_events {
+  id                           String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alliance_id                  String                         @db.Uuid
+  title                        String                         @db.VarChar(200)
+  description                  String?
+  event_type                   String                         @db.VarChar(50)
+  starts_at                    DateTime                       @db.Timestamptz(6)
+  duration_minutes             Int?                           @default(120)
+  created_by_group             String?                        @db.Uuid
+  created_by_user              String?                        @db.Uuid
+  is_cancelled                 Boolean?                       @default(false)
+  created_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
+  alliance_event_participation alliance_event_participation[]
+  alliances                    alliances                      @relation(fields: [alliance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups                       groups?                        @relation(fields: [created_by_group], references: [id], onUpdate: NoAction)
+  users                        public_users?                  @relation(fields: [created_by_user], references: [id], onUpdate: NoAction)
+
+  @@index([alliance_id], map: "idx_alliance_events_alliance")
+  @@index([starts_at], map: "idx_alliance_events_starts")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alliance_members {
+  id                                         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alliance_id                                String           @db.Uuid
+  group_id                                   String           @db.Uuid
+  status                                     alliance_status? @default(pending)
+  is_founder                                 Boolean?         @default(false)
+  can_invite                                 Boolean?         @default(false)
+  can_create_events                          Boolean?         @default(false)
+  invited_by                                 String?          @db.Uuid
+  joined_at                                  DateTime?        @db.Timestamptz(6)
+  left_at                                    DateTime?        @db.Timestamptz(6)
+  created_at                                 DateTime?        @default(now()) @db.Timestamptz(6)
+  alliances                                  alliances        @relation(fields: [alliance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups_alliance_members_group_idTogroups   groups           @relation("alliance_members_group_idTogroups", fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups_alliance_members_invited_byTogroups groups?          @relation("alliance_members_invited_byTogroups", fields: [invited_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([alliance_id, group_id])
+  @@index([alliance_id], map: "idx_alliance_members_alliance")
+  @@index([group_id], map: "idx_alliance_members_group")
+  @@index([status], map: "idx_alliance_members_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alliances {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String             @db.VarChar(100)
+  description      String?
+  leader_group_id  String             @db.Uuid
+  is_public        Boolean?           @default(false)
+  max_guilds       Int?               @default(10)
+  formed_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  alliance_events  alliance_events[]
+  alliance_members alliance_members[]
+  groups           groups             @relation(fields: [leader_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([leader_group_id], map: "idx_alliances_leader")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model announcements {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id   String        @db.Uuid
+  created_by String?       @db.Uuid
+  title      String        @db.VarChar(100)
+  content    String
+  is_pinned  Boolean?      @default(false)
+  created_at DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?     @default(now()) @db.Timestamptz(6)
+  users      public_users? @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  groups     groups        @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([group_id], map: "idx_announcements_clan_id")
+  @@index([group_id, is_pinned], map: "idx_announcements_pinned", where: raw("(is_pinned = true)"))
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model augment_definitions {
+  id               String  @id @db.VarChar(50)
+  name             String  @db.VarChar(100)
+  description      String?
+  archetype_source String  @db.VarChar(50)
+  icon             String? @db.VarChar(100)
+  sort_order       Int?    @default(0)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bank_inventory {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bank_id           String           @db.Uuid
+  resource_id       String           @db.Uuid
+  quantity          Int              @default(0)
+  reserved_quantity Int?             @default(0)
+  last_updated_at   DateTime?        @default(now()) @db.Timestamptz(6)
+  guild_banks       guild_banks      @relation(fields: [bank_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resource_catalog  resource_catalog @relation(fields: [resource_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([bank_id, resource_id])
+  @@index([bank_id], map: "idx_bank_inventory_bank")
+  @@index([resource_id], map: "idx_bank_inventory_resource")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bank_transactions {
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bank_id          String                @db.Uuid
+  resource_id      String?               @db.Uuid
+  transaction_type bank_transaction_type
+  quantity         Int
+  gold_amount      BigInt?               @default(0)
+  user_id          String?               @db.Uuid
+  character_id     String?               @db.Uuid
+  notes            String?
+  related_siege_id String?               @db.Uuid
+  created_at       DateTime?             @default(now()) @db.Timestamptz(6)
+  guild_banks      guild_banks           @relation(fields: [bank_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members          members?              @relation(fields: [character_id], references: [id], onUpdate: NoAction)
+  siege_events     siege_events?         @relation(fields: [related_siege_id], references: [id], onUpdate: NoAction)
+  resource_catalog resource_catalog?     @relation(fields: [resource_id], references: [id], onUpdate: NoAction)
+  users            public_users?         @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([bank_id], map: "idx_bank_transactions_bank")
+  @@index([created_at], map: "idx_bank_transactions_created")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model build_comments {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  build_id             String           @db.Uuid
+  user_id              String           @db.Uuid
+  content              String
+  parent_id            String?          @db.Uuid
+  created_at           DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?        @default(now()) @db.Timestamptz(6)
+  builds               builds           @relation(fields: [build_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  build_comments       build_comments?  @relation("build_commentsTobuild_comments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_build_comments build_comments[] @relation("build_commentsTobuild_comments")
+  users                public_users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([build_id], map: "idx_build_comments_build")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model build_likes {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  build_id   String       @db.Uuid
+  user_id    String       @db.Uuid
+  created_at DateTime?    @default(now()) @db.Timestamptz(6)
+  builds     builds       @relation(fields: [build_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([build_id, user_id])
+  @@index([build_id], map: "idx_build_likes_build")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model builds {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_by          String            @db.Uuid
+  group_id            String?           @db.Uuid
+  name                String            @db.VarChar(100)
+  description         String?
+  primary_archetype   String            @db.VarChar(50)
+  secondary_archetype String?           @db.VarChar(50)
+  skills              Json?             @default("[]")
+  augments            Json?             @default("[]")
+  equipment           Json?             @default("{}")
+  stats               Json?             @default("{}")
+  tags                String[]          @default([])
+  role                String?           @db.VarChar(50)
+  visibility          build_visibility? @default(private)
+  views_count         Int?              @default(0)
+  likes_count         Int?              @default(0)
+  copies_count        Int?              @default(0)
+  created_at          DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?         @default(now()) @db.Timestamptz(6)
+  build_comments      build_comments[]
+  build_likes         build_likes[]
+  users               public_users      @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  groups              groups?           @relation(fields: [group_id], references: [id], onUpdate: NoAction)
+
+  @@index([primary_archetype], map: "idx_builds_archetype")
+  @@index([created_by], map: "idx_builds_creator")
+  @@index([group_id], map: "idx_builds_group")
+  @@index([likes_count(sort: Desc)], map: "idx_builds_likes")
+  @@index([tags], map: "idx_builds_tags", type: Gin)
+  @@index([visibility], map: "idx_builds_visibility")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model caravan_escorts {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caravan_id     String         @db.Uuid
+  character_id   String         @db.Uuid
+  user_id        String?        @db.Uuid
+  role           String?        @default("escort") @db.VarChar(50)
+  confirmed      Boolean?       @default(false)
+  checked_in     Boolean?       @default(false)
+  notes          String?
+  signed_up_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  caravan_events caravan_events @relation(fields: [caravan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members        members        @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          public_users?  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([caravan_id, character_id])
+  @@index([caravan_id], map: "idx_caravan_escorts_caravan")
+  @@index([character_id], map: "idx_caravan_escorts_character")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model caravan_events {
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id             String              @db.Uuid
+  created_by           String?             @db.Uuid
+  owner_character_id   String?             @db.Uuid
+  title                String              @db.VarChar(200)
+  description          String?
+  caravan_type         caravan_type        @default(guild)
+  origin_node          String              @db.VarChar(100)
+  destination_node     String              @db.VarChar(100)
+  estimated_distance   Int?
+  departure_at         DateTime            @db.Timestamptz(6)
+  estimated_arrival_at DateTime?           @db.Timestamptz(6)
+  cargo_description    String?
+  cargo_value          Int?                @default(0)
+  min_escorts          Int?                @default(5)
+  max_escorts          Int?                @default(20)
+  status               caravan_status?     @default(planning)
+  completed_at         DateTime?           @db.Timestamptz(6)
+  was_attacked         Boolean?            @default(false)
+  escort_reward_gold   Int?                @default(0)
+  escort_reward_dkp    Int?                @default(0)
+  created_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  activity_log         activity_log[]
+  caravan_escorts      caravan_escorts[]
+  users                public_users?       @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  groups               groups              @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members              members?            @relation(fields: [owner_character_id], references: [id], onUpdate: NoAction)
+  caravan_waypoints    caravan_waypoints[]
+
+  @@index([departure_at], map: "idx_caravan_events_departure")
+  @@index([group_id], map: "idx_caravan_events_group")
+  @@index([status], map: "idx_caravan_events_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model caravan_waypoints {
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caravan_id             String         @db.Uuid
+  order_index            Int
+  location_name          String         @db.VarChar(100)
+  notes                  String?
+  is_danger_zone         Boolean?       @default(false)
+  estimated_time_minutes Int?
+  reached_at             DateTime?      @db.Timestamptz(6)
+  caravan_events         caravan_events @relation(fields: [caravan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([caravan_id], map: "idx_caravan_waypoints_caravan")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model character_ships {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  character_id   String    @db.Uuid
+  ship_id        String
+  ownership_type String
+  notes          String?
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+  members        members   @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([character_id, ship_id, ownership_type])
+  @@index([character_id], map: "idx_character_ships_character_id")
+  @@index([ownership_type], map: "idx_character_ships_ownership_type")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model discord_webhook_logs {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id    String   @db.Uuid
+  game_slug   String?
+  kind        String
+  subject_id  String?
+  actor_id    String   @db.Uuid
+  status      String   @default("pending")
+  http_status Int?
+  error       String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  groups      groups   @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([group_id, created_at(sort: Desc)], map: "discord_webhook_logs_group_created_idx")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dkp_points {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loot_system_id   String             @db.Uuid
+  character_id     String             @db.Uuid
+  current_points   Int?               @default(0)
+  earned_total     Int?               @default(0)
+  spent_total      Int?               @default(0)
+  priority_ratio   Decimal?           @default(1.0) @db.Decimal(5, 2)
+  last_earned_at   DateTime?          @db.Timestamptz(6)
+  last_spent_at    DateTime?          @db.Timestamptz(6)
+  last_decay_at    DateTime?          @db.Timestamptz(6)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  members          members            @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  loot_systems     loot_systems       @relation(fields: [loot_system_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dkp_transactions dkp_transactions[]
+
+  @@unique([loot_system_id, character_id])
+  @@index([character_id], map: "idx_dkp_points_character")
+  @@index([loot_system_id], map: "idx_dkp_points_system")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dkp_transactions {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dkp_points_id String        @db.Uuid
+  amount        Int
+  reason        String        @db.VarChar(200)
+  loot_id       String?       @db.Uuid
+  event_id      String?       @db.Uuid
+  siege_id      String?       @db.Uuid
+  created_by    String?       @db.Uuid
+  created_at    DateTime?     @default(now()) @db.Timestamptz(6)
+  users         public_users? @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dkp_points    dkp_points    @relation(fields: [dkp_points_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  loot_history  loot_history? @relation(fields: [loot_id], references: [id], onUpdate: NoAction)
+  siege_events  siege_events? @relation(fields: [siege_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_dkp_transactions_created")
+  @@index([dkp_points_id], map: "idx_dkp_transactions_points")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model event_rsvps {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id     String       @db.Uuid
+  user_id      String       @db.Uuid
+  character_id String?      @db.Uuid
+  status       rsvp_status? @default(attending)
+  note         String?
+  responded_at DateTime?    @default(now()) @db.Timestamptz(6)
+  role         String?
+  members      members?     @relation(fields: [character_id], references: [id], onUpdate: NoAction)
+  events       events       @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, user_id])
+  @@index([event_id], map: "idx_event_rsvps_event_id")
+  @@index([user_id], map: "idx_event_rsvps_user_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model events {
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id             String              @db.Uuid
+  created_by           String?             @db.Uuid
+  title                String              @db.VarChar(100)
+  description          String?
+  event_type           event_type?         @default(other)
+  starts_at            DateTime            @db.Timestamptz(6)
+  ends_at              DateTime?           @db.Timestamptz(6)
+  location             String?             @db.VarChar(100)
+  max_attendees        Int?
+  is_cancelled         Boolean?            @default(false)
+  created_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?           @default(now()) @db.Timestamptz(6)
+  tanks_min            Int?                @default(0)
+  clerics_min          Int?                @default(0)
+  ranged_dps_min       Int?                @default(0)
+  bards_min            Int?                @default(0)
+  melee_dps_min        Int?                @default(0)
+  tanks_max            Int?
+  clerics_max          Int?
+  bards_max            Int?
+  ranged_dps_max       Int?
+  melee_dps_max        Int?
+  allow_combined_dps   Boolean?            @default(false)
+  combined_dps_max     Int?
+  is_public            Boolean?            @default(false)
+  allow_allied_signups Boolean?            @default(true)
+  game_slug            String              @default("aoc")
+  ror_tanks_min        Int?                @default(0)
+  ror_tanks_max        Int?
+  ror_healers_min      Int?                @default(0)
+  ror_healers_max      Int?
+  ror_dps_min          Int?                @default(0)
+  ror_dps_max          Int?
+  event_rsvps          event_rsvps[]
+  users                public_users?       @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  groups               groups              @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  guest_event_rsvps    guest_event_rsvps[]
+
+  @@index([group_id], map: "idx_events_clan_id")
+  @@index([game_slug], map: "idx_events_game_slug")
+  @@index([group_id, game_slug], map: "idx_events_group_game")
+  @@index([starts_at], map: "idx_events_starts_at")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model freehold_buildings {
+  id                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freehold_id         String                 @db.Uuid
+  building_type       freehold_building_type
+  building_name       String?                @db.VarChar(100)
+  tier                Int?                   @default(1)
+  profession_id       String?                @db.VarChar(50)
+  is_guild_accessible Boolean?               @default(false)
+  usage_fee           Int?                   @default(0)
+  built_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  upgraded_at         DateTime?              @db.Timestamptz(6)
+  freeholds           freeholds              @relation(fields: [freehold_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  freehold_schedules  freehold_schedules[]
+
+  @@index([freehold_id], map: "idx_freehold_buildings_freehold")
+  @@index([building_type], map: "idx_freehold_buildings_type")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model freehold_schedules {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freehold_id        String              @db.Uuid
+  building_id        String?             @db.Uuid
+  day_of_week        Int?
+  start_time         DateTime?           @db.Time(6)
+  end_time           DateTime?           @db.Time(6)
+  notes              String?
+  freehold_buildings freehold_buildings? @relation(fields: [building_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  freeholds          freeholds           @relation(fields: [freehold_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([freehold_id], map: "idx_freehold_schedules_freehold")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model freeholds {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id           String               @db.Uuid
+  owner_id           String               @db.Uuid
+  owner_character_id String?              @db.Uuid
+  name               String               @db.VarChar(100)
+  node_name          String?              @db.VarChar(100)
+  region             String?              @db.VarChar(100)
+  coordinates        String?              @db.VarChar(50)
+  size               freehold_size        @default(medium)
+  is_public          Boolean?             @default(false)
+  description        String?
+  established_at     DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  freehold_buildings freehold_buildings[]
+  freehold_schedules freehold_schedules[]
+  groups             groups               @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members            members?             @relation(fields: [owner_character_id], references: [id], onUpdate: NoAction)
+  users              public_users         @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([group_id], map: "idx_freeholds_group")
+  @@index([node_name], map: "idx_freeholds_node")
+  @@index([owner_id], map: "idx_freeholds_owner")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model game_ship_permissions {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id   String    @db.Uuid
+  game_slug  String
+  min_role   String    @default("member")
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  groups     groups    @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, game_slug])
+  @@index([group_id, game_slug], map: "idx_game_ship_permissions_group_game")
+  @@schema("public")
+}
+
+model game_types {
+  id          String       @id @db.VarChar(50)
+  name        String       @db.VarChar(100)
+  description String?
+  icon        String?      @db.VarChar(5)
+  created_at  DateTime?    @default(now()) @db.Timestamptz(6)
+  user_games  user_games[]
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model group_achievements {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                String                  @db.Uuid
+  achievement_id          String                  @db.Uuid
+  current_value           Int?                    @default(0)
+  is_unlocked             Boolean?                @default(false)
+  unlocked_at             DateTime?               @db.Timestamptz(6)
+  first_contributor_id    String?                 @db.Uuid
+  created_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  achievement_definitions achievement_definitions @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                   public_users?           @relation(fields: [first_contributor_id], references: [id], onUpdate: NoAction)
+  groups                  groups                  @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, achievement_id])
+  @@index([group_id], map: "idx_clan_achievements_group")
+  @@index([is_unlocked], map: "idx_clan_achievements_unlocked")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model group_admin_discord {
+  group_id                   String                      @id @db.Uuid
+  destination_id             String?                     @db.Uuid
+  updated_by                 String                      @db.Uuid
+  updated_at                 DateTime                    @default(now()) @db.Timestamptz(6)
+  role_mentions              Json                        @default("{}")
+  categories                 Json                        @default("{}")
+  admin_discord_destinations admin_discord_destinations? @relation(fields: [destination_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model group_games {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id   String    @db.Uuid
+  game_slug  String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  archived   Boolean?  @default(false)
+  groups     groups    @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, game_slug])
+  @@index([game_slug], map: "idx_group_games_game_slug")
+  @@index([group_id], map: "idx_group_games_group_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model group_members {
+  id                                     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                               String?       @db.Uuid
+  user_id                                String?       @db.Uuid
+  role                                   String        @default("pending") @db.VarChar(20)
+  is_creator                             Boolean?      @default(false)
+  applied_at                             DateTime?     @default(now()) @db.Timestamptz(6)
+  approved_at                            DateTime?     @db.Timestamptz(6)
+  approved_by                            String?       @db.Uuid
+  guild_rank                             String?
+  users_group_members_approved_byTousers public_users? @relation("group_members_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups                                 groups?       @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_group_members_user_idTousers     public_users? @relation("group_members_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, user_id])
+  @@index([group_id], map: "idx_clan_members_clan_id")
+  @@index([user_id], map: "idx_clan_members_user_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model group_permission_overrides {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                  String    @db.Uuid
+  role                      String
+  characters_create         Boolean?  @default(true)
+  characters_read_all       Boolean?  @default(true)
+  characters_edit_own       Boolean?  @default(true)
+  characters_edit_any       Boolean?  @default(false)
+  characters_delete_own     Boolean?  @default(true)
+  characters_delete_any     Boolean?  @default(false)
+  guild_bank_withdraw       Boolean?  @default(false)
+  guild_bank_deposit        Boolean?  @default(true)
+  guild_bank_view_history   Boolean?  @default(false)
+  events_create             Boolean?  @default(false)
+  events_read               Boolean?  @default(true)
+  events_edit_own           Boolean?  @default(false)
+  events_edit_any           Boolean?  @default(false)
+  events_delete_own         Boolean?  @default(false)
+  events_delete_any         Boolean?  @default(false)
+  events_rsvp               Boolean?  @default(true)
+  parties_create            Boolean?  @default(false)
+  parties_read              Boolean?  @default(true)
+  parties_edit_own          Boolean?  @default(false)
+  parties_edit_any          Boolean?  @default(false)
+  parties_delete_own        Boolean?  @default(false)
+  parties_delete_any        Boolean?  @default(false)
+  siege_view_rosters        Boolean?  @default(true)
+  siege_edit_rosters        Boolean?  @default(false)
+  siege_create_event        Boolean?  @default(false)
+  announcements_create      Boolean?  @default(false)
+  announcements_edit        Boolean?  @default(false)
+  announcements_delete      Boolean?  @default(false)
+  recruitment_manage        Boolean?  @default(false)
+  settings_edit             Boolean?  @default(false)
+  settings_edit_roles       Boolean?  @default(false)
+  settings_view_permissions Boolean?  @default(false)
+  created_at                DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime? @default(now()) @db.Timestamptz(6)
+  ships_create              Boolean?  @default(true)
+  ships_edit_own            Boolean?  @default(true)
+  ships_edit_any            Boolean?  @default(false)
+  ships_delete_own          Boolean?  @default(true)
+  ships_delete_any          Boolean?  @default(false)
+  groups                    groups    @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, role])
+  @@index([group_id, role], map: "idx_clan_permission_overrides_clan_role")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model groups {
+  id                                                   String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                                                 String                         @unique @db.VarChar(50)
+  name                                                 String                         @db.VarChar(100)
+  created_at                                           DateTime?                      @default(now()) @db.Timestamptz(6)
+  created_by                                           String?                        @db.Uuid
+  group_webhook_url                                    String?
+  notify_on_events                                     Boolean?                       @default(true)
+  notify_on_announcements                              Boolean?                       @default(true)
+  is_public                                            Boolean?                       @default(false)
+  recruitment_open                                     Boolean?                       @default(false)
+  recruitment_message                                  String?
+  public_description                                   String?
+  banner_url                                           String?
+  group_icon_url                                       String?
+  discord_announcement_role_id                         String?
+  group_welcome_webhook_url                            String?
+  game                                                 String                         @default("aoc") @db.VarChar(50)
+  sc_announcement_role_id                              String?
+  sc_events_role_id                                    String?
+  aoc_webhook_url                                      String?
+  aoc_events_webhook_url                               String?
+  sc_webhook_url                                       String?
+  sc_events_webhook_url                                String?
+  aoc_welcome_enabled                                  Boolean?                       @default(true)
+  sc_welcome_enabled                                   Boolean?                       @default(true)
+  ror_webhook_url                                      String?
+  ror_events_webhook_url                               String?
+  aoc_announcement_role_id                             String?
+  aoc_events_role_id                                   String?
+  ror_announcement_role_id                             String?
+  ror_events_role_id                                   String?
+  approval_required                                    Boolean                        @default(true)
+  default_role                                         String                         @default("trial") @db.VarChar(20)
+  aoc_recruitment_open                                 Boolean?                       @default(false)
+  sc_recruitment_open                                  Boolean?                       @default(false)
+  ror_recruitment_open                                 Boolean?                       @default(false)
+  aoc_recruitment_message                              String?
+  sc_recruitment_message                               String?
+  ror_recruitment_message                              String?
+  aoc_public_description                               String?
+  sc_public_description                                String?
+  ror_public_description                               String?
+  aoc_ranks_enabled                                    Boolean?                       @default(false)
+  sc_ranks_enabled                                     Boolean?                       @default(true)
+  ror_ranks_enabled                                    Boolean?                       @default(false)
+  aoc_custom_ranks                                     Json?                          @default("[]")
+  sc_custom_ranks                                      Json?                          @default("[]")
+  ror_custom_ranks                                     Json?                          @default("[]")
+  wowforever_ranks_enabled                             Boolean?                       @default(false)
+  wowforever_custom_ranks                              Json?                          @default("[]")
+  wowforever_webhook_url                               String?
+  wowforever_events_webhook_url                        String?
+  wowforever_announcement_role_id                      String?
+  wowforever_events_role_id                            String?
+  wowforever_recruitment_open                          Boolean?                       @default(false)
+  wowforever_recruitment_message                       String?
+  wowforever_public_description                        String?
+  achievement_notifications                            achievement_notifications[]
+  activity_log                                         activity_log[]
+  alliance_event_participation                         alliance_event_participation[]
+  alliance_events                                      alliance_events[]
+  alliance_members_alliance_members_group_idTogroups   alliance_members[]             @relation("alliance_members_group_idTogroups")
+  alliance_members_alliance_members_invited_byTogroups alliance_members[]             @relation("alliance_members_invited_byTogroups")
+  alliances                                            alliances[]
+  announcements                                        announcements[]
+  builds                                               builds[]
+  caravan_events                                       caravan_events[]
+  discord_webhook_logs                                 discord_webhook_logs[]
+  events                                               events[]
+  freeholds                                            freeholds[]
+  game_ship_permissions                                game_ship_permissions[]
+  group_achievements                                   group_achievements[]
+  group_games                                          group_games[]
+  group_members                                        group_members[]
+  group_permission_overrides                           group_permission_overrides[]
+  users                                                public_users?                  @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_groups_created_by")
+  guest_event_rsvps                                    guest_event_rsvps[]
+  guild_banks                                          guild_banks?
+  inactivity_alerts                                    inactivity_alerts[]
+  loot_systems                                         loot_systems?
+  member_activity_summary                              member_activity_summary[]
+  members                                              members[]
+  parties                                              parties[]
+  recruitment_applications                             recruitment_applications[]
+  siege_events                                         siege_events[]
+
+  @@index([aoc_recruitment_open], map: "idx_groups_aoc_recruitment", where: raw("(aoc_recruitment_open = true)"))
+  @@index([game], map: "idx_groups_game")
+  @@index([ror_recruitment_open], map: "idx_groups_ror_recruitment", where: raw("(ror_recruitment_open = true)"))
+  @@index([sc_recruitment_open], map: "idx_groups_sc_recruitment", where: raw("(sc_recruitment_open = true)"))
+  @@index([slug], map: "idx_groups_slug")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model guest_event_rsvps {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_id        String    @db.Uuid
+  allied_group_id String?   @db.Uuid
+  guest_name      String    @db.VarChar(255)
+  class_id        String?
+  role            String    @db.VarChar(20)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  guest_email     String?   @db.VarChar(255)
+  status          String?   @default("attending") @db.VarChar(20)
+  groups          groups?   @relation(fields: [allied_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events          events    @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, allied_group_id, guest_name])
+  @@unique([event_id, guest_email, allied_group_id], map: "guest_rsvp_unique_anonymous")
+  @@index([allied_group_id], map: "idx_guest_event_rsvps_allied_group")
+  @@index([event_id], map: "idx_guest_event_rsvps_event")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model guild_banks {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id          String              @unique @db.Uuid
+  name              String?             @default("Guild Bank") @db.VarChar(100)
+  description       String?
+  deposit_min_role  String?             @default("member") @db.VarChar(20)
+  withdraw_min_role String?             @default("officer") @db.VarChar(20)
+  gold_balance      BigInt?             @default(0)
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  bank_inventory    bank_inventory[]
+  bank_transactions bank_transactions[]
+  groups            groups              @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resource_requests resource_requests[]
+
+  @@index([group_id], map: "idx_guild_banks_group")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model inactivity_alerts {
+  id                                             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                                       String        @db.Uuid
+  user_id                                        String        @db.Uuid
+  days_inactive                                  Int
+  alert_level                                    String?       @default("warning") @db.VarChar(20)
+  is_acknowledged                                Boolean?      @default(false)
+  acknowledged_by                                String?       @db.Uuid
+  acknowledged_at                                DateTime?     @db.Timestamptz(6)
+  created_at                                     DateTime?     @default(now()) @db.Timestamptz(6)
+  users_inactivity_alerts_acknowledged_byTousers public_users? @relation("inactivity_alerts_acknowledged_byTousers", fields: [acknowledged_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups                                         groups        @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_inactivity_alerts_user_idTousers         public_users  @relation("inactivity_alerts_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_acknowledged], map: "idx_inactivity_alerts_ack")
+  @@index([group_id], map: "idx_inactivity_alerts_group")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model loot_history {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loot_system_id   String             @db.Uuid
+  item_name        String             @db.VarChar(200)
+  item_rarity      item_rarity?       @default(rare)
+  item_slot        String?            @db.VarChar(50)
+  item_description String?
+  source_type      String?            @db.VarChar(50)
+  source_name      String?            @db.VarChar(100)
+  event_id         String?            @db.Uuid
+  siege_id         String?            @db.Uuid
+  awarded_to       String?            @db.Uuid
+  awarded_by       String?            @db.Uuid
+  dkp_cost         Int?               @default(0)
+  votes_for        Int?               @default(0)
+  votes_against    Int?               @default(0)
+  dropped_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  distributed_at   DateTime?          @db.Timestamptz(6)
+  notes            String?
+  dkp_transactions dkp_transactions[]
+  users            public_users?      @relation(fields: [awarded_by], references: [id], onUpdate: NoAction)
+  members          members?           @relation(fields: [awarded_to], references: [id], onUpdate: NoAction)
+  loot_systems     loot_systems       @relation(fields: [loot_system_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  siege_events     siege_events?      @relation(fields: [siege_id], references: [id], onUpdate: NoAction)
+
+  @@index([awarded_to], map: "idx_loot_history_awarded")
+  @@index([dropped_at], map: "idx_loot_history_dropped")
+  @@index([loot_system_id], map: "idx_loot_history_system")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model loot_systems {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                String            @unique(map: "idx_loot_systems_active_per_group", where: raw("(is_active = true)")) @db.Uuid
+  system_type             loot_system_type? @default(dkp)
+  name                    String            @default("Default") @db.VarChar(100)
+  description             String?
+  is_active               Boolean?          @default(true)
+  starting_points         Int?              @default(0)
+  decay_enabled           Boolean?          @default(false)
+  decay_rate              Decimal?          @default(0) @db.Decimal(5, 2)
+  decay_minimum           Int?              @default(0)
+  raid_attendance_points  Int?              @default(10)
+  siege_attendance_points Int?              @default(15)
+  boss_kill_points        Int?              @default(5)
+  created_at              DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?         @default(now()) @db.Timestamptz(6)
+  dkp_points              dkp_points[]
+  loot_history            loot_history[]
+  groups                  groups            @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([group_id], map: "idx_loot_systems_group")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model member_activity_summary {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id              String       @db.Uuid
+  user_id               String       @db.Uuid
+  last_login_at         DateTime?    @db.Timestamptz(6)
+  last_activity_at      DateTime?    @db.Timestamptz(6)
+  events_attended_30d   Int?         @default(0)
+  sieges_attended_30d   Int?         @default(0)
+  caravans_escorted_30d Int?         @default(0)
+  bank_deposits_30d     Int?         @default(0)
+  total_activities_30d  Int?         @default(0)
+  current_streak_days   Int?         @default(0)
+  longest_streak_days   Int?         @default(0)
+  is_inactive           Boolean?     @default(false)
+  inactive_since        DateTime?    @db.Timestamptz(6)
+  last_calculated_at    DateTime?    @default(now()) @db.Timestamptz(6)
+  groups                groups       @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([group_id, user_id])
+  @@index([group_id], map: "idx_member_activity_group")
+  @@index([is_inactive], map: "idx_member_activity_inactive")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model member_professions {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  member_id     String?  @db.Uuid
+  profession    String   @db.VarChar(50)
+  rank          Int
+  artisan_level Int?     @default(0)
+  quality_score Int?     @default(0)
+  members       members? @relation(fields: [member_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([member_id, profession])
+  @@index([member_id], map: "idx_member_professions_member_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model members {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id               String?              @db.Uuid
+  user_id                String?              @db.Uuid
+  name                   String               @db.VarChar(100)
+  created_at             DateTime?            @default(now()) @db.Timestamptz(6)
+  race                   race?
+  primary_archetype      archetype?
+  secondary_archetype    archetype?
+  level                  Int?                 @default(1)
+  is_main                Boolean?             @default(false)
+  game_slug              String               @default("aoc")
+  preferred_role         String[]
+  subscriber_tier        String?              @db.VarChar(50)
+  subscriber_since       DateTime?            @db.Timestamptz(6)
+  subscriber_ships_month String?              @db.VarChar(7)
+  rank                   String?
+  ror_faction            String?              @db.VarChar(50)
+  ror_class              String?              @db.VarChar(50)
+  discord_id             String?
+  wow_race               String?              @db.VarChar(50)
+  wow_class              String?              @db.VarChar(50)
+  wow_main_spec          String?              @db.VarChar(50)
+  wow_secondary_spec     String?              @db.VarChar(50)
+  wow_profession_1       String?              @db.VarChar(50)
+  wow_profession_2       String?              @db.VarChar(50)
+  wow_faction            String?              @db.VarChar(20)
+  wow_profession_1_rank  String?              @db.VarChar(20)
+  wow_profession_2_rank  String?              @db.VarChar(20)
+  activity_log           activity_log[]
+  bank_transactions      bank_transactions[]
+  caravan_escorts        caravan_escorts[]
+  caravan_events         caravan_events[]
+  character_ships        character_ships[]
+  dkp_points             dkp_points[]
+  event_rsvps            event_rsvps[]
+  freeholds              freeholds[]
+  loot_history           loot_history[]
+  member_professions     member_professions[]
+  groups                 groups?              @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  public_users?        @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  node_citizenships      node_citizenships?
+  party_roster           party_roster[]
+  resource_requests      resource_requests[]
+  siege_roster           siege_roster[]
+
+  @@unique([group_id, user_id, game_slug], map: "idx_members_one_main_per_user_game", where: raw("((is_main = true) AND (user_id IS NOT NULL))"))
+  @@index([group_id], map: "idx_members_clan_id")
+  @@index([discord_id], map: "idx_members_discord_id")
+  @@index([game_slug], map: "idx_members_game_slug")
+  @@index([group_id, discord_id], map: "idx_members_group_discord_id")
+  @@index([group_id, game_slug], map: "idx_members_group_game")
+  @@index([subscriber_tier], map: "idx_members_subscriber_tier", where: raw("(subscriber_tier IS NOT NULL)"))
+  @@index([user_id], map: "idx_members_user_id")
+  @@schema("public")
+}
+
+model migration_history {
+  id         Int       @id @default(autoincrement())
+  filename   String    @unique
+  applied_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model node_citizenships {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  character_id      String    @unique @db.Uuid
+  node_name         String    @db.VarChar(100)
+  node_type         node_type
+  node_stage        Int       @default(3)
+  region            String?   @db.VarChar(100)
+  is_mayor          Boolean?  @default(false)
+  is_council_member Boolean?  @default(false)
+  became_citizen_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  members           members   @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([character_id], map: "idx_node_citizenships_character")
+  @@index([node_name], map: "idx_node_citizenships_node_name")
+  @@index([node_type], map: "idx_node_citizenships_node_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model parties {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id          String         @db.Uuid
+  name              String
+  description       String?
+  tanks_needed      Int?           @default(0)
+  clerics_needed    Int?           @default(0)
+  ranged_dps_needed Int?           @default(0)
+  bards_needed      Int?           @default(0)
+  created_by        String?        @db.Uuid
+  created_at        DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?      @default(now()) @db.Timestamptz(6)
+  melee_dps_needed  Int?           @default(0)
+  users             public_users?  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups            groups         @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  party_roster      party_roster[]
+
+  @@index([group_id], map: "idx_parties_group")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model party_roster {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id     String    @db.Uuid
+  character_id String    @db.Uuid
+  role         String
+  is_confirmed Boolean?  @default(false)
+  assigned_at  DateTime? @default(now()) @db.Timestamptz(6)
+  members      members   @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  parties      parties   @relation(fields: [party_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([party_id, character_id])
+  @@index([character_id], map: "idx_party_roster_character")
+  @@index([party_id], map: "idx_party_roster_party")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model recruitment_applications {
+  id                                                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id                                          String        @db.Uuid
+  user_id                                           String?       @db.Uuid
+  discord_username                                  String
+  character_name                                    String?
+  primary_class                                     String?
+  experience                                        String?
+  availability                                      String?
+  message                                           String?
+  status                                            String?       @default("pending")
+  created_at                                        DateTime?     @default(now()) @db.Timestamptz(6)
+  reviewed_at                                       DateTime?     @db.Timestamptz(6)
+  reviewed_by                                       String?       @db.Uuid
+  review_notes                                      String?
+  game_slug                                         String?
+  groups                                            groups        @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_recruitment_applications_reviewed_byTousers public_users? @relation("recruitment_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_recruitment_applications_user_idTousers     public_users? @relation("recruitment_applications_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([game_slug], map: "idx_applications_game_slug")
+  @@index([group_id], map: "idx_applications_group")
+  @@index([status], map: "idx_applications_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resource_catalog {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String              @unique @db.VarChar(200)
+  category            resource_category
+  subcategory         String?             @db.VarChar(100)
+  rarity              item_rarity?        @default(common)
+  base_value          Int?                @default(0)
+  is_craftable        Boolean?            @default(false)
+  profession_required String?             @db.VarChar(50)
+  created_at          DateTime?           @default(now()) @db.Timestamptz(6)
+  bank_inventory      bank_inventory[]
+  bank_transactions   bank_transactions[]
+  resource_requests   resource_requests[]
+
+  @@index([category], map: "idx_resource_catalog_category")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resource_requests {
+  id                                          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bank_id                                     String           @db.Uuid
+  resource_id                                 String           @db.Uuid
+  requested_by                                String           @db.Uuid
+  character_id                                String?          @db.Uuid
+  quantity                                    Int
+  reason                                      String?
+  status                                      String?          @default("pending") @db.VarChar(20)
+  reviewed_by                                 String?          @db.Uuid
+  reviewed_at                                 DateTime?        @db.Timestamptz(6)
+  fulfilled_at                                DateTime?        @db.Timestamptz(6)
+  created_at                                  DateTime?        @default(now()) @db.Timestamptz(6)
+  guild_banks                                 guild_banks      @relation(fields: [bank_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members                                     members?         @relation(fields: [character_id], references: [id], onUpdate: NoAction)
+  users_resource_requests_requested_byTousers public_users     @relation("resource_requests_requested_byTousers", fields: [requested_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resource_catalog                            resource_catalog @relation(fields: [resource_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_resource_requests_reviewed_byTousers  public_users?    @relation("resource_requests_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+
+  @@index([bank_id], map: "idx_resource_requests_bank")
+  @@index([status], map: "idx_resource_requests_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sc_loaner_matrix {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pledged_ship String
+  loaner_ship  String
+  loaner_type  String?   @default("primary")
+  notes        String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([pledged_ship, loaner_ship, loaner_type])
+  @@index([loaner_ship], map: "idx_sc_loaner_matrix_loaner")
+  @@index([pledged_ship], map: "idx_sc_loaner_matrix_pledged")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model siege_events {
+  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_id              String              @db.Uuid
+  title                 String              @db.VarChar(100)
+  description           String?
+  siege_type            siege_type
+  target_name           String              @db.VarChar(100)
+  starts_at             DateTime            @db.Timestamptz(6)
+  declaration_ends_at   DateTime?           @db.Timestamptz(6)
+  max_participants      Int?                @default(250)
+  frontline_needed      Int?                @default(80)
+  ranged_needed         Int?                @default(60)
+  healer_needed         Int?                @default(40)
+  siege_operator_needed Int?                @default(20)
+  scout_needed          Int?                @default(10)
+  reserve_needed        Int?                @default(40)
+  is_cancelled          Boolean?            @default(false)
+  result                String?             @db.VarChar(20)
+  created_by            String?             @db.Uuid
+  created_at            DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?           @default(now()) @db.Timestamptz(6)
+  activity_log          activity_log[]
+  bank_transactions     bank_transactions[]
+  dkp_transactions      dkp_transactions[]
+  loot_history          loot_history[]
+  users                 public_users?       @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  groups                groups              @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  siege_roster          siege_roster[]
+
+  @@index([group_id], map: "idx_siege_events_group")
+  @@index([starts_at], map: "idx_siege_events_starts_at")
+  @@index([siege_type], map: "idx_siege_events_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model siege_roster {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  siege_id      String         @db.Uuid
+  character_id  String         @db.Uuid
+  user_id       String?        @db.Uuid
+  role          siege_role
+  is_leader     Boolean?       @default(false)
+  priority      Int?           @default(0)
+  status        roster_status? @default(signed_up)
+  signed_up_at  DateTime?      @default(now()) @db.Timestamptz(6)
+  confirmed_at  DateTime?      @db.Timestamptz(6)
+  checked_in_at DateTime?      @db.Timestamptz(6)
+  note          String?
+  members       members        @relation(fields: [character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  siege_events  siege_events   @relation(fields: [siege_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         public_users?  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([siege_id, character_id])
+  @@index([character_id], map: "idx_siege_roster_character")
+  @@index([role], map: "idx_siege_roster_role")
+  @@index([siege_id], map: "idx_siege_roster_siege")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model site_admin_discord {
+  id                         Boolean                     @id @default(true)
+  webhook_override           Boolean                     @default(false)
+  destination_id             String?                     @db.Uuid
+  role_mentions              Json?
+  categories                 Json                        @default("{}")
+  updated_by                 String?                     @db.Uuid
+  updated_at                 DateTime                    @default(now()) @db.Timestamptz(6)
+  admin_discord_destinations admin_discord_destinations? @relation(fields: [destination_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model skill_definitions {
+  id          String  @id @db.VarChar(50)
+  archetype   String  @db.VarChar(50)
+  name        String  @db.VarChar(100)
+  description String?
+  skill_type  String? @db.VarChar(50)
+  icon        String? @db.VarChar(100)
+  sort_order  Int?    @default(0)
+
+  @@schema("public")
+}
+
+model user_games {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?       @db.Uuid
+  game       String?       @db.VarChar(50)
+  joined_at  DateTime?     @default(now()) @db.Timestamptz(6)
+  game_types game_types?   @relation(fields: [game], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      public_users? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, game])
+  @@index([game], map: "idx_user_games_game")
+  @@index([user_id], map: "idx_user_games_user_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model public_users {
+  id                                                                   String                     @id @db.Uuid
+  discord_id                                                           String?                    @unique @db.VarChar(50)
+  discord_username                                                     String?                    @db.VarChar(100)
+  discord_avatar                                                       String?                    @db.VarChar(255)
+  display_name                                                         String?                    @db.VarChar(100)
+  created_at                                                           DateTime?                  @default(now()) @db.Timestamptz(6)
+  timezone                                                             String?                    @default("UTC") @db.VarChar(50)
+  activity_log                                                         activity_log[]
+  alliance_events                                                      alliance_events[]
+  announcements                                                        announcements[]
+  bank_transactions                                                    bank_transactions[]
+  build_comments                                                       build_comments[]
+  build_likes                                                          build_likes[]
+  builds                                                               builds[]
+  caravan_escorts                                                      caravan_escorts[]
+  caravan_events                                                       caravan_events[]
+  dkp_transactions                                                     dkp_transactions[]
+  event_rsvps                                                          event_rsvps[]
+  events                                                               events[]
+  freeholds                                                            freeholds[]
+  group_achievements                                                   group_achievements[]
+  group_members_group_members_approved_byTousers                       group_members[]            @relation("group_members_approved_byTousers")
+  group_members_group_members_user_idTousers                           group_members[]            @relation("group_members_user_idTousers")
+  groups                                                               groups[]
+  inactivity_alerts_inactivity_alerts_acknowledged_byTousers           inactivity_alerts[]        @relation("inactivity_alerts_acknowledged_byTousers")
+  inactivity_alerts_inactivity_alerts_user_idTousers                   inactivity_alerts[]        @relation("inactivity_alerts_user_idTousers")
+  loot_history                                                         loot_history[]
+  member_activity_summary                                              member_activity_summary[]
+  members                                                              members[]
+  parties                                                              parties[]
+  recruitment_applications_recruitment_applications_reviewed_byTousers recruitment_applications[] @relation("recruitment_applications_reviewed_byTousers")
+  recruitment_applications_recruitment_applications_user_idTousers     recruitment_applications[] @relation("recruitment_applications_user_idTousers")
+  resource_requests_resource_requests_requested_byTousers              resource_requests[]        @relation("resource_requests_requested_byTousers")
+  resource_requests_resource_requests_reviewed_byTousers               resource_requests[]        @relation("resource_requests_reviewed_byTousers")
+  siege_events                                                         siege_events[]
+  siege_roster                                                         siege_roster[]
+  user_games                                                           user_games[]
+
+  @@map("users")
+  @@schema("public")
+}
+
+enum achievement_category {
+  guild
+  pvp
+  economy
+  community
+  milestone
+
+  @@schema("public")
+}
+
+enum activity_type {
+  login
+  event_signup
+  event_attend
+  siege_participate
+  caravan_escort
+  bank_deposit
+  loot_received
+  dkp_earned
+  character_update
+  profession_update
+
+  @@schema("public")
+}
+
+enum alliance_status {
+  pending
+  active
+  suspended
+  dissolved
+
+  @@schema("public")
+}
+
+enum archetype {
+  tank
+  cleric
+  mage
+  fighter
+  ranger
+  bard
+  rogue
+  summoner
+
+  @@schema("public")
+}
+
+enum bank_transaction_type {
+  deposit
+  withdrawal
+  transfer
+  craft_input
+  craft_output
+  loot
+  purchase
+  sale
+  adjustment
+
+  @@schema("public")
+}
+
+enum build_visibility {
+  private
+  guild
+  public
+
+  @@schema("public")
+}
+
+enum caravan_status {
+  planning
+  recruiting
+  ready
+  in_transit
+  completed
+  failed
+  cancelled
+
+  @@schema("public")
+}
+
+enum caravan_type {
+  personal
+  guild
+  trade_route
+  escort
+
+  @@schema("public")
+}
+
+/// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+enum event_type {
+  raid
+  siege
+  gathering
+  social
+  other
+  farming_glint
+  farming_materials
+  farming_gear
+  farming_other
+  missions
+  salvaging
+  pirating
+  bounty_hunting
+  dungeon
+  leveling
+  world_pvp
+  battleground_pvp
+  arena_pvp
+
+  @@schema("public")
+}
+
+enum freehold_building_type {
+  smelter
+  lumbermill
+  tannery
+  loom
+  farm
+  stable
+  forge
+  workshop
+  clothier
+  jeweler
+  alchemist_lab
+  kitchen
+  warehouse
+  tavern
+  inn
+  house
+
+  @@schema("public")
+}
+
+enum freehold_size {
+  small
+  medium
+  large
+
+  @@schema("public")
+}
+
+enum item_rarity {
+  common
+  uncommon
+  rare
+  heroic
+  epic
+  legendary
+
+  @@schema("public")
+}
+
+enum loot_system_type {
+  dkp
+  epgp
+  loot_council
+  roll
+  round_robin
+
+  @@schema("public")
+}
+
+enum node_type {
+  divine
+  economic
+  military
+  scientific
+
+  @@schema("public")
+}
+
+enum race {
+  kaelar
+  vaelune
+  dunir
+  nikua
+  empyrean
+  pyrai
+  renkai
+  vek
+  tulnar
+
+  @@schema("public")
+}
+
+enum resource_category {
+  raw_material
+  processed
+  consumable
+  equipment
+  currency
+  blueprint
+  other
+
+  @@schema("public")
+}
+
+enum roster_status {
+  signed_up
+  confirmed
+  checked_in
+  no_show
+
+  @@schema("public")
+}
+
+enum rsvp_status {
+  attending
+  maybe
+  declined
+
+  @@schema("public")
+}
+
+enum siege_role {
+  frontline
+  ranged
+  healer
+  siege_operator
+  scout
+  reserve
+
+  @@schema("public")
+}
+
+enum siege_type {
+  castle_attack
+  castle_defense
+  node_attack
+  node_defense
+
+  @@schema("public")
+}

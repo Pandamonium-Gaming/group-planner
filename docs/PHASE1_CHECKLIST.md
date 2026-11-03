@@ -200,11 +200,33 @@ This repository deploys dev builds from `develop` to Vercel automatically. Use t
 | Slice | Status | Primary owner | Supporting owners | Evidence / notes |
 | --- | --- | --- | --- | --- |
 | PR-06A Runtime decoupling | In progress | `@api-owner` | `@auth-owner`, `@qa-owner` | Priority hooks and settings/event/member surfaces |
-| PR-06B Containerized Postgres rehearsal | Not started | `@data-owner` | `@api-owner`, `@qa-owner` | `docker-compose.stack.yml`, `.env.stack.example` |
-| PR-06C Data migration + naming compatibility | Not started | `@data-owner` | `@api-owner`, `@qa-owner` | File-based dump/restore + `group` canonical naming |
+| PR-06B Containerized Postgres rehearsal | In progress | `@data-owner` | `@api-owner`, `@qa-owner` | Isolated PostgreSQL 17 rehearsal restored and verified; full app runtime not yet decoupled |
+| PR-06C Data migration + naming compatibility | In progress | `@data-owner` | `@api-owner`, `@qa-owner` | 58 development tables copied via file with exact content parity; Prisma baseline replays into a fresh database |
 | PR-06D App cutover to canonical contracts | Not started | `@api-owner` | `@auth-owner`, `@data-owner`, `@qa-owner` | Read-first cutover, then writes, then stabilization |
 
 ### PR-06A First Work Slice (Wave 1 - Locked)
+
+#### Full-exit rehearsal update (2026-11-03)
+
+* User confirmed the full Supabase exit, starting with local Docker Compose.
+* Production authentication must not switch without a separate user approval.
+* A read-only development snapshot was exported to a local archive, the source
+  disconnected, then restored into a separate PostgreSQL 17 container.
+* All 58 application tables matched exact row counts and content digests;
+  constraints were validated. No production data was copied or modified.
+* Prisma baseline migrations recreate application structures and isolated
+  `authjs` session tables from scratch. Existing SQL policies, functions and
+  triggers are retained explicitly rather than lost through ORM schema generation.
+* Standalone services preserve existing application user IDs and custom names,
+  serialize concurrent account creation, and enforce authoritative membership and
+  overrides. Auth v2 rejects unresolved application identities instead of falling
+  back to unrelated Auth.js UUIDs.
+* Real PostgreSQL integration checks cover new/existing identities, permissions
+  and immediate database-session revocation with Supabase credentials absent.
+* **Still blocking app cutover:** remaining Supabase browser/server data paths,
+  storage/asset migration, realtime subscriptions, background workers, operational
+  tooling and complete interactive OAuth/feature parity. The local foundation is
+  not a working full-app Supabase replacement yet.
 
 Wave 1 goal:
 

@@ -411,6 +411,65 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/sync/subscriber-s
 
 ## Development
 
+### Standalone PostgreSQL rehearsal (work in progress)
+
+The full Supabase exit is **not ready for application cutover**. Production keeps
+its existing Supabase authentication and data paths. The current foundation
+provides a verified data copy, Prisma models/migrations and standalone identity,
+profile and permission services. Remaining API, browser, storage, realtime and
+worker integrations still need conversion and parity testing.
+
+The rehearsal is isolated from the older Compose stacks and existing volumes.
+It binds PostgreSQL 17 to loopback port `55439` by default. It does not start
+the app, cron jobs or Discord delivery.
+
+```powershell
+Copy-Item .env.rehearsal.example .env.rehearsal
+# Edit the ignored file: set a unique password and the matching target URL.
+docker compose --env-file .env.rehearsal -f docker-compose.rehearsal.yml up -d --wait db
+corepack yarn db:rehearse
+node --env-file=.env.rehearsal scripts\check-standalone.mts
+```
+
+`db:rehearse` reads the development `DATABASE_URL` from `.env.local`; it accepts
+only the development Supabase project and a loopback database named
+`group_planner_rehearsal`. Target URL parameters are rejected so they cannot
+override the checked host or database. It exports the `public` schema and data from one
+read-only snapshot into an ignored local archive, closes the source connection,
+then restores to the empty local target. Existing targets are never overwritten.
+Every table's row count and order-independent content digest must match; foreign
+keys and check constraints are restored and validated. Preserve the archive and
+manifests for verification; they contain private data and must not be shared.
+Backups and local environment files are excluded from Docker builds.
+
+The standalone check uses a **separate** local database named
+`group_planner_rehearsal_validation`, provisions it using Prisma migrations and
+tests identity preservation, concurrent signup, custom profile names, membership
+and permission overrides, private RPC access and immediate session revocation.
+It never copies source data into this fixture database. The same check runs in CI
+against disposable PostgreSQL.
+
+The checked-in Prisma baseline contains schema only, including existing SQL
+functions, triggers, constraints and RLS policies that Prisma cannot generate.
+The `auth` helper schema is a temporary, local implementation of imported
+actor/policy functions, not a Supabase service; no Supabase auth accounts or
+sessions are copied. Browser/service roles have no standalone table or function
+access. Auth.js tables live separately in `authjs`, never in application
+`public.users`. Do not replace these migrations with schema push operations.
+
+Standalone services are gated by server-only `APP_DATA_BACKEND=postgres` and
+`APP_DATABASE_URL`. Their Auth.js adapter uses `AUTH_DATABASE_URL` with an
+`authjs`-only search path and requires database sessions plus `AUTH_SECRET`.
+Keep `APP_DATA_BACKEND` unset on current deployments. Do not start a mixed
+standalone/Supabase application or switch production flags until all runtime
+paths, storage migration and interactive OAuth validation have passed.
+
+Stop just this rehearsal without deleting its data:
+
+```powershell
+docker compose --env-file .env.rehearsal -f docker-compose.rehearsal.yml stop db
+```
+
 ### Testing
 
 We use **Jest** and **React Testing Library** for comprehensive test coverage.

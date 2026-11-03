@@ -7,6 +7,38 @@ on:
     branches: [main, develop]
 
 jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-ci-validation-only
+          POSTGRES_DB: group_planner_rehearsal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d group_planner_rehearsal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      REHEARSAL_DATABASE_URL: postgresql://postgres:local-ci-validation-only@127.0.0.1:5432/group_planner_rehearsal
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Generate Prisma client
+        run: yarn db:generate
+      - name: Validate standalone migrations and auth data paths
+        run: yarn db:check-standalone
+
   test:
     runs-on: ubuntu-latest
     

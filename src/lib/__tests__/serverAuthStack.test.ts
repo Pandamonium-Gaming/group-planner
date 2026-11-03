@@ -6,6 +6,7 @@ jest.mock('next-auth/providers/discord', () => ({ __esModule: true, default: jes
 jest.mock('@auth/pg-adapter', () => ({ __esModule: true, default: jest.fn() }), { virtual: true });
 jest.mock('pg', () => ({ Pool: jest.fn() }));
 jest.mock('@supabase/supabase-js', () => ({ createClient: jest.fn() }));
+jest.mock('@/server/users/discord-identity', () => ({ resolveStandaloneDiscordUser: jest.fn() }));
 
 const getSession = jest.mocked(getServerSession);
 const originalStack = process.env.AUTH_STACK;

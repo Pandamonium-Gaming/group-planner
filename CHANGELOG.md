@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added a local-only standalone PostgreSQL rehearsal with read-only development export, separate restore, and exact table/content validation; introduced a Prisma baseline preserving application IDs and an isolated Auth.js schema. Full Supabase runtime removal remains in progress.
 * Added per-category administration notification switches and a separate site-administrator notification page with private webhook, role and history controls. Migration 017 preserves enabled defaults and skips queued unsent alerts when disabled; site access requires a server-configured Discord identity allowlist.
 * Added private Discord administration alerts for new accounts, group creation/deletion, membership and role changes, permission overrides and webhook configuration changes. Migration 015 captures committed changes in a private delivery queue; group admins can configure a separate webhook and inspect delivery history. Site alerts use a server-only webhook and an authenticated, every-minute cron worker.
 * Added event class composition and character rosters for WoW Forever, Ashes of Creation and Return of Reckoning, with separate Attending/Maybe totals, guest classes and WoW main specs.
@@ -49,6 +50,7 @@
 
 ### Fixed
 
+* Made auth v2 reject unresolved application identities instead of falling back to an unrelated Auth.js user ID; standalone mode requires database sessions and a configured secret.
 * Fixed site administrator access with Supabase Discord login by matching the verified provider subject instead of Supabase's internal identity ID.
 * Removed the duplicate Pending role selector from permission settings; Pending remains immutable.
 * Aligned guest RSVP class storage with game registry IDs using migration 014; existing UUID values are preserved and displayed as unknown rather than incorrectly mapped to a class.

@@ -40,6 +40,7 @@ ci-logs.txt
 .env.local
 .env.*.local
 .env.local.*
+.env.rehearsal
 !.env.example
 
 # vercel

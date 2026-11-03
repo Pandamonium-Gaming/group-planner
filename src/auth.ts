@@ -4,6 +4,8 @@ import PostgresAdapter from '@auth/pg-adapter';
 import { Pool } from 'pg';
 import { createClient } from '@supabase/supabase-js';
 import { getServerAuthStack } from '@/lib/authStack';
+import { getDataBackend } from '@/server/data/backend';
+import { resolveStandaloneDiscordUser } from '@/server/users/discord-identity';
 
 const discordClientId = process.env.AUTH_DISCORD_ID || process.env.DISCORD_CLIENT_ID;
 const discordClientSecret = process.env.AUTH_DISCORD_SECRET || process.env.DISCORD_CLIENT_SECRET;
@@ -15,6 +17,11 @@ const requestedSessionStrategy = (process.env.AUTH_SESSION_STRATEGY || '').trim(
   ? 'jwt'
   : 'database';
 const useDatabaseSessions = requestedSessionStrategy === 'database' && !!authDatabaseUrl;
+const standalone = getDataBackend() === 'postgres';
+
+if (standalone && (!useDatabaseSessions || !process.env.AUTH_SECRET)) {
+  throw new Error('Standalone authentication requires database sessions, AUTH_DATABASE_URL and AUTH_SECRET');
+}
 
 if (requestedSessionStrategy === 'database' && !authDatabaseUrl) {
   console.warn('AUTH_SESSION_STRATEGY=database but no AUTH_DATABASE_URL set; falling back to jwt sessions.');
@@ -27,10 +34,11 @@ if (!discordClientId || !discordClientSecret) {
 const pool = useDatabaseSessions
   ? new Pool({
       connectionString: authDatabaseUrl,
+      ...(standalone ? { options: '-c search_path=authjs,pg_catalog' } : {}),
     })
   : null;
 
-const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey
+const supabaseAdmin = !standalone && supabaseUrl && supabaseServiceRoleKey
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         persistSession: false,
@@ -85,6 +93,7 @@ async function getLegacySupabaseUserId(discordId: string): Promise<string | null
     discordId: string,
     profile: { displayName: string | null; avatarUrl: string | null }
   ): Promise<string | null> {
+    if (standalone) return resolveStandaloneDiscordUser(discordId, profile);
     if (!supabaseAdmin) {
       return null;
     }
@@ -191,14 +200,16 @@ export const authOptions: NextAuthOptions = {
           : null;
 
         if (discordId) {
-          await getOrCreateLegacySupabaseUserId(discordId, {
+          const userId = await getOrCreateLegacySupabaseUserId(discordId, {
             displayName: user?.name || null,
             avatarUrl: user?.image || null,
           });
+          return !!userId;
         }
       }
 
-      return true;
+      console.error('[auth] Sign-in rejected: verified Discord identity could not be linked');
+      return false;
     },
     async jwt({ token, account, profile }) {
       if (account?.provider === 'discord' && profile && typeof profile === 'object') {
@@ -210,14 +221,14 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token, user }) {
-      const authUserId = user?.id || (typeof token.sub === 'string' ? token.sub : undefined) || null;
+      const authUserId = user?.id || (typeof token?.sub === 'string' ? token.sub : undefined) || null;
       let tokenDiscordId = token && typeof token.discordId === 'string' ? token.discordId : null;
 
       if (!tokenDiscordId && authUserId) {
         tokenDiscordId = await getDiscordAccountId(authUserId);
       }
 
-      let resolvedUserId = authUserId;
+      let resolvedUserId: string | null = null;
       if (tokenDiscordId) {
           const legacyUserId = await getOrCreateLegacySupabaseUserId(tokenDiscordId, {
             displayName: user?.name || session.user?.name || null,
@@ -226,6 +237,11 @@ export const authOptions: NextAuthOptions = {
         if (legacyUserId) {
           resolvedUserId = legacyUserId;
         }
+      }
+
+      if (!resolvedUserId) {
+        console.error('[auth] Session rejected: application account mapping unavailable');
+        throw new Error('Unable to resolve application account for authenticated session');
       }
 
       if (session.user) {

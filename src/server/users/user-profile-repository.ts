@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { getDataBackend } from '@/server/data/backend';
+import { getPrisma } from '@/server/data/prisma';
 
 export interface UserProfileRecord {
   id: string;
@@ -29,6 +31,13 @@ function getSupabaseAdmin() {
 }
 
 export async function findUserProfileById(userId: string): Promise<UserProfileRecord | null> {
+  if (getDataBackend() === 'postgres') {
+    const user = await getPrisma().public_users.findUnique({
+      where: { id: userId },
+      select: { id: true, discord_id: true, discord_username: true, discord_avatar: true, display_name: true, timezone: true },
+    });
+    return user ? { ...user, timezone: user.timezone || 'UTC' } : null;
+  }
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
     throw new Error('Server missing Supabase service credentials');
@@ -54,6 +63,10 @@ export async function findOrCreateUserProfileById(
   const existing = await findUserProfileById(userId);
   if (existing) {
     return existing;
+  }
+
+  if (getDataBackend() === 'postgres') {
+    throw new Error('Authenticated standalone profile is missing; sign in again to resolve identity');
   }
 
   const supabaseAdmin = getSupabaseAdmin();

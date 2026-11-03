@@ -101,3 +101,4 @@ describe('getGroupPermissionsSnapshot', () => {
     expect(snapshot?.permissions.includes('settings_view_permissions')).toBe(true);
   });
 });
+jest.mock('@/server/data/prisma', () => ({ getPrisma: jest.fn() }));
