@@ -1,6 +1,6 @@
 # Permanently delete a game for a group — design
 
-Status: draft for approval. Date: 2026-11-03.
+Status: draft for approval. Date: 2026-11-03. Decisions on the existing route and card button recorded below.
 
 ## Intent
 
@@ -61,8 +61,8 @@ Group-wide tables with no game tag: `parties`, `announcements`, `siege_events`, 
 - The server re-checks admin role and archived state inside the database function, not only in the route, and locks the `group_games` row so concurrent archive/restore/delete cannot interleave.
 - Implemented as a single Postgres function (SECURITY DEFINER, `search_path = ''`, `EXECUTE` granted to `service_role` only), following the pattern of the character-transfer function in migration 011 and the save functions in 015–017. Migration number 018.
 - Confirmation text is validated on the server too: the request carries the typed name and the server compares it with the game's display name.
-- Route: extend `/api/group/games` with a new method or sub-route such as `POST /api/group/games/delete` (builder's choice; do not overload the existing `DELETE`, which only removes the enabled-game row and is not archived-gated).
-- **Existing "remove game" button.** The group home page ([page.tsx](../../../src/app/[group]/page.tsx), around line 455) already shows a red trash button on each non-archived game card for anyone with `settings_edit`. It calls `removeGameFromGroup`, which deletes only the `group_games` row, with no confirmation, and leaves all the game's data orphaned in the database. It bypasses the archive-first rule, and `DELETE /api/group/games` (admin-only) is equally unguarded. The new flow must replace it: remove that card button (or repoint it to archive), and make the API `DELETE` either reject or call the same guarded function, otherwise admins can still reach a data-orphaning path that skips archive-first. Recommended: remove the button and the helper, and have `DELETE` return 409. This changes behaviour for admins who use the card button today, so note it in the changelog. (Product owner has not yet decided; see the questions at hand-over.)
+- **Route (decided):** rework the existing `DELETE /api/group/games` ([route.ts](../../../src/app/api/group/games/route.ts)) to run the new deletion function instead of removing only the `group_games` row. Request body: `{ groupId, gameSlug, confirmName }`. It stays admin-only. It returns 409 if the game is not archived and 400 if `confirmName` does not match the game's display name. No new route.
+- **Remove the home-page card button (decided).** The red trash button on non-archived game cards ([page.tsx](../../../src/app/[group]/page.tsx), around line 455) and its `handleRemoveGame`/`removingGame` state are deleted. It removed only the `group_games` row, with no confirmation, and orphaned the game's data. Delete the now-unused `removeGameFromGroup` helper in [group-games.ts](../../../src/lib/group-games.ts) too; the settings dialog calls the API directly or through a new helper that sends the confirmation. Admins who used the card button now archive first, then delete from Game Management; record this behaviour change in the changelog.
 - Errors use the stable-code pattern from admin-errors.ts, with localised strings in en-GB, es and nl.
 
 ## Notification
