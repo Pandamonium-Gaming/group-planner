@@ -97,7 +97,7 @@ The deletion function inserts the notification itself, inside the same transacti
 
 ## Implementation notes
 
-- **Recruitment applications gap:** the function deletes `recruitment_applications` by `game_slug`, but the recruitment form does not currently set `game_slug`, so applications have NULL tags and are not removed. In practice applications are not erased by game deletion. Known limitation.
+- **Recruitment applications:** the function deletes `recruitment_applications` by `game_slug`. The recruitment form now tags new applications with the chosen game, so they are removed on game deletion. Applications submitted before this change have a NULL `game_slug` (not backfilled) and are kept. Known limitation.
 - **Trigger re-created:** the `remove_loaner_ships_for_pledge` trigger function was re-created in migration 020 with `public.`-qualified names so it works inside the deletion function's `search_path = ''`.
 - **Pre-existing loaner-trigger bug:** that trigger is BEFORE DELETE, so deleting a Star Citizen member who has a pledged ship and its loaner aborts. The function therefore deletes ships in two ordered statements to avoid it. Follow-up: make the trigger AFTER DELETE.
 - **Last game cannot be deleted:** `delete_group_game` raises `LAST_GAME` (409 `game_last`) when the group has no other `group_games` row (the legacy `star-citizen` alias row counts as the same game). The check runs after admin, found, archived and confirmation checks and before anything is deleted. Reason: `src/app/[group]/page.tsx` treats a group with zero `group_games` rows as all games enabled (legacy groups were never backfilled), so deleting the last row would make every game, including the deleted one, reappear. Known limitation; backfilling legacy groups would lift it.

@@ -64,8 +64,15 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('group_id', clan.id);
 
+    // Games the group has configured (public, non-sensitive); used by the recruitment form
+    const { data: groupGames } = await supabaseAdmin
+      .from('group_games')
+      .select('game_slug, archived')
+      .eq('group_id', clan.id);
+
     return NextResponse.json({
       clan,
+      groupGames: groupGames || [],
       memberCount: memberCount || 0,
       characterCount: characterCount || 0,
       upcomingEvents: eventCount || 0,
