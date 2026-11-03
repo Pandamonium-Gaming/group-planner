@@ -599,3 +599,4 @@
 
 * Restored role colors and creator-first member sorting in member management lists.
 * Bug where `guild_bank_manage` permission was referenced but not defined in PERMISSIONS constant
+* Fixed site administrator access with Supabase Discord login by matching the verified provider subject instead of Supabase's internal identity ID.
