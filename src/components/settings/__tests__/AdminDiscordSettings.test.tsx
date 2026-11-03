@@ -30,7 +30,7 @@ afterEach(() => jest.restoreAllMocks());
 it('shows private configuration status and delivery history without exposing a saved URL', async () => {
   render(<AdminDiscordSettings groupId="group-1" />);
   expect(await screen.findByText('An admin webhook is configured.')).toBeInTheDocument();
-  expect(screen.getByText('Member role changed')).toBeInTheDocument();
+  expect(screen.getByText('Member role changed', { selector: 'p' })).toBeInTheDocument();
   expect(screen.getByText(/Delivery uncertain/)).toBeInTheDocument();
   const input = screen.getByLabelText('New or replacement admin webhook URL');
   expect(input).toHaveAttribute('type', 'password');
@@ -79,7 +79,7 @@ it('shows authorization/load errors and never displays stale records', async () 
   fetchMock.mockResolvedValue({ ok: false, status: 403 });
   render(<AdminDiscordSettings groupId="group-1" />);
   expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load or save');
-  expect(screen.queryByText('Member role changed')).not.toBeInTheDocument();
+  expect(screen.queryByText('Member role changed', { selector: 'p' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
 });
 
@@ -93,4 +93,17 @@ it('shows save failures and retains the unsaved value for correction', async () 
   expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load or save');
   expect(input).toHaveValue('invalid');
   expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+});
+
+it('saves per-type role mentions without replacing the private webhook', async () => {
+  render(<AdminDiscordSettings groupId="group-1" />);
+  await screen.findByText('An admin webhook is configured.');
+  const input = screen.getByLabelText('Member role changed');
+  fireEvent.change(input, { target: { value: '123456789012345678' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save role mentions' }));
+  await screen.findByText('Saved!');
+  expect(fetchMock).toHaveBeenCalledWith('/api/group/admin-notifications', expect.objectContaining({
+    method: 'POST', body: JSON.stringify({ group_id: 'group-1', role_mentions: { role_changed: '123456789012345678' } }),
+  }));
+  expect(screen.getByLabelText('New or replacement admin webhook URL')).toHaveValue('');
 });

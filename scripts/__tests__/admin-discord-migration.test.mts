@@ -38,6 +38,8 @@ test('admin queue captures committed changes, protects secrets, survives deletio
       CREATE TABLE ${table('migration_history')} (filename text PRIMARY KEY);
     `);
     await client.query(sql);
+    const roleMigration = await readFile(new URL('../../supabase/migrations/016_admin_notification_role_mentions.sql', import.meta.url), 'utf8');
+    await client.query(roleMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const rows = async () => (await client.query(`SELECT * FROM ${table('admin_discord_notifications')} ORDER BY created_at, id`)).rows;
     await client.query(`INSERT INTO ${table('users')} VALUES ($1,'Admin','admin'),($2,'Member','member')`, [admin, member]);
     assert.equal((await rows()).filter(row => row.kind === 'account_registered').length, 2);
@@ -72,6 +74,23 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     const count = (await rows()).length;
     await client.query(`UPDATE ${table('group_members')} SET guild_rank='Veteran' WHERE id=$1`, [membership]);
     assert.equal((await rows()).length, count, 'Unrelated changes must not notify');
+    const roleId = '123456789012345678';
+    await client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,$2,$3)`,
+      [group, JSON.stringify({ role_changed: roleId }), admin]);
+    await client.query(`UPDATE ${table('group_members')} SET role='member' WHERE id=$1`, [membership]);
+    assert.ok((await rows()).some(row => row.kind === 'role_changed' && row.mention_role_id === roleId));
+    assert.equal(roleChange.mention_role_id, null, 'Existing queued events must not gain a mention retroactively');
+    await client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,'{}',$2)`, [group, admin]);
+    assert.ok((await rows()).some(row => row.mention_role_id === roleId), 'Clearing config must preserve queued mention snapshot');
+    for (const invalid of [{ role_changed: '@everyone' }, { unknown: roleId }, { role_changed: 123 }, []]) {
+      await client.query('SAVEPOINT invalid_roles');
+      await assert.rejects(client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,$2,$3)`,
+        [group, JSON.stringify(invalid), admin]), /Invalid role configuration/);
+      await client.query('ROLLBACK TO SAVEPOINT invalid_roles');
+    }
+    await client.query('SAVEPOINT denied_roles');
+    await assert.rejects(client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,'{}',$2)`, [group, member]), /Administrator access required/);
+    await client.query('ROLLBACK TO SAVEPOINT denied_roles');
     const permission = randomUUID();
     await client.query(`INSERT INTO ${table('group_permission_overrides')} VALUES ($1,$2,'officer',true,now())`, [permission, group]);
     await client.query(`UPDATE ${table('group_permission_overrides')} SET updated_at=now() WHERE id=$1`, [permission]);
@@ -103,7 +122,7 @@ test('admin queue captures committed changes, protects secrets, survives deletio
         const { rows: access } = await client.query('SELECT has_table_privilege($1,$2,\'SELECT\') AS read, has_table_privilege($1,$2,\'INSERT,UPDATE,DELETE\') AS write', [role, `${schema}.${name}`]);
         assert.deepEqual(access[0], { read: false, write: false });
       }
-      for (const signature of ['claim_admin_discord_notifications()', 'save_group_admin_discord(uuid,text,uuid)', 'capture_admin_discord_change()']) {
+      for (const signature of ['claim_admin_discord_notifications()', 'save_group_admin_discord(uuid,text,uuid)', 'capture_admin_discord_change()', 'save_group_admin_discord_roles(uuid,jsonb,uuid)', 'capture_admin_discord_mention()']) {
         const { rows: execute } = await client.query('SELECT has_function_privilege($1,$2,\'EXECUTE\') AS allowed', [role, `${schema}.${signature}`]);
         assert.equal(execute[0].allowed, false);
       }

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { webhookHeaders } from '@/lib/webhookClient';
+import { ADMIN_NOTIFICATION_KINDS, type AdminRoleMentions } from '@/lib/adminNotifications';
 
 interface AdminLog {
   id: string;
@@ -25,6 +26,9 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [refresh, setRefresh] = useState(0);
+  const [roleMentions, setRoleMentions] = useState<AdminRoleMentions>({});
+  const [rolesDirty, setRolesDirty] = useState(false);
+  const rolesEdited = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -36,11 +40,12 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
           credentials: 'include', cache: 'no-store', headers: await webhookHeaders(),
         });
         if (!response.ok) throw new Error(`Unable to load admin notifications (${response.status})`);
-        const data = await response.json() as { configured: boolean; logs: AdminLog[]; hasMore: boolean };
+        const data = await response.json() as { configured: boolean; role_mentions?: AdminRoleMentions; logs: AdminLog[]; hasMore: boolean };
         if (active) {
           setConfigured(data.configured);
           setLogs(data.logs);
           setHasMore(data.hasMore);
+          if (!rolesEdited.current) setRoleMentions(data.role_mentions || {});
         }
       } catch {
         console.error('[admin-discord] Unable to load private group notification settings');
@@ -52,6 +57,28 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
     void load();
     return () => { active = false; };
   }, [groupId, page, refresh]);
+
+  async function saveRoles() {
+    setSaving(true);
+    setSaved(false);
+    setError(false);
+    try {
+      const response = await fetch('/api/group/admin-notifications', {
+        method: 'POST', credentials: 'include', headers: await webhookHeaders(),
+        body: JSON.stringify({ group_id: groupId, role_mentions: roleMentions }),
+      });
+      if (!response.ok) throw new Error('Unable to save admin role mentions');
+      setRolesDirty(false);
+      rolesEdited.current = false;
+      setSaved(true);
+      setRefresh(value => value + 1);
+    } catch {
+      console.error('[admin-discord] Unable to save notification role mentions');
+      setError(true);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function save(disable: boolean) {
     setSaving(true);
@@ -94,6 +121,35 @@ export function AdminDiscordSettings({ groupId }: { groupId: string }) {
           <button type="button" onClick={() => void save(true)} disabled={loading || saving || !configured}
             className="px-3 py-2 rounded bg-slate-700 text-white disabled:opacity-50">{t('adminNotifications.disable')}</button>
         </div>
+      </form>
+      <form className="space-y-3" onSubmit={event => { event.preventDefault(); void saveRoles(); }}>
+        <h4 className="text-white font-medium">{t('adminNotifications.roleMentions')}</h4>
+        <p className="text-xs text-slate-400">{t('adminNotifications.roleMentionsHint')}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ADMIN_NOTIFICATION_KINDS.filter(kind => kind !== 'account_registered' && kind !== 'group_created').map(kind => (
+            <label key={kind} className="block text-sm text-slate-300">
+              {t(`adminNotifications.kinds.${kind}`)}
+              <input type="text" inputMode="numeric" pattern="[0-9]{17,20}" maxLength={20}
+                value={roleMentions[kind] || ''} disabled={loading || saving}
+                placeholder={t('adminNotifications.noMention')}
+                onChange={event => {
+                  const value = event.target.value.trim();
+                  setRoleMentions(previous => {
+                    const next = { ...previous };
+                    if (value) next[kind] = value;
+                    else delete next[kind];
+                    return next;
+                  });
+                  setRolesDirty(true);
+                  rolesEdited.current = true;
+                  setSaved(false);
+                }}
+                className="block w-full min-w-0 mt-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white" />
+            </label>
+          ))}
+        </div>
+        <button type="submit" disabled={loading || saving || !rolesDirty}
+          className="px-3 py-2 rounded bg-purple-700 text-white disabled:opacity-50">{t('adminNotifications.saveRoles')}</button>
       </form>
       {saved && <p role="status" className="text-green-400">{t('common.saved')}</p>}
       {error && <p role="alert" className="text-red-400">{t('adminNotifications.failed')}</p>}

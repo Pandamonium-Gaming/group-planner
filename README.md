@@ -114,12 +114,19 @@ Group/user deletion cannot erase queued notifications. A removal alert does not
 distinguish voluntary departure, administrator removal or account deletion.
 There is no new banning mechanism.
 
-Messages identify the subject and show role/permission before-and-after values.
+Messages use display names (falling back to Discord usernames) for actors and
+affected accounts, without exposing account UUIDs in the message fields. Deleted
+accounts retain their captured subject name where available; missing names are
+labelled unavailable. The audit ID remains in the footer for investigation.
+Every change type has a distinct colour. Links open the relevant Members,
+Permissions, Discord or Admin alerts tab when the group still exists and
+`NEXT_PUBLIC_SITE_URL` is configured. Deleted groups have no settings link.
+Messages show readable role/permission before-and-after values.
 Absent overrides are labelled as default, not as a guessed effective permission.
 Actor IDs come from authenticated database requests where available; service-role
 changes without that identity explicitly say the actor is unavailable. Admin
 webhook saves identify the verified administrator. Messages use native Discord
-timestamps and suppress all mentions. No emails or webhook URLs appear in alerts.
+timestamps. No emails or webhook URLs appear in alerts.
 Webhook configuration alerts identify changed fields, never credential values.
 Large permission diffs are truncated to Discord's field limit; the private queue
 retains the complete change metadata.
@@ -148,6 +155,31 @@ or deletion. Destination versions and audit metadata are retained for service-si
 investigation; administrators managing retention must preserve destinations still
 referenced by queued deliveries. Delivery history contains no webhook credentials,
 emails or complete Discord message payloads.
+
+#### Optional administration role mentions
+
+Apply [migration 016](./supabase/migrations/016_admin_notification_role_mentions.sql)
+before deploying role mention configuration. Group Settings is organised into
+General, Members, Permissions, Discord, Admin alerts, Recruitment and Games tabs.
+Under **Admin alerts**, save one optional Discord role ID per notification type.
+Blank means no mention. Enable Discord Developer Mode and use **Copy Role ID**;
+do not paste a role name or a `<@&...>` mention. The webhook must be permitted to
+mention that role. Saving role mentions is separate from changing the webhook.
+
+Site operators configure the server-only `ADMIN_DISCORD_ROLE_MENTIONS` variable
+as a JSON object, for example:
+
+```json
+{"account_registered":"123456789012345678","group_created":"234567890123456789","group_deleted":"345678901234567890"}
+```
+
+Only the selected role for that notification type is allowed to be mentioned;
+user mentions, `@everyone` and `@here` stay suppressed. The default is `{}` (no
+pings). Group role choices are captured when a change is queued, so later edits
+do not alter queued notifications. Site role choices are read from the server
+environment at delivery. Existing queued group alerts have no role mention.
+Invalid role configuration fails explicitly rather than sending an unintended
+ping. Site account/group-creation roles cannot be changed by group admins.
 
 To run the migration regression against a development PostgreSQL database,
 set `GP_MIGRATION_TEST_DATABASE_URL` and run:

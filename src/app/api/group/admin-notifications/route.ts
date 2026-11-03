@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { webhookSession } from '@/server/discord';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
+import { isAdminRoleMentions } from '@/lib/adminNotifications';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
     const { client, groupId } = context;
     const { data: config, error: configError } = await client.from('group_admin_discord')
-      .select('destination_id').eq('group_id', groupId).maybeSingle();
+      .select('destination_id,role_mentions').eq('group_id', groupId).maybeSingle();
     if (configError) throw new Error('Unable to load admin configuration');
     const { data: logs, error: logsError } = await client.from('admin_discord_notifications')
       .select('id,kind,status,http_status,error,created_at')
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(page * 20, page * 20 + 20);
     if (logsError) throw new Error('Unable to load admin notification history');
-    return NextResponse.json({ configured: !!config?.destination_id, logs: logs.slice(0, 20), hasMore: logs.length > 20 });
+    return NextResponse.json({ configured: !!config?.destination_id, role_mentions: config?.role_mentions || {}, logs: logs.slice(0, 20), hasMore: logs.length > 20 });
   } catch {
     console.error('[admin-discord] Unable to load group admin notifications');
     return NextResponse.json({ error: 'Unable to load admin notifications' }, { status: 500 });
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { group_id?: unknown; webhook_url?: unknown };
+  let body: { group_id?: unknown; webhook_url?: unknown; role_mentions?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -53,6 +54,16 @@ export async function POST(request: NextRequest) {
   try {
     const context = await adminContext(request, body.group_id);
     if (context.response) return context.response;
+    if ('role_mentions' in body) {
+      if (!isAdminRoleMentions(body.role_mentions) || 'webhook_url' in body) {
+        return NextResponse.json({ error: 'Invalid notification role configuration' }, { status: 400 });
+      }
+      const { error } = await context.client.rpc('save_group_admin_discord_roles', {
+        p_group_id: context.groupId, p_roles: body.role_mentions, p_actor_id: context.userId,
+      });
+      if (error) throw new Error('Unable to save admin role mentions');
+      return NextResponse.json({ success: true });
+    }
     if (typeof body.webhook_url !== 'string') {
       return NextResponse.json({ error: 'Webhook URL must be a string (empty to disable)' }, { status: 400 });
     }
