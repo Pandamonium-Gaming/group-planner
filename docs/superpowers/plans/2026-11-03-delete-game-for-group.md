@@ -36,11 +36,13 @@
 ### Task 1: `game_deleted` notification kind
 
 **Files:**
+
 - Create: `supabase/migrations/019_admin_notification_game_deleted.sql`
 - Modify: `src/lib/adminNotifications.ts`, `src/server/admin-discord.ts` (titles, colors, link section), `public/locales/{en-GB,es,nl}.json` (`adminNotifications.kinds.game_deleted`)
 - Test: `src/server/__tests__/admin-discord.test.ts`, `scripts/__tests__/admin-discord-migration.test.mts`
 
 **Interfaces:**
+
 - Produces: kind string `'game_deleted'` (destination `'group'`) accepted by the `admin_discord_notifications.kind` CHECK, by `save_admin_discord_preferences`, and by `isAdminCategorySettings`/`isAdminRoleMentions`; `AdminNotification.changes` may hold `{ game: <display name> }`.
 
 - [ ] **Step 1: Write failing tests.** In `admin-discord.test.ts`: `adminNotificationPayload` for kind `game_deleted` returns an embed whose title is "Game deleted" and whose fields contain the game name from `changes.game`; and `isAdminCategorySettings({ game_deleted: false })` is true. In the migration test: after applying 015–019, inserting a row with kind `game_deleted` succeeds and `save_admin_discord_preferences` accepts `{"game_deleted": true}`.
@@ -53,10 +55,12 @@
 ### Task 2: Suppress the duplicate `webhook_changed` alert
 
 **Files:**
+
 - Create: `supabase/migrations/020_suppress_alert_flag.sql` (replaces `capture_admin_discord_change` from 015 with a flag check)
 - Test: `scripts/__tests__/admin-discord-migration.test.mts`
 
 **Interfaces:**
+
 - Produces: when the transaction-local setting `app.suppress_admin_config_alert` equals `'on'` (set via `set_config('app.suppress_admin_config_alert','on',true)`), the trigger's final `ELSE` branch (groups webhook/role column changes) returns `NEW` without queuing anything. All other branches unchanged.
 
 - [ ] **Step 1: Write the failing test.** In the migration test, apply 015–020: updating a `groups.*_webhook_url` queues one `webhook_changed` row; with the setting on in the same transaction it queues none.
@@ -68,9 +72,11 @@
 ### Task 3: `delete_group_game` database function
 
 **Files:**
+
 - Create: `supabase/migrations/021_delete_group_game.sql`, `scripts/__tests__/delete-group-game-migration.test.mts`
 
 **Interfaces:**
+
 - Produces: `public.delete_group_game(p_group_id uuid, p_game_slug text, p_confirm_name text, p_expected_name text, p_actor_id uuid) RETURNS void`. Raises exceptions whose `MESSAGE` is exactly one of `NOT_ADMIN`, `GAME_NOT_FOUND`, `GAME_NOT_ARCHIVED`, `CONFIRMATION_MISMATCH`. Executable by `service_role` only.
 - Order of checks: actor is `admin` in `group_members` → lock the `group_games` row (`FOR UPDATE`; none → `GAME_NOT_FOUND`) → `archived` true → `p_confirm_name = p_expected_name`.
 
@@ -91,10 +97,12 @@
 ### Task 4: Rework `DELETE /api/group/games`
 
 **Files:**
+
 - Modify: `src/app/api/group/games/route.ts`, `src/server/admin-errors.ts` (codes `game_not_found`, `game_not_archived`, `game_confirmation`, `game_delete`), `public/locales/{en-GB,es,nl}.json` (`adminNotifications.errors.*` are for site settings; add `gameManagement.errors.*` instead)
 - Test: `src/app/api/group/games/__tests__/route.test.ts`
 
 **Interfaces:**
+
 - Consumes: `delete_group_game` RPC from Task 3; game display name from the game registry in `src/config` (find the existing lookup by slug).
 - Produces: `DELETE /api/group/games` body `{ groupId: string, gameSlug: string, confirmName: string }`. Responses: 200 `{ success: true }`; 400 `{code:'game_confirmation'}` or missing fields; 401; 403; 404 `{code:'game_not_found'}` (also for an unknown slug); 409 `{code:'game_not_archived'}`; 500 `{code:'game_delete'}`. Each error body is `{ error, code }`.
 
@@ -107,10 +115,12 @@
 ### Task 5: Game Management dialog; remove the home-page button
 
 **Files:**
+
 - Modify: `src/components/settings/GameManagement.tsx`, `src/lib/group-games.ts` (add `deleteGameForGroup(groupId, gameSlug, confirmName): Promise<{ ok: true } | { ok: false; code: string | null }>` calling the route; delete `removeGameFromGroup`), `src/app/[group]/page.tsx` (remove the trash button, `handleRemoveGame`, `removingGame` state and the import), `public/locales/{en-GB,es,nl}.json` (`gameManagement.delete*` strings and `gameManagement.errors.*` from Task 4)
 - Test: `src/components/settings/__tests__/GameManagement.test.tsx` (create or extend); update any `[group]` page test that referenced the button
 
 **Interfaces:**
+
 - Consumes: `DELETE /api/group/games` contract from Task 4.
 
 - [ ] **Step 1: Write failing component tests.** (a) **Delete permanently** shows only on archived games; (b) the dialog's confirm button stays disabled until the typed text equals the game name exactly; (c) confirming calls `deleteGameForGroup` with the typed text, closes and removes the game from the list on success; (d) on `{ ok:false, code:'game_not_archived' }` the dialog stays open showing the localised message; (e) the home page no longer renders the "Remove this game from the group" control.
@@ -122,6 +132,7 @@
 ### Task 6: Docs and changelog
 
 **Files:**
+
 - Modify: `CHANGELOG.md` (Unreleased → Added/Changed/Fixed as appropriate; CRLF line endings), `docs/ADDING_NEW_GAMES.md` (new section: register the game's per-game `groups` columns in `delete_group_game` and update the mapping test), the spec (migration numbers are 019–021, not 019 only)
 
 - [ ] **Step 1: Write** the changelog entries: new permanent delete (archive first, typed name, one admin alert, group-wide untagged tables are kept); removed the home-page remove button; the `DELETE /api/group/games` contract change.
