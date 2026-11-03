@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Archive, ArchiveRestore, Loader2, Check, AlertCircle, Trash2 } from 'lucide-react';
 import { getGroupGames, archiveGameForGroup, unarchiveGameForGroup, deleteGameForGroup } from '@/lib/group-games';
 import { getAllGames } from '@/lib/games';
@@ -12,6 +12,15 @@ interface GameManagementProps {
   groupId: string;
   onUpdate?: () => void;
 }
+
+const DELETE_ERROR_CODES = [
+  'unauthorized',
+  'game_forbidden',
+  'game_not_found',
+  'game_not_archived',
+  'game_confirmation',
+  'game_delete',
+] as const;
 
 interface GameStatus {
   slug: string;
@@ -135,12 +144,12 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
     setDeleteError(null);
   };
 
-  const closeDelete = () => {
+  const closeDelete = useCallback(() => {
     if (deleting) return;
     setDeleteTarget(null);
     setConfirmText('');
     setDeleteError(null);
-  };
+  }, [deleting]);
 
   const handleDelete = async () => {
     if (!deleteTarget || deleting || confirmText !== deleteTarget.name) return;
@@ -159,9 +168,10 @@ export function GameManagement({ groupId, onUpdate }: GameManagementProps) {
         onUpdate?.();
         setTimeout(() => setSuccessMessage(null), 3000);
       } else {
-        const key = result.code ? `gameManagement.errors.${result.code}` : null;
-        const localised = key ? t(key) : null;
-        setDeleteError(localised && localised !== key ? localised : t('gameManagement.deleteFailed'));
+        const known = (DELETE_ERROR_CODES as readonly (string | null)[]).includes(result.code);
+        setDeleteError(
+          known ? t(`gameManagement.errors.${result.code}`) : t('gameManagement.deleteFailed'),
+        );
       }
     } catch {
       setDeleteError(t('gameManagement.deleteFailed'));

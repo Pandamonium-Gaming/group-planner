@@ -13,7 +13,8 @@ jest.mock('@/contexts/LanguageContext', () => ({
     for (const part of key.split('.')) {
       value = value && typeof value === 'object' && part in value ? Reflect.get(value, part) : undefined;
     }
-    if (typeof value !== 'string') return key;
+    // Mirror the real t(): a miss returns the last key segment, not the full key.
+    if (typeof value !== 'string') return key.split('.').pop() as string;
     return value.replace(/\{\{(\w+)\}\}/g, (_, k) => params?.[k] ?? '');
   } }),
 }));
@@ -79,8 +80,7 @@ it('deletes with the typed text, closes, removes the game and shows success', as
   mocked.deleteGameForGroup.mockResolvedValue({ ok: true });
   await openDialog();
   fireEvent.change(screen.getByRole('textbox'), { target: { value: ARCHIVED_NAME } });
-  mocked.getGroupGames.mockImplementation(async (_g: string, includeArchived?: boolean) =>
-    includeArchived ? ['wowforever'] : ['wowforever']);
+  mocked.getGroupGames.mockImplementation(async () => ['wowforever']);
   fireEvent.click(confirmButton());
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(mocked.deleteGameForGroup).toHaveBeenCalledWith('group-1', 'aoc', ARCHIVED_NAME);
@@ -98,11 +98,12 @@ it('keeps the dialog open with the localised message for a known error code', as
   expect(dialog).toBeInTheDocument();
 });
 
-it.each(['bad_request', null])('falls back to the generic message for code %s', async (code) => {
+it.each(['bad_request', 'totally_unknown', null])('falls back to the generic message for code %s', async (code) => {
   mocked.deleteGameForGroup.mockResolvedValue({ ok: false, code });
   await openDialog();
   fireEvent.change(screen.getByRole('textbox'), { target: { value: ARCHIVED_NAME } });
   fireEvent.click(confirmButton());
   expect(await screen.findByText(en.gameManagement.deleteFailed)).toBeInTheDocument();
+  if (code) expect(screen.queryByText(code)).not.toBeInTheDocument();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
 });
