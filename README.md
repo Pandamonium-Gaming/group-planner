@@ -87,6 +87,18 @@ never webhook URLs, tokens or message payloads. A pending record means the
 final delivery status is unknown: check the channel before retrying.
 If the log cannot be created, delivery is stopped rather than sent untracked.
 
+### Event class composition
+
+Expand a member-view event to see class totals and a roster with separate
+Attending and Maybe sections. Supported games are WoW Forever, Ashes of
+Creation and Return of Reckoning; Star Citizen has no class composition panel.
+WoW characters include their main spec, and Ashes classes use the saved
+primary/secondary archetype combination. These are current profile values,
+not snapshots taken at signup. Guests count by their recorded class.
+Unlinked or deleted characters appear as unknown rather than being replaced
+by the owner's main character. Declined signups are excluded.
+The detailed class roster is not displayed on public event views.
+
 Vercel runs installation and builds through Corepack, using the Yarn version
 declared in `package.json`. Installation is immutable so deployments use the
 committed `yarn.lock` rather than resolving newer dependency versions.

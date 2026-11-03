@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       *,
       event_rsvps (
         *,
-        character:members(id, name),
+        character:members(id, name, primary_archetype, secondary_archetype, ror_class, wow_class, wow_main_spec),
         user:users(id, display_name)
       ),
       guest_event_rsvps (*)

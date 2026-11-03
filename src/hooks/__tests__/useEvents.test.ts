@@ -93,6 +93,9 @@ describe('useEvents Hook - Phase 2', () => {
     expect(result.current.announcements).toEqual(announcementsData);
 
     const event = result.current.events[0];
+    expect(mockSupabase.from.mock.results[0].value.select).toHaveBeenCalledWith(
+      expect.stringContaining('character:members(id, name, primary_archetype, secondary_archetype, ror_class, wow_class, wow_main_spec)')
+    );
     expect(event.rsvp_counts.attending).toBe(2);
     expect(event.rsvp_counts.maybe).toBe(1);
     expect(event.role_counts.tank.attending).toBe(2);

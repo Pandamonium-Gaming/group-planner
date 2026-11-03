@@ -44,6 +44,13 @@ it('reposts the persisted event and prevents duplicate clicks while in flight', 
   expect(mockShowToast).toHaveBeenCalledWith('success', 'webhooks.reposted');
 });
 
+it.each([false, true])('shows expanded class composition only for member views (public=%s)', isPublicView => {
+  render(<EventCard {...props} isPublicView={isPublicView} />);
+  expect(screen.queryByRole('region', { name: 'eventRoster.title' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText('Guild raid'));
+  if (isPublicView) expect(screen.queryByRole('region', { name: 'eventRoster.title' })).not.toBeInTheDocument();
+  else expect(screen.getByRole('region', { name: 'eventRoster.title' })).toBeInTheDocument();
+});
 it.each(['public', 'cancelled', 'other-owner', 'no-permission'])('hides repost for %s events or viewers', mode => {
   if (mode === 'no-permission') mockPermissions = [];
   render(<EventCard {...props} isPublicView={mode === 'public'}

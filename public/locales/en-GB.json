@@ -1,4 +1,18 @@
 {
+  "eventRoster": {
+    "title": "Class composition",
+    "description": "Attending and Maybe are counted separately, including guests. Classes and main specs use current character profiles; unlinked signups are not assigned a main character.",
+    "totals": "Class totals by attendance",
+    "class": "Class",
+    "attending": "Attending",
+    "maybe": "Maybe",
+    "guest": "Guest",
+    "unknownCharacter": "Unknown character",
+    "unknownClass": "Class not recorded",
+    "unknownSpec": "Main spec not recorded",
+    "noCharacter": "No character selected",
+    "empty": "No attending or tentative signups yet."
+  },
   "webhooks": {
     "repost": "Repost to Discord",
     "sending": "Sending...",
