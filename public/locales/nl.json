@@ -57,7 +57,8 @@
       "member_request_closed": "Lidmaatschapsaanvraag gesloten",
       "role_changed": "Ledenrol gewijzigd",
       "permissions_changed": "Aangepaste rechten gewijzigd",
-      "webhook_changed": "Discord-instellingen gewijzigd"
+      "webhook_changed": "Discord-instellingen gewijzigd",
+      "game_deleted": "Spel verwijderd"
     },
     "statuses": {
       "pending": "In wachtrij / herhaling gepland",

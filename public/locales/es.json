@@ -57,7 +57,8 @@
       "member_request_closed": "Solicitud de ingreso cerrada",
       "role_changed": "Rol de miembro cambiado",
       "permissions_changed": "Permisos personalizados cambiados",
-      "webhook_changed": "Configuración de Discord cambiada"
+      "webhook_changed": "Configuración de Discord cambiada",
+      "game_deleted": "Juego eliminado"
     },
     "statuses": {
       "pending": "En cola / reintento programado",

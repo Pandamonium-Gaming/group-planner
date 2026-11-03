@@ -42,6 +42,13 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query(roleMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const categoryMigration = await readFile(new URL('../../supabase/migrations/017_admin_notification_categories.sql', import.meta.url), 'utf8');
     await client.query(categoryMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
+    const gameMigration = await readFile(new URL('../../supabase/migrations/018_admin_notification_game_deleted.sql', import.meta.url), 'utf8');
+    assert.match(gameMigration, /^BEGIN;\s/);
+    assert.match(gameMigration, /COMMIT;\s*$/);
+    await client.query('SAVEPOINT before_game_deleted');
+    await assert.rejects(client.query(`INSERT INTO ${table('admin_discord_notifications')}(kind,destination) VALUES ('game_deleted','group')`), /check constraint/);
+    await client.query('ROLLBACK TO SAVEPOINT before_game_deleted');
+    await client.query(gameMigration.replace(/^BEGIN;\s*/, '').replace(/COMMIT;\s*$/, '').replaceAll('public.', `"${schema}".`));
     const rows = async () => (await client.query(`SELECT * FROM ${table('admin_discord_notifications')} ORDER BY created_at, id`)).rows;
     await client.query(`INSERT INTO ${table('users')} VALUES ($1,'Admin','admin'),($2,'Member','member')`, [admin, member]);
     assert.equal((await rows()).filter(row => row.kind === 'account_registered').length, 2);
@@ -114,6 +121,9 @@ test('admin queue captures committed changes, protects secrets, survives deletio
     await client.query('SAVEPOINT category_checks');
     const pendingRole = (await rows()).find(row => row.kind === 'role_changed' && row.status === 'pending');
     assert.ok(pendingRole, 'Categories default to enabled');
+    await client.query(`INSERT INTO ${table('admin_discord_notifications')}(kind,destination,group_id,changes) VALUES ('game_deleted','group',$1,'{"game":"Test Game"}')`, [group]);
+    await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,'{"game_deleted":true}','{}',$2)`, [group, admin]);
+    await client.query(`SELECT ${table('save_group_admin_discord_roles')}($1,$2,$3)`, [group, JSON.stringify({ game_deleted: roleId }), admin]);
     await client.query(`SELECT ${table('save_admin_discord_preferences')}($1,$2,$3,$4)`,
       [group, JSON.stringify({ role_changed: false, webhook_changed: false }), JSON.stringify({ role_changed: roleId }), admin]);
     assert.equal((await rows()).find(row => row.id === pendingRole.id).status, 'skipped');

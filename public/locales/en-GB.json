@@ -57,7 +57,8 @@
       "member_request_closed": "Membership request closed",
       "role_changed": "Member role changed",
       "permissions_changed": "Permission overrides changed",
-      "webhook_changed": "Discord configuration changed"
+      "webhook_changed": "Discord configuration changed",
+      "game_deleted": "Game deleted"
     },
     "statuses": {
       "pending": "Queued / retry scheduled",

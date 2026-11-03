@@ -111,7 +111,7 @@ it('saves per-type role mentions without replacing the private webhook', async (
 it('defaults group categories to enabled and saves disabling separately from the webhook', async () => {
   render(<AdminDiscordSettings groupId="group-1" />);
   await screen.findByText('An admin webhook is configured.');
-  expect(screen.getAllByRole('checkbox')).toHaveLength(8);
+  expect(screen.getAllByRole('checkbox')).toHaveLength(9);
   for (const checkbox of screen.getAllByRole('checkbox')) expect(checkbox).toBeChecked();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Member role changed' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save notification preferences' }));

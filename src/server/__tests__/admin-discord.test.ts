@@ -6,7 +6,7 @@ import { GET as deliver } from '@/app/api/admin/notifications/deliver/route';
 import { GET as settings, POST as save } from '@/app/api/group/admin-notifications/route';
 import { isDiscordWebhookUrl } from '@/lib/discordConfig';
 import { GET as siteSettings, POST as saveSite } from '@/app/api/admin/notifications/settings/route';
-import type { AdminCategorySettings, AdminRoleMentions } from '@/lib/adminNotifications';
+import { isAdminCategorySettings, isAdminRoleMentions, type AdminCategorySettings, type AdminRoleMentions } from '@/lib/adminNotifications';
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -523,4 +523,14 @@ it('reports a specific code for each site configuration failure without leaking 
   const logged = JSON.stringify(errorLog.mock.calls);
   expect(logged).not.toContain('test-key');
   errorLog.mockRestore();
+});
+
+it('formats game_deleted with a Game field, no settings link section and category validation', () => {
+  const payload = adminNotificationPayload({ ...notification, kind: 'game_deleted', changes: { game: 'Ashes of Creation' } }, { groupSlug: 'guild' });
+  expect(payload.embeds[0].title).toBe('Game deleted');
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Game', value: 'Ashes of Creation' }));
+  expect(payload.embeds[0].fields.find(field => field.name === 'Changes')).toBeUndefined();
+  expect(payload.embeds[0].url).toBe('https://planner.test/guild/settings');
+  expect(isAdminCategorySettings({ game_deleted: false })).toBe(true);
+  expect(isAdminRoleMentions({ game_deleted: '123456789012345678' })).toBe(true);
 });

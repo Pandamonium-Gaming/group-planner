@@ -14,6 +14,7 @@ export const ADMIN_EVENT_TITLES = {
   role_changed: 'Member role changed',
   permissions_changed: 'Permission overrides changed',
   webhook_changed: 'Discord configuration changed',
+  game_deleted: 'Game deleted',
 } as const;
 
 const ADMIN_EVENT_COLORS: Record<keyof typeof ADMIN_EVENT_TITLES, number> = {
@@ -27,6 +28,7 @@ const ADMIN_EVENT_COLORS: Record<keyof typeof ADMIN_EVENT_TITLES, number> = {
   role_changed: 0xf59e0b,
   permissions_changed: 0xf97316,
   webhook_changed: 0x8b5cf6,
+  game_deleted: 0xb91c1c,
 };
 
 export interface AdminNotification {
@@ -84,7 +86,8 @@ function configurationLink(event: AdminNotification, slug?: string | null) {
 export function adminNotificationPayload(event: AdminNotification, details: NotificationDetails = {}) {
   const role = details.mentionRoleId;
   if (role && !isDiscordRoleId(role)) throw new Error('Invalid configured Discord role ID');
-  const changes = Object.entries(event.changes).map(([field, change]) => {
+  const gameName = event.kind === 'game_deleted' && typeof event.changes.game === 'string' ? event.changes.game : null;
+  const changes = Object.entries(event.changes).filter(([field]) => !(gameName && field === 'game')).map(([field, change]) => {
     const name = field === 'admin_webhook' ? 'Admin webhook'
       : Object.prototype.hasOwnProperty.call(PERMISSIONS, field) ? PERMISSIONS[field as keyof typeof PERMISSIONS].name
         : label(field);
@@ -106,6 +109,7 @@ export function adminNotificationPayload(event: AdminNotification, details: Noti
     fields.push({ name: event.kind === 'permissions_changed' ? 'Role' : 'Affected account',
       value: name ? text(event.kind === 'permissions_changed' ? roleName(name) : name) : 'Name unavailable (account may have been deleted)', inline: false });
   }
+  if (gameName) fields.push({ name: 'Game', value: text(gameName), inline: true });
   if (changes.length) {
     fields.push({ name: 'Changes', value: changes.join('\n').slice(0, 1000), inline: false });
   }
