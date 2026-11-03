@@ -215,45 +215,12 @@ export function useGuildBank(groupId: string | null, gameSlug = 'aoc'): UseGuild
   const deposit = async (data: ResourceTransactionData) => {
     if (!bank) throw new Error('Bank not initialized');
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Upsert inventory
-    const { data: existing, error: inventoryError } = await supabase
-      .from('bank_inventory')
-      .select('id, quantity')
-      .eq('bank_id', bank.id)
-      .eq('resource_id', data.resource_id)
-      .maybeSingle();
-
-    if (inventoryError) throw inventoryError;
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('bank_inventory')
-        .update({
-          quantity: existing.quantity + data.quantity,
-          last_updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('bank_inventory')
-        .insert({
-          bank_id: bank.id,
-          resource_id: data.resource_id,
-          quantity: data.quantity,
-        });
-      if (insertError) throw insertError;
-    }
-
-    // Record transaction
-    const { error: transactionError } = await supabase.from('bank_transactions').insert({
-      bank_id: bank.id,
-      resource_id: data.resource_id,
-      transaction_type: 'deposit' as BankTransactionType,
-      quantity: data.quantity,
-      user_id: user?.id,
-      notes: data.notes,
+    const { error: transactionError } = await supabase.rpc('apply_bank_resource_transaction', {
+      p_bank_id: bank.id,
+      p_resource_id: data.resource_id,
+      p_quantity: data.quantity,
+      p_transaction_type: 'deposit',
+      p_notes: data.notes ?? null,
     });
     if (transactionError) throw transactionError;
 
@@ -264,36 +231,12 @@ export function useGuildBank(groupId: string | null, gameSlug = 'aoc'): UseGuild
   const withdraw = async (data: ResourceTransactionData) => {
     if (!bank) throw new Error('Bank not initialized');
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { data: existing, error: inventoryError } = await supabase
-      .from('bank_inventory')
-      .select('id, quantity')
-      .eq('bank_id', bank.id)
-      .eq('resource_id', data.resource_id)
-      .single();
-
-    if (inventoryError) throw inventoryError;
-    if (!existing || existing.quantity < data.quantity) {
-      throw new Error('Insufficient resources');
-    }
-
-    const { error: updateError } = await supabase
-      .from('bank_inventory')
-      .update({
-        quantity: existing.quantity - data.quantity,
-        last_updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id);
-    if (updateError) throw updateError;
-
-    const { error: transactionError } = await supabase.from('bank_transactions').insert({
-      bank_id: bank.id,
-      resource_id: data.resource_id,
-      transaction_type: 'withdrawal' as BankTransactionType,
-      quantity: -data.quantity,
-      user_id: user?.id,
-      notes: data.notes,
+    const { error: transactionError } = await supabase.rpc('apply_bank_resource_transaction', {
+      p_bank_id: bank.id,
+      p_resource_id: data.resource_id,
+      p_quantity: data.quantity,
+      p_transaction_type: 'withdrawal',
+      p_notes: data.notes ?? null,
     });
     if (transactionError) throw transactionError;
 

@@ -23,5 +23,6 @@
   "021_delete_group_game.sql",
   "022_fix_loaner_trigger.sql",
   "023_validate_game_writes.sql",
-  "024_game_scoped_guild_banks.sql"
+  "024_game_scoped_guild_banks.sql",
+  "025_atomic_bank_resource_transactions.sql"
 ]

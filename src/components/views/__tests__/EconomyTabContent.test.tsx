@@ -19,6 +19,7 @@ const mockUseGuildBank = jest.fn();
 const mockUseFreeholds = jest.fn();
 const mockUseCaravans = jest.fn();
 const mockHasPermission = jest.fn();
+let mockGameSlug = 'wowforever';
 const deposit = jest.fn();
 const withdraw = jest.fn();
 const initializeBank = jest.fn();
@@ -32,7 +33,8 @@ jest.mock('@/contexts/LanguageContext', () => ({
 }));
 jest.mock('@/contexts/GameLayoutContext', () => ({
   useGameLayoutContext: () => ({
-    group: { id: 'group' }, userId: 'user', gameSlug: 'wowforever', hasPermission: mockHasPermission,
+    group: { id: 'group' }, userId: 'user', gameSlug: mockGameSlug,
+    canManageMembers: true, hasPermission: mockHasPermission,
   }),
 }));
 jest.mock('@/hooks/useGuildBank', () => ({
@@ -47,12 +49,13 @@ jest.mock('@/hooks/useCaravans', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockGameSlug = 'wowforever';
   deposit.mockResolvedValue(undefined);
   withdraw.mockResolvedValue(undefined);
   initializeBank.mockResolvedValue(bank);
   mockUseGuildBank.mockReturnValue(bankState());
   mockUseFreeholds.mockReturnValue({ freeholds: [], loading: false });
-  mockUseCaravans.mockReturnValue({ upcomingCaravans: [], loading: false });
+  mockUseCaravans.mockReturnValue({ upcomingCaravans: [], loading: false, createCaravan: jest.fn() });
   mockHasPermission.mockReturnValue(true);
 });
 
@@ -79,7 +82,7 @@ it('opens only the WoW bank and submits a selected WoW item deposit', async () =
 });
 
 it('retains the Ashes economy sections and defaults bank queries to Ashes', () => {
-  render(<EconomyTabContent groupId="group" isOfficer />);
+  render(<EconomyTabContent groupId="group" isOfficer canManageBank />);
   expect(mockUseGuildBank).toHaveBeenCalledWith('group', 'aoc');
   expect(mockUseFreeholds).toHaveBeenCalledWith('group');
   expect(mockUseCaravans).toHaveBeenCalledWith('group');
@@ -89,9 +92,19 @@ it('retains the Ashes economy sections and defaults bank queries to Ashes', () =
 
 it('honours the existing deposit, withdrawal and management permissions', () => {
   mockHasPermission.mockReturnValue(false);
+  mockGameSlug = 'aoc';
   render(<EconomyPage />);
   expect(screen.queryByRole('button', { name: 'bank.deposit' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'bank.withdraw' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'caravan.title' }));
+  expect(screen.getByRole('button', { name: /caravan.createCaravan/ })).toBeInTheDocument();
+});
+
+it('uses bank-management permission separately from officer status when initializing a bank', () => {
+  mockHasPermission.mockReturnValue(false);
+  mockUseGuildBank.mockReturnValue({ ...bankState(), bank: null });
+  render(<EconomyPage />);
+  expect(screen.getAllByRole('button', { name: 'bank.title' })).toHaveLength(1);
 });
 
 it('initializes the selected bank and displays creation failures instead of rejecting silently', async () => {

@@ -16,12 +16,13 @@ interface EconomyTabContentProps {
   groupId: string;
   gameSlug?: string;
   isOfficer: boolean;
+  canManageBank: boolean;
   canDeposit?: boolean;
   canWithdraw?: boolean;
 }
 
 export function EconomyTabContent({
-  groupId, gameSlug = 'aoc', isOfficer, canDeposit = true, canWithdraw = true,
+  groupId, gameSlug = 'aoc', isOfficer, canManageBank, canDeposit = true, canWithdraw = true,
 }: EconomyTabContentProps) {
   const { t } = useLanguage();
   const [subTab, setSubTab] = useState<EconomySubTab>('bank');
@@ -122,7 +123,7 @@ export function EconomyTabContent({
             <p className="text-sm text-slate-500 mb-4">
               {t('bank.emptyInventoryDesc')}
             </p>
-            {isOfficer && (
+            {canManageBank && (
               <button
                 onClick={handleInitialize}
                 disabled={initializing}

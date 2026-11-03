@@ -6,6 +6,7 @@ export interface EconomyTabProps {
   groupId: string;
   gameSlug: string;
   isOfficer: boolean;
+  canManageBank: boolean;
   canDeposit: boolean;
   canWithdraw: boolean;
 }
