@@ -57,6 +57,7 @@
 
 ### Fixed
 
+* Fixed the public group page crashing when it loaded: it read `group` from the public API response, which returns `clan`. The page now reads the right field, so the application form is reachable again.
 * Fixed the `game_deleted` Discord alert showing the game name as an "Affected account"; the Delete permanently button is now shown to group admins only.
 * Fixed deleting Star Citizen characters that own a pledged ship and its auto-granted loaner, including when a whole group is deleted: the loaner-removal trigger now fires AFTER DELETE instead of aborting with "tuple ... already modified". `add_loaner_ships_for_pledge` is now schema-qualified and search-path-safe. Also removed a stray `);` from `000_baseline.sql` that stopped the baseline applying to a fresh database. Apply migration 021 (`021_fix_loaner_trigger.sql`) to Supabase before deploying.
 * Fixed site administrator access with Supabase Discord login by matching the verified provider subject instead of Supabase's internal identity ID.

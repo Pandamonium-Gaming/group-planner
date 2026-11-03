@@ -27,6 +27,7 @@ it('returns the group games (with archived flag) for the recruitment form', asyn
   const res = await GET({ url: 'http://l/api/clan-public?slug=s' } as never);
   const body = await res.json();
   expect(body.groupGames).toEqual(games);
+  expect(body.clan).toEqual(expect.objectContaining({ id: 'g1' }));
 });
 
 it('returns 500 rather than an empty games list when the group_games query fails', async () => {

@@ -15,7 +15,9 @@ function mockFetch(body: unknown) {
   global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => body }) as never;
 }
 const base = {
-  group: { id: 'g1', name: 'Guild', slug: 'g', is_public: true, recruitment_open: true },
+  // Mirrors the real /api/clan-public response, which names the group field `clan`.
+  clan: { id: 'g1', name: 'Guild', slug: 'g', is_public: true, recruitment_open: true, recruitment_message: 'Join us', public_description: 'A guild' },
+  characterCount: 2,
   memberCount: 1,
   upcomingEvents: 0,
 };

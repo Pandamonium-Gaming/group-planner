@@ -51,7 +51,7 @@ export default function PublicGroupPage({ params }: { params: Promise<{ group: s
         }
 
         setData({
-          group: publicData.group,
+          group: publicData.clan,
           groupGames: publicData.groupGames,
           memberCount: publicData.memberCount || 0,
           professionCoverage: 75, // Could calculate this
