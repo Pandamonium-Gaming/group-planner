@@ -15,6 +15,7 @@ import { PermissionsSettings } from '@/components/settings/PermissionsSettings';
 import { RecruitmentSettings } from '@/components/settings/RecruitmentSettings';
 import { GroupDiscordSettings } from '@/components/settings/GroupDiscordSettings';
 import { AdminDiscordSettings } from '@/components/settings/AdminDiscordSettings';
+import { GroupSettingsTabs } from '@/components/settings/GroupSettingsTabs';
 import { GameManagement } from '@/components/settings/GameManagement';
 import { MemberManagement } from '@/components/settings/MemberManagement';
 import { getGroupBySlug } from '@/lib/auth';
@@ -130,9 +131,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Group Icon */}
-          {canEditSettings && (
+        <GroupSettingsTabs panels={{
+          general: canEditSettings && (
             <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <Settings size={20} className="text-orange-400" />
@@ -144,10 +144,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
                 onIconChange={refreshGuildIcon}
               />
             </div>
-          )}
-
-          {/* Member Management */}
-          <MemberManagement
+          ),
+          members: <MemberManagement
             members={members}
             pendingMembers={pendingMembers}
             onAccept={acceptMember}
@@ -157,17 +155,14 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
             currentUserId={user.id}
             currentUserRole={membership.role || 'member'}
             currentUserIsCreator={membership.isCreator}
-          />
-
-          {/* Permissions Settings */}
-          {canEditPermissions && (
+          />,
+          permissions: canEditPermissions && (
             <PermissionsSettings groupId={group.id} userRole={membership.role || 'member'} />
-          )}
+          ),
 
-          <AdminDiscordSettings key={group.id} groupId={group.id} />
+          admin: <AdminDiscordSettings key={group.id} groupId={group.id} />,
 
-          {/* Discord Integration */}
-          {canEditSettings && group && (
+          discord: canEditSettings && group && (
             <>
               <GroupDiscordSettings
                 groupId={group.id}
@@ -198,14 +193,12 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ group:
                 </div>
               </div>
             </>
-          )}
+          ),
 
-          {/* Recruitment Settings */}
-          <RecruitmentSettings groupId={group.id} groupSlug={groupSlug} />
+          recruitment: <RecruitmentSettings groupId={group.id} groupSlug={groupSlug} />,
 
-          {/* Game Management */}
-          <GameManagement groupId={group.id} />
-        </div>
+          games: <GameManagement groupId={group.id} />,
+        }} />
       </main>
 
       {/* Footer */}

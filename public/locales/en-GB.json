@@ -1,5 +1,19 @@
 {
+  "groupSettingsTabs": {
+    "title": "Group settings sections",
+    "general": "General",
+    "members": "Members",
+    "permissions": "Permissions",
+    "discord": "Discord",
+    "admin": "Admin alerts",
+    "recruitment": "Recruitment",
+    "games": "Games"
+  },
   "adminNotifications": {
+    "roleMentions": "Role mentions by notification type",
+    "roleMentionsHint": "Optional: paste one Discord role ID per type (enable Developer Mode in Discord, then right-click a role and Copy Role ID). Leave blank for no ping. The webhook must be allowed to mention that role. Site-wide role mentions are configured by the site operator, not here.",
+    "noMention": "No role mention",
+    "saveRoles": "Save role mentions",
     "title": "Private administration notifications",
     "description": "Send membership, role, permission and Discord configuration changes to a private admin channel. Group deletion is also reported. New accounts and group creation/deletion use the site administrator webhook.",
     "configured": "An admin webhook is configured.",
@@ -7,7 +21,7 @@
     "webhook": "New or replacement admin webhook URL",
     "private": "Only group administrators can change this destination. Saved URLs are never returned to the browser. Use a private Discord channel; these alerts contain administrative information.",
     "disable": "Disable admin webhook",
-    "failed": "Unable to load or save admin notifications. Check administrator access, the webhook URL and migration 015, then refresh.",
+    "failed": "Unable to load or save admin notifications. Check administrator access, the webhook URL, role IDs and migrations 015–016, then refresh.",
     "history": "Admin notification history",
     "delivery": "Queued changes are processed every minute, five per batch. Only new changes are captured. Rate limits are retried up to five attempts; uncertain deliveries are not retried automatically. Check Discord before retrying. Some server-side changes have no identifiable actor. Removal alerts cannot distinguish leaving, removal or account deletion.",
     "kinds": {

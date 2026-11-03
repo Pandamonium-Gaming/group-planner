@@ -40,6 +40,7 @@
 
 ### Changed
 
+* Made Discord administration alerts readable with account names, friendly change labels, distinct colours and links to the relevant settings tabs. Group Settings now has linked tabs; migration 016 adds optional per-type group role mentions, with site-wide mentions configured separately through server environment settings.
 * Updated application and development dependencies while keeping TypeScript on the compatible 6.0 release line and ESLint on version 9 for lint plugin compatibility.
 * Separated strict application build type-checking from Jest test files; test compilation remains validated by the test runner.
 

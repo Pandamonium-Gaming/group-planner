@@ -1,5 +1,19 @@
 {
+  "groupSettingsTabs": {
+    "title": "Secciones de configuración del grupo",
+    "general": "General",
+    "members": "Miembros",
+    "permissions": "Permisos",
+    "discord": "Discord",
+    "admin": "Alertas de administración",
+    "recruitment": "Reclutamiento",
+    "games": "Juegos"
+  },
   "adminNotifications": {
+    "roleMentions": "Menciones de rol por tipo de notificación",
+    "roleMentionsHint": "Opcional: pega un ID de rol de Discord por tipo (activa el modo de desarrollador, haz clic derecho en un rol y copia su ID). Déjalo vacío para no mencionar. El webhook debe tener permiso para mencionar ese rol. El operador del sitio configura las menciones generales, no aquí.",
+    "noMention": "Sin mención de rol",
+    "saveRoles": "Guardar menciones de rol",
     "title": "Notificaciones privadas de administración",
     "description": "Envía cambios de miembros, roles, permisos y configuración de Discord a un canal privado de administración. También se informa de la eliminación del grupo. Las cuentas nuevas y la creación o eliminación de grupos usan el webhook del administrador del sitio.",
     "configured": "Hay un webhook de administración configurado.",
@@ -7,7 +21,7 @@
     "webhook": "URL nueva o de reemplazo del webhook de administración",
     "private": "Solo los administradores del grupo pueden cambiar este destino. Las URL guardadas nunca se devuelven al navegador. Usa un canal privado de Discord; estas alertas contienen información administrativa.",
     "disable": "Desactivar webhook de administración",
-    "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL y la migración 015, y actualiza.",
+    "failed": "No se pudieron cargar o guardar las notificaciones. Comprueba el acceso de administrador, la URL, los ID de rol y las migraciones 015–016, y actualiza.",
     "history": "Historial de notificaciones de administración",
     "delivery": "Los cambios en cola se procesan cada minuto, cinco por lote. Solo se registran cambios nuevos. Los límites de frecuencia se reintentan hasta cinco veces; los envíos inciertos no se reintentan automáticamente. Comprueba Discord antes de reintentar. Algunos cambios del servidor no tienen autor identificable. Las alertas de salida no distinguen entre abandono, expulsión o eliminación de la cuenta.",
     "kinds": {

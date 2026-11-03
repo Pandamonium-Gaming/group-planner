@@ -32,6 +32,7 @@ let dbError: boolean;
 let resultError: boolean;
 let destinationError: boolean;
 let updatedRow: boolean;
+let resolvedUser: { display_name: string | null; discord_username: string | null } | null;
 const updates = jest.fn();
 const selects = jest.fn();
 const ranges = jest.fn();
@@ -53,7 +54,9 @@ const mockClient = {
         error: (table === 'admin_discord_destinations' ? destinationError : resultError) ? { code: 'offline' } : null,
       }),
       maybeSingle: async () => ({
-        data: table === 'group_members' ? role && { role } : { destination_id: 'destination-1' },
+        data: table === 'group_members' ? role && { role }
+          : table === 'users' ? resolvedUser
+            : table === 'groups' ? { slug: 'friendly-guild' } : { destination_id: 'destination-1', role_mentions: {} },
         error: dbError ? { code: 'offline' } : null,
       }),
       range: async (start: number, end: number) => {
@@ -77,11 +80,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   events = [notification]; role = 'admin'; dbError = false; resultError = false;
   destinationError = false; updatedRow = true;
+  resolvedUser = { display_name: 'Friendly player', discord_username: 'discord-player' };
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
   process.env.AUTH_STACK = 'v2';
   process.env.CRON_SECRET = 'test-cron-secret';
   delete process.env.ADMIN_DISCORD_WEBHOOK_URL;
+  delete process.env.ADMIN_DISCORD_ROLE_MENTIONS;
+  process.env.NEXT_PUBLIC_SITE_URL = 'https://planner.test';
   createClient.mockReturnValue(mockClient);
   client = databaseClient('https://test.supabase.co', 'test-key');
   auth.mockResolvedValue({ user: { id: 'admin-1' } });
@@ -100,9 +106,9 @@ it('formats before/after changes and native timestamps without Discord pings', (
   });
   expect(payload.allowed_mentions).toEqual({ parse: [] });
   expect(payload.embeds[0].description).toMatch(/^Occurred <t:\d+:F>$/);
-  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Actor', value: expect.stringContaining('Not available') }));
-  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changes', value: 'events\\_create: false -> true' }));
-  expect(payload.embeds[0].fields.find(field => field.name === 'Subject')?.value).toContain('\\<@123\\>');
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changed by', value: expect.stringContaining('Not available') }));
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changes', value: 'Create Event: Disabled -> Enabled' }));
+  expect(payload.embeds[0].fields.find(field => field.name === 'Affected account')?.value).toContain('\\<@123\\>');
 });
 
 it('keeps large permission changes inside Discord limits and handles defaults', () => {
@@ -113,6 +119,93 @@ it('keeps large permission changes inside Discord limits and handles defaults', 
   expect(JSON.stringify(payload)).toContain('not set / default');
 });
 
+it('uses names rather than IDs, distinct colours and readable role changes', async () => {
+  await processAdminNotifications(client);
+  const payload = JSON.parse(discordFetch.mock.calls[0][1].body);
+  expect(JSON.stringify(payload.embeds[0].fields)).not.toContain('admin-1');
+  expect(JSON.stringify(payload.embeds[0].fields)).not.toContain('member-1');
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changed by', value: 'Friendly player' }));
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changes', value: 'Role: Member -> Officer' }));
+  expect(payload.embeds[0].url).toBe('https://planner.test/friendly-guild/settings#members');
+  const kinds = ['account_registered', 'group_created', 'group_deleted', 'member_joined', 'member_left_or_removed',
+    'member_requested', 'member_request_closed', 'role_changed', 'permissions_changed', 'webhook_changed'] as const;
+  expect(new Set(kinds.map(kind => adminNotificationPayload({ ...notification, kind }).embeds[0].color)).size).toBe(kinds.length);
+});
+
+it('falls back to Discord usernames and captured subject names without exposing IDs', async () => {
+  resolvedUser = { display_name: ' ', discord_username: 'discord-player' };
+  await processAdminNotifications(client);
+  let payload = JSON.parse(discordFetch.mock.calls[0][1].body);
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changed by', value: 'discord-player' }));
+  resolvedUser = null;
+  await processAdminNotifications(client);
+  payload = JSON.parse(discordFetch.mock.calls[1][1].body);
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Affected account', value: 'Member' }));
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Changed by', value: expect.stringContaining('Name unavailable') }));
+  expect(JSON.stringify(payload.embeds[0].fields)).not.toContain('admin-1');
+});
+
+it('rejects invalid group role snapshots and unsafe settings origins without sending', async () => {
+  events = [{ ...notification, mention_role_id: '@everyone' }];
+  await expect(processAdminNotifications(client)).rejects.toThrow('Unable to complete');
+  events = [notification];
+  process.env.NEXT_PUBLIC_SITE_URL = 'javascript:alert(1)';
+  await expect(processAdminNotifications(client)).rejects.toThrow('Unable to complete');
+  expect(discordFetch).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['permissions_changed', {}, 'permissions'],
+  ['webhook_changed', { admin_webhook: { before: false, after: true } }, 'admin'],
+  ['webhook_changed', { group_webhook_url: 'changed' }, 'discord'],
+] as const)('links %s to the correct settings tab', (kind, changes, tab) => {
+  const payload = adminNotificationPayload({ ...notification, kind, changes }, { groupSlug: 'guild' });
+  expect(payload.embeds[0].url).toBe(`https://planner.test/guild/settings#${tab}`);
+});
+
+it('keeps deleted subjects readable and omits broken links and raw IDs', () => {
+  const payload = adminNotificationPayload({ ...notification, kind: 'group_deleted' }, { groupSlug: 'deleted-guild' });
+  expect(payload.embeds[0].url).toBeUndefined();
+  expect(JSON.stringify(payload.embeds[0].fields)).not.toContain('admin-1');
+  expect(payload.embeds[0].fields).toContainEqual(expect.objectContaining({ name: 'Affected account', value: 'Member' }));
+  delete process.env.NEXT_PUBLIC_SITE_URL;
+  expect(adminNotificationPayload(notification, { groupSlug: 'guild' }).embeds[0].url).toBeUndefined();
+});
+
+it('allows exactly the configured role and suppresses all other mentions', async () => {
+  const roleId = '123456789012345678';
+  events = [{ ...notification, mention_role_id: roleId }];
+  await processAdminNotifications(client);
+  const payload = JSON.parse(discordFetch.mock.calls[0][1].body);
+  expect(payload.content).toBe(`<@&${roleId}>`);
+  expect(payload.allowed_mentions).toEqual({ parse: [], roles: [roleId] });
+  process.env.ADMIN_DISCORD_WEBHOOK_URL = destination;
+  process.env.ADMIN_DISCORD_ROLE_MENTIONS = JSON.stringify({ account_registered: roleId });
+  events = [{ ...notification, kind: 'account_registered', destination: 'site' }];
+  await processAdminNotifications(client);
+  expect(JSON.parse(discordFetch.mock.calls[1][1].body).allowed_mentions).toEqual({ parse: [], roles: [roleId] });
+});
+
+it('fails invalid site role configuration before sending any ping', async () => {
+  process.env.ADMIN_DISCORD_WEBHOOK_URL = destination;
+  events = [{ ...notification, destination: 'site' }];
+  for (const config of ['invalid json', '{"role_changed":"@everyone"}', '{"unknown":"123456789012345678"}']) {
+    process.env.ADMIN_DISCORD_ROLE_MENTIONS = config;
+    await expect(processAdminNotifications(client)).rejects.toThrow('Unable to complete');
+  }
+  expect(discordFetch).not.toHaveBeenCalled();
+});
+
+it('validates per-type role saves and never accepts client-supplied actors', async () => {
+  const roleId = '123456789012345678';
+  expect((await save(request({ group_id: groupId, role_mentions: { role_changed: roleId }, actor_id: 'forged' }))).status).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith('save_group_admin_discord_roles', {
+    p_group_id: groupId, p_roles: { role_changed: roleId }, p_actor_id: 'admin-1',
+  });
+  for (const role_mentions of [{ role_changed: '@everyone' }, { unknown: roleId }, [], null, { role_changed: '' }]) {
+    expect((await save(request({ group_id: groupId, role_mentions }))).status).toBe(400);
+  }
+});
 it('posts to the captured private destination and records delivery metadata only', async () => {
   expect(await processAdminNotifications(client)).toEqual({ processed: 1, sent: 1 });
   expect(discordFetch).toHaveBeenCalledWith(destination, expect.objectContaining({ redirect: 'error', method: 'POST' }));
@@ -217,7 +310,7 @@ it('supports legacy bearer authentication without invoking Auth.js', async () =>
 it('never returns stored credentials or payloads and paginates history', async () => {
   const response = await settings(request(undefined, undefined, '1'));
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ configured: true, logs: [], hasMore: false });
+  expect(await response.json()).toEqual({ configured: true, role_mentions: {}, logs: [], hasMore: false });
   expect(ranges).toHaveBeenCalledWith(20, 40);
   expect(selects).not.toHaveBeenCalledWith('admin_discord_destinations', expect.anything());
   expect(selects).toHaveBeenCalledWith('admin_discord_notifications', 'id,kind,status,http_status,error,created_at');
