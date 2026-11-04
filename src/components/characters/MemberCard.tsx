@@ -272,15 +272,12 @@ export function CharacterCard({
                   <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
                     <span>Alt of</span>
                     <span className="text-amber-400">{mainCharacterName}</span>
-                    <GuildRankBadge characterId={character.id} />
                   </div>
                 )}
                 {altCharacters.length > 0 && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
                     <span>Alts:</span>
-                    <span className="text-slate-400">{altCharacters.map((alt, index) => (
-                      <span key={alt.id}>{index > 0 && ', '}{alt.name} <GuildRankBadge characterId={alt.id} /></span>
-                    ))}</span>
+                    <span className="text-slate-400">{altCharacters.map(alt => alt.name).join(', ')}</span>
                   </div>
                 )}
               </div>

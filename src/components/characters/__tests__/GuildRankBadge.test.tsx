@@ -2,7 +2,8 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { GuildRankProvider } from '@/contexts/GuildRankContext';
 import { GuildRankBadge, GuildRankText } from '../GuildRankBadge';
-import type { Clan } from '@/lib/types';
+import { CharacterCard } from '../MemberCard';
+import type { CharacterWithProfessions, Clan } from '@/lib/types';
 
 jest.mock('@/contexts/LanguageContext', () => ({
   useLanguage: () => ({ t: () => 'Guild rank' }),
@@ -107,4 +108,37 @@ it('hides unknown rank tokens but preserves readable legacy labels without inven
 it('does not invent or fetch ranks outside the member layout', () => {
   const { container } = render(<><GuildRankBadge characterId="main" /><GuildRankText characterId="main" /></>);
   expect(container).toBeEmptyDOMElement();
+});
+
+it.each(['main', 'alt'] as const)('shows rank once on a %s card without repeating it beside related characters', kind => {
+  const character: CharacterWithProfessions = {
+    ...(kind === 'main' ? characters[0] : characters[1]),
+    name: kind === 'main' ? 'Starfall' : 'Moonfall',
+    group_id: group.id,
+    race: null,
+    primary_archetype: null,
+    secondary_archetype: null,
+    level: 1,
+    is_main: kind === 'main',
+    created_at: '',
+    professions: [],
+  };
+  render(
+    <GuildRankProvider group={group} gameSlug="wowforever" members={members}
+      characters={[...characters, { id: 'second-alt', user_id: 'player', rank: null }]}>
+      <CharacterCard character={character} gameSlug="wowforever" readOnly
+        onUpdate={jest.fn()} onDelete={jest.fn()} onSetProfessionRank={jest.fn()}
+        mainCharacterName={kind === 'alt' ? 'Starfall' : undefined}
+        altCharacters={kind === 'main' ? [
+          { id: 'alt', name: 'Moonfall' }, { id: 'second-alt', name: 'Stardust' },
+        ] : []} />
+    </GuildRankProvider>
+  );
+  expect(screen.getByRole('heading', { name: character.name })).toBeInTheDocument();
+  expect(screen.getAllByLabelText('Guild rank: Captain')).toHaveLength(1);
+  if (kind === 'main') {
+    expect(screen.getByText('Alts:').parentElement).toHaveTextContent('Moonfall, Stardust');
+  } else {
+    expect(screen.getByText('Alt of').parentElement).toHaveTextContent('Starfall');
+  }
 });
