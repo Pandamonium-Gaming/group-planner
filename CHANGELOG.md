@@ -54,6 +54,7 @@
 
 ### Changed
 
+* Show guild rank once in each character card header rather than repeating the badge in its main/alt relationship lines.
 * Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.
 * Changed `DELETE /api/group/games` to require `{ groupId, gameSlug, confirmName }`: the caller must be a group admin, the game must be archived and `confirmName` must match the game name. It now deletes the game's data instead of only the `group_games` row.
 
