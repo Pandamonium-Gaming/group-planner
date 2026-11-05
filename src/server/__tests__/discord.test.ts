@@ -149,6 +149,23 @@ it('normalizes the Star Citizen configuration prefix without changing the route 
   expect(JSON.parse(discordFetch.mock.calls[0][1].body).embeds[0].url).toContain('/starcitizen/events');
 });
 
+it.each(['site', 'auth'])('keeps event links on the configured %s origin instead of a preview deployment', async source => {
+  const previousEnv = process.env;
+  process.env = {
+    ...previousEnv,
+    NEXT_PUBLIC_SITE_URL: source === 'site' ? 'https://planner.test/' : '',
+    NEXTAUTH_URL: 'https://planner.test/api/auth',
+    VERCEL_URL: 'preview.vercel.app',
+  };
+  try {
+    expect((await notify(request({ event_id: eventId }))).status).toBe(200);
+    expect(JSON.parse(discordFetch.mock.calls[0][1].body).embeds[0].url)
+      .toBe(`https://planner.test/guild/wowforever/events#event-${eventId}`);
+  } finally {
+    process.env = previousEnv;
+  }
+});
+
 it.each(['disabled', 'cancelled', 'missing', 'invalid', 'rejected', 'network', 'log-insert', 'log-update'])('records %s outcomes without exposing credentials or retrying', async outcome => {
   if (outcome === 'disabled') group.notify_on_events = false;
   if (outcome === 'cancelled') cancelled = true;

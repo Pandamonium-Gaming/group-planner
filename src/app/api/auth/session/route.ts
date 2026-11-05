@@ -14,5 +14,7 @@ export async function GET() {
           displayName: session.displayName,
         }
       : null,
+  }, {
+    headers: { 'Cache-Control': 'private, no-store' },
   });
 }

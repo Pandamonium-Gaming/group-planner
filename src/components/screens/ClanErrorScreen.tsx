@@ -42,15 +42,16 @@ export function ClanErrorScreen({
               {retryLabel || 'Retry'}
             </button>
           )}
-          <Link
-            href="/"
-            className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
-          >
-            {homeLabel || 'Return Home'}
-          </Link>
+          {homeLabel && (
+            <Link
+              href="/"
+              className="px-6 py-3 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
+            >
+              {homeLabel}
+            </Link>
+          )}
         </div>
       </div>
     </div>
   );
 }
-

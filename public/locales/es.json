@@ -228,6 +228,8 @@
     "more": "Más"
   },
   "auth": {
+    "sessionUnavailable": "No se ha podido verificar tu sesión",
+    "sessionUnavailableDescription": "No hemos podido comprobar tu sesión guardada. Vuelve a intentar la conexión antes de iniciar sesión de nuevo.",
     "signInWithDiscord": "Iniciar sesión con Discord",
     "signingIn": "Iniciando sesión...",
     "signInDescription": "Inicia sesión con tu cuenta de Discord para gestionar la matriz de profesiones de tu grupo, crear eventos y organizar grupos.",

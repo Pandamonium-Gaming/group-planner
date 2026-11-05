@@ -228,6 +228,8 @@
     "more": "Meer"
   },
   "auth": {
+    "sessionUnavailable": "Je aanmelding kon niet worden gecontroleerd",
+    "sessionUnavailableDescription": "We konden je opgeslagen sessie niet controleren. Probeer opnieuw verbinding te maken voordat je opnieuw inlogt.",
     "signInWithDiscord": "Log in met Discord",
     "signingIn": "Aan het inloggen...",
     "signInDescription": "Log in met je Discord account om de skill matrix van je groep te beheren, evenementen aan te maken en groepen te organiseren.",

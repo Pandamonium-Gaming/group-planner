@@ -228,6 +228,8 @@
     "more": "More"
   },
   "auth": {
+    "sessionUnavailable": "Unable to verify your sign-in",
+    "sessionUnavailableDescription": "We couldn't check your saved session. Retry the connection before signing in again.",
     "signInWithDiscord": "Sign in with Discord",
     "signingIn": "Signing in...",
     "signInDescription": "Sign in with your Discord account to manage your group's profession matrix, create events, and organise parties.",
