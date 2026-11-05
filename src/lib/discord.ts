@@ -7,6 +7,7 @@
 
 import { Event, Announcement, getEventTypeForGame } from './events';
 import { Clan } from './types';
+import { getURL } from './url';
 import {
   getGameEventsWebhookUrl,
   getGameWebhookUrl,
@@ -157,8 +158,7 @@ export async function notifyNewEvent(
   const endsAt = event.ends_at ? new Date(event.ends_at) : null;
   
   // Build direct link to event
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-  const eventUrl = `${baseUrl}/${groupSlug}/${event.game_slug || 'aoc'}/events#event-${event.id}`;
+  const eventUrl = `${getURL()}${groupSlug}/${event.game_slug || 'aoc'}/events#event-${event.id}`;
   
   // Build content with role ping if provided
   let content = '🆕 **New Event Created!**';
@@ -275,8 +275,7 @@ export async function notifyAnnouncement(
   }
 
   // Build direct link to announcement
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-  const announcementUrl = `${baseUrl}/${groupSlug}/${announcement.game_slug || 'aoc'}/events#announcement-${announcement.id}`;
+  const announcementUrl = `${getURL()}${groupSlug}/${announcement.game_slug || 'aoc'}/events#announcement-${announcement.id}`;
 
   return send(webhookUrl, {
     content,

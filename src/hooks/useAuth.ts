@@ -19,10 +19,33 @@ interface UseAuthReturn {
   profile: UserProfile | null;
   session: Session | null;
   loading: boolean;
+  error: Error | null;
   signIn: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   refresh: () => Promise<void>;
+}
+
+type V2SessionPayload = {
+  stack: 'v2';
+} & ({
+  authenticated: false;
+  user: null;
+} | {
+  authenticated: true;
+  user: { id: string; discordId: string | null; displayName: string | null };
+});
+
+function isV2SessionPayload(payload: unknown): payload is V2SessionPayload {
+  if (!payload || typeof payload !== 'object'
+    || !('stack' in payload) || payload.stack !== 'v2'
+    || !('authenticated' in payload) || !('user' in payload)) return false;
+  if (payload.authenticated === false) return payload.user === null;
+  const user = payload.user;
+  return payload.authenticated === true && !!user && typeof user === 'object'
+    && 'id' in user && typeof user.id === 'string' && user.id.length > 0
+    && 'discordId' in user && (user.discordId === null || typeof user.discordId === 'string')
+    && 'displayName' in user && (user.displayName === null || typeof user.displayName === 'string');
 }
 
 export function useAuth(): UseAuthReturn {
@@ -30,6 +53,7 @@ export function useAuth(): UseAuthReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const buildFallbackV2Profile = useCallback((payloadUser: {
     id: string;
@@ -66,18 +90,19 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const fetchV2Session = useCallback(async () => {
+    setError(null);
     try {
-      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      const response = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`Failed to fetch v2 session: ${response.status}`);
       }
 
-      const payload = await response.json() as {
-        authenticated: boolean;
-        user: { id: string; discordId: string | null; displayName: string | null } | null;
-      };
+      const payload: unknown = await response.json();
+      if (!isV2SessionPayload(payload)) {
+        throw new Error('Invalid v2 session response; check client and server authentication configuration');
+      }
 
-      if (!payload.authenticated || !payload.user) {
+      if (!payload.authenticated) {
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -92,9 +117,7 @@ export function useAuth(): UseAuthReturn {
       await fetchV2Profile(fallbackProfile);
     } catch (error) {
       console.error('Error fetching v2 session:', error);
-      setUser(null);
-      setSession(null);
-      setProfile(null);
+      setError(error instanceof Error ? error : new Error('Unable to verify session'));
     }
   }, [buildFallbackV2Profile, fetchV2Profile]);
 
@@ -198,7 +221,12 @@ export function useAuth(): UseAuthReturn {
 
   const refresh = async () => {
     if (getClientAuthStack() === 'v2') {
-      await fetchV2Session();
+      setLoading(true);
+      try {
+        await fetchV2Session();
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -212,10 +240,10 @@ export function useAuth(): UseAuthReturn {
     profile,
     session,
     loading,
+    error,
     signIn,
     signOut,
     updateDisplayName,
     refresh,
   };
 }
-

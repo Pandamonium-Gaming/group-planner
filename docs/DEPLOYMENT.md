@@ -91,6 +91,14 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | `NEXT_PUBLIC_SITE_URL`          | Your Vercel URL (e.g.,             |
 |                                 | <https://aoc-planner.vercel.app>)  |
 
+Set `NEXT_PUBLIC_SITE_URL` to the exact address players normally use, including
+HTTPS and the preferred hostname. Discord event links and authentication
+callbacks must use the same hostname to reuse saved sessions. With Auth.js,
+keep `NEXTAUTH_URL` on that same origin. If the site URL is unset, server-generated
+notification links prefer `NEXTAUTH_URL` over a Vercel deployment hostname.
+Changing public environment variables requires a rebuild and deployment;
+existing Discord messages keep their original links until reposted.
+
 ***
 
 ## Step 4: Deploy to Vercel
