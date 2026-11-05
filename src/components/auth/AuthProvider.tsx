@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message={t('auth.sessionUnavailableDescription')}
           retryLabel={t('common.retryConnection')}
           onRetry={() => { void auth.refresh(); }}
-          homeLabel={t('common.returnHome')}
         />
       ) : children}
     </AuthContext.Provider>

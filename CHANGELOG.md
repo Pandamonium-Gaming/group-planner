@@ -68,6 +68,7 @@
 ### Fixed
 
 * Failed or invalid authentication session checks now show a retry screen instead of treating players as logged out. Session responses explicitly disable caching, and Discord event and announcement links use the shared site URL, falling back to the configured authentication hostname before a deployment hostname.
+* Removed the non-functional home link from the global authentication error screen; retry remains available.
 * Made each guild-bank resource inventory update and audit entry atomic, so a failed audit insert cannot leave a deposit or withdrawal partially committed.
 * Kept Ashes caravan creation restricted to group officers and admins when guild-bank permissions are customized.
 * Fixed the `sc` alias reading Ashes rank settings instead of Star Citizen rank settings.

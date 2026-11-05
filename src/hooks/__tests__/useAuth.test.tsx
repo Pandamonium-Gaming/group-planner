@@ -69,6 +69,7 @@ it.each(['network', 'server', 'invalid-json', 'wrong-stack', 'malformed-user'] a
     render(<AuthProvider><EventPage /></AuthProvider>);
     expect(await screen.findByRole('heading', { name: 'auth.sessionUnavailable' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'common.returnHome' })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(console.error).toHaveBeenCalled();
 
