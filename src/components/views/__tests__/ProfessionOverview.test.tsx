@@ -90,6 +90,8 @@ describe('profession and faction UI', () => {
     expect(screen.getAllByRole('article')).toHaveLength(9);
     expect(screen.getByText('Aster')).toBeInTheDocument();
     expect(screen.getByText('Briar')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Aster' })).toHaveAttribute('href', '/guild/wowforever/characters#character-main');
+    expect(screen.getByRole('link', { name: 'Briar' })).toHaveAttribute('href', '/guild/wowforever/characters#character-alt');
     expect(screen.getByRole('img', { name: 'Mage' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Alliance' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Horde' })).toBeInTheDocument();

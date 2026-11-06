@@ -101,7 +101,7 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
-                            <Link href={`/${groupSlug}/${gameSlug}/characters`}
+                            <Link href={`/${groupSlug}/${gameSlug}/characters#character-${character.id}`}
                               className="min-w-0 flex-1 text-sm font-medium text-slate-200 [overflow-wrap:anywhere] hover:text-indigo-300"
                               title={character.name}>
                               {character.name}

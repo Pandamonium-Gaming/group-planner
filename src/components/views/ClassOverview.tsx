@@ -95,7 +95,7 @@ export function ClassOverview({ characters, gameSlug, groupSlug }: {
                         {faction && <WowFactionIcon faction={faction} />}
                         <GuildRankBadge characterId={character.id} />
                         <div className="min-w-0 flex-1">
-                          <Link href={`/${groupSlug}/${gameSlug}/characters`}
+                          <Link href={`/${groupSlug}/${gameSlug}/characters#character-${character.id}`}
                             className="block truncate text-sm text-slate-200 hover:text-indigo-300" title={character.name}>
                             {character.name}
                           </Link>
