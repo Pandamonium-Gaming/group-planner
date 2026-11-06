@@ -317,6 +317,35 @@
     "novice": "Novice",
     "linkToMain": "Link to Main Character"
   },
+  "wowSkills": {
+    "title": "Skills",
+    "secondaryTitle": "Secondary professions",
+    "otherTitle": "Other skills",
+    "help": "Select the skills you want to record. These do not use primary profession slots. Record the trained rank separately; leave unknown values blank.",
+    "otherHelp": "Add class, weapon, defence or riding skills using their in-game names. No class restrictions or ranks are assumed.",
+    "cooking": "Cooking",
+    "firstAid": "First Aid",
+    "fishing": "Fishing",
+    "rank": "Trained rank",
+    "current": "Current skill",
+    "max": "Maximum skill",
+    "progress": "Current / maximum skill",
+    "unknown": "?",
+    "name": "Skill name",
+    "category": "Skill category",
+    "entry": "Skill {number}",
+    "add": "Add other skill",
+    "remove": "Remove skill",
+    "noneRecorded": "No skills recorded.",
+    "invalid": "Check skill names, categories and ranks. Names must be unique and must not be primary professions. Skill values must be non-negative whole numbers, with current skill no higher than the maximum.",
+    "categories": {
+      "secondary": "Secondary profession",
+      "class": "Class skill",
+      "weapon": "Weapon skill",
+      "defence": "Defence skill",
+      "riding": "Riding"
+    }
+  },
   "wowForever": {
     "invalidEventType": "Choose an event type available for this game.",
     "legacyEventType": "This existing event uses a legacy type. It is retained unless you choose a new type.",

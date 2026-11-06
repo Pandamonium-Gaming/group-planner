@@ -37,6 +37,7 @@ export function CharacterEditModal({ editingCharacter, onSubmit, onCancel, gameS
         wow_profession_2: editingCharacter.wow_profession_2 || null,
         wow_profession_1_rank: editingCharacter.wow_profession_1_rank || null,
         wow_profession_2_rank: editingCharacter.wow_profession_2_rank || null,
+        wow_skills: editingCharacter.wow_skills || [],
       }}
       onSubmit={async (data) => {
         await onSubmit(editingCharacter.id, data);

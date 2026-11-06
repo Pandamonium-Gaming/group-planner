@@ -16,6 +16,7 @@ import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRa
 import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 import { GuildRankBadge } from './GuildRankBadge';
+import { WowSkillDisplay } from './WowSkillDisplay';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -420,6 +421,7 @@ export function CharacterCard({
               {t(character.wow_profession_2_rank ? `wowForever.professionRanks.${character.wow_profession_2_rank}` : 'wowForever.rankNotRecorded')}
             </span>}
           </div>
+          <WowSkillDisplay skills={character.wow_skills || []} />
         </div>
       )}
 

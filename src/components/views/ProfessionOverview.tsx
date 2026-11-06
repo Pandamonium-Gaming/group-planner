@@ -10,13 +10,7 @@ import { getProfessionCoverage, type ProfessionCharacterFilter } from '@/lib/pro
 import { RANK_COLORS, RANK_NAMES, type CharacterWithProfessions } from '@/lib/types';
 import { getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
-
-const WOW_PROFESSION_RANK_COLORS = {
-  apprentice: RANK_COLORS[1],
-  journeyman: RANK_COLORS[2],
-  expert: RANK_COLORS[3],
-  artisan: RANK_COLORS[4],
-};
+import { WowSkillRankBadge, WowSkillProgress } from '@/components/characters/WowSkillDisplay';
 
 export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
   characters: CharacterWithProfessions[];
@@ -81,16 +75,14 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                 <p className="p-4 text-sm text-slate-500">{t('professionOverview.noCoverage')}</p>
               ) : (
                 <ul className="divide-y divide-slate-800/70">
-                  {profession.characters.map(({ character, rank, wowRank }) => {
+                  {profession.characters.map(({ character, rank, wowRank, wowSkill }) => {
                     const faction = gameSlug === 'wowforever'
                       ? getWowForeverFaction(character.wow_race || '', character.wow_class || '', character.wow_faction)
                       : null;
                     const rankLabel = gameSlug === 'wowforever'
                       ? t(wowRank ? `wowForever.professionRanks.${wowRank}` : 'wowForever.rankNotRecorded')
                       : rank ? t(`character.${RANK_NAMES[rank].toLowerCase()}`) : null;
-                    const rankColors = gameSlug === 'wowforever'
-                      ? wowRank ? WOW_PROFESSION_RANK_COLORS[wowRank] : null
-                      : rank ? RANK_COLORS[rank] : null;
+                    const rankColors = rank ? RANK_COLORS[rank] : null;
                     return (
                       <li key={character.id} className="flex items-start gap-3 p-3">
                         {gameSlug === 'wowforever' && (character.wow_class || faction) && (
@@ -120,7 +112,7 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                                 : t('character.unclaimed')}
                             </span>
                             <GuildRankBadge characterId={character.id} />
-                            {rankLabel && (
+                            {gameSlug === 'wowforever' ? <WowSkillRankBadge rank={wowRank} /> : rankLabel && (
                               <span title={`${t(profession.labelKey)}: ${rankLabel}`}
                                 className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${
                                   rankColors ? `${rankColors.text} ${rankColors.border} ${rankColors.bg}`
@@ -130,6 +122,7 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                                 {rankLabel}
                               </span>
                             )}
+                            {wowSkill && <WowSkillProgress skill={wowSkill} />}
                           </div>
                         </div>
                       </li>

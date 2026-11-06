@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { CharacterFiltersBar, DEFAULT_FILTERS, filterCharacters } from '../CharacterFilters';
+import type { WowSkill } from '@/games/wowforever/config/skills';
 
 jest.mock('@/contexts/LanguageContext', () => ({ useLanguage: () => ({ t: (key: string) => key }) }));
 
@@ -32,4 +33,17 @@ it('allows selecting multiple class and profession checkboxes and clearing them'
     characterCount={3} filteredCount={1} gameSlug="wowforever" />);
   fireEvent.click(screen.getByLabelText('Warrior'));
   expect(changed).toHaveBeenLastCalledWith(expect.objectContaining({ wowClasses: ['mage', 'warrior'] }));
+  fireEvent.click(screen.getByLabelText('wowSkills.fishing'));
+  expect(changed).toHaveBeenLastCalledWith(expect.objectContaining({ wowProfessions: ['Fishing'] }));
+});
+
+it('filters secondary professions together with primary professions without treating other skills as professions', () => {
+  const skills: WowSkill[] = [
+    { name: 'Fishing', category: 'secondary', rank: null, current: 0, max: 75 },
+    { name: 'Swords', category: 'weapon', rank: null, current: 10, max: 50 },
+  ];
+  const roster = characters.map(character => ({ ...character, wow_skills: character.id === 'warrior' ? skills : [] }));
+  expect(filterCharacters(roster, { ...DEFAULT_FILTERS, wowProfessions: ['Fishing'] }).map(character => character.id)).toEqual(['warrior']);
+  expect(filterCharacters(roster, { ...DEFAULT_FILTERS, wowProfessions: ['Alchemy', 'Fishing'] })).toHaveLength(2);
+  expect(filterCharacters(roster, { ...DEFAULT_FILTERS, wowProfessions: ['Swords'] })).toEqual([]);
 });

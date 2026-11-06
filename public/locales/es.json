@@ -317,6 +317,35 @@
     "novice": "Novato",
     "linkToMain": "Vincular al Personaje Principal"
   },
+  "wowSkills": {
+    "title": "Habilidades",
+    "secondaryTitle": "Profesiones secundarias",
+    "otherTitle": "Otras habilidades",
+    "help": "Selecciona las habilidades que quieres registrar. No ocupan espacios de profesiones principales. Registra el rango aprendido por separado y deja en blanco los valores desconocidos.",
+    "otherHelp": "Añade habilidades de clase, armas, defensa o equitación con sus nombres del juego. No se presuponen restricciones de clase ni rangos.",
+    "cooking": "Cocina",
+    "firstAid": "Primeros auxilios",
+    "fishing": "Pesca",
+    "rank": "Rango aprendido",
+    "current": "Habilidad actual",
+    "max": "Habilidad máxima",
+    "progress": "Habilidad actual / máxima",
+    "unknown": "?",
+    "name": "Nombre de la habilidad",
+    "category": "Categoría de la habilidad",
+    "entry": "Habilidad {number}",
+    "add": "Añadir otra habilidad",
+    "remove": "Eliminar habilidad",
+    "noneRecorded": "No hay habilidades registradas.",
+    "invalid": "Revisa los nombres, categorías y rangos. Los nombres deben ser únicos y no pueden ser profesiones principales. Los valores deben ser enteros no negativos y la habilidad actual no puede superar el máximo.",
+    "categories": {
+      "secondary": "Profesión secundaria",
+      "class": "Habilidad de clase",
+      "weapon": "Habilidad de armas",
+      "defence": "Habilidad de defensa",
+      "riding": "Equitación"
+    }
+  },
   "wowForever": {
     "invalidEventType": "Elige un tipo de evento disponible para este juego.",
     "legacyEventType": "Este evento usa un tipo antiguo. Se conserva a menos que elijas otro tipo.",

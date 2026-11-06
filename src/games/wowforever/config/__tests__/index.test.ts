@@ -9,8 +9,41 @@ import {
   WOW_FOREVER_PROFESSION_RANKS,
   resetChangedWowProfessionRanks,
 } from '../index';
+import { isValidWowSkills } from '../skills';
 
 describe('WoW Forever configuration', () => {
+  it('tracks secondary and other skills independently with unknown values and explicit trained ranks', () => {
+    expect(isValidWowSkills([
+      { name: 'Cooking', category: 'secondary', rank: 'apprentice', current: 75, max: 150 },
+      { name: 'First Aid', category: 'secondary', rank: null, current: null, max: 300 },
+      { name: 'Fishing', category: 'secondary', rank: 'artisan', current: 0, max: null },
+      { name: 'Lockpicking', category: 'class', rank: null, current: 125, max: 150 },
+      { name: 'Swords', category: 'weapon', rank: null, current: 70, max: 100 },
+      { name: 'Defence', category: 'defence', rank: null, current: 80, max: 100 },
+      { name: 'Riding', category: 'riding', rank: 'Apprentice Riding', current: null, max: null },
+    ])).toBe(true);
+    expect(isValidWowSkills([])).toBe(true);
+  });
+
+  it('rejects malformed, duplicate, misplaced and impossible skill data', () => {
+    const skill = { name: 'Fishing', category: 'secondary', rank: 'expert', current: 200, max: 300 };
+    for (const changes of [
+      { name: '' }, { name: ' Fishing ' }, { name: '\u0000' }, { name: 'x'.repeat(81) },
+      { category: 'weapon' }, { name: 'Mining', category: 'class' },
+      { name: 'Unknown secondary' }, { rank: 'grandmaster' }, { rank: 3 },
+      { current: 1.5 }, { current: -1 }, { current: '200' }, { current: NaN },
+      { current: 301 }, { max: -1 }, { max: Number.MAX_SAFE_INTEGER + 1 }, { extra: true },
+    ]) expect(isValidWowSkills([{ ...skill, ...changes }])).toBe(false);
+    expect(isValidWowSkills([skill, skill])).toBe(false);
+    expect(isValidWowSkills([
+      { ...skill, name: 'Swords', category: 'weapon' },
+      { ...skill, name: 'swords', category: 'class' },
+    ])).toBe(false);
+    expect(isValidWowSkills([{ name: 'Swords', category: 'weapon' }])).toBe(false);
+    expect(isValidWowSkills(null)).toBe(false);
+    expect(isValidWowSkills([[]])).toBe(false);
+  });
+
   it('accepts only recorded trained ranks paired with professions', () => {
     const valid = { race: 'Human', classId: 'mage', mainSpec: 'Fire', profession1: 'Alchemy', profession2: 'Tailoring' };
     for (const rank of WOW_FOREVER_PROFESSION_RANKS) {

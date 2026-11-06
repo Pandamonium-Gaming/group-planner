@@ -22,18 +22,39 @@ describe('profession coverage', () => {
     expect(getProfessionCoverage('wowforever', [{ ...crafter, wow_profession_1_rank: null }])
       .find(card => card.id === 'Alchemy')?.characters[0].wowRank).toBeNull();
   });
-  it('shows all nine WoW professions, deduplicating both slots per character', () => {
+  it('shows primary and secondary WoW professions, deduplicating both primary slots per character', () => {
     const main = character({ game_slug: 'wowforever', wow_profession_1: 'Alchemy', wow_profession_2: 'Alchemy' });
     const alt = character({ id: 'alt', name: 'Alt Crafter', is_main: false, game_slug: 'wowforever',
       wow_profession_1: 'Alchemy', wow_profession_2: 'Tailoring' });
     const otherGame = character({ id: 'other', game_slug: 'aoc', wow_profession_1: 'Alchemy' });
     const cards = getProfessionCoverage('wowforever', [alt, main, otherGame]);
-    expect(cards).toHaveLength(9);
+    expect(cards).toHaveLength(12);
     expect(cards.find(card => card.id === 'Alchemy')?.characters.map(entry => entry.character.id)).toEqual(['main', 'alt']);
     expect(cards.find(card => card.id === 'Tailoring')?.characters).toHaveLength(1);
     expect(cards.find(card => card.id === 'Mining')?.characters).toEqual([]);
     expect(getProfessionCoverage('wowforever', [main, alt], 'main').find(card => card.id === 'Alchemy')?.characters).toHaveLength(1);
     expect(getProfessionCoverage('wowforever', [main, alt], 'alt').find(card => card.id === 'Tailoring')?.characters).toHaveLength(1);
+  });
+
+  it('includes secondary skills without consuming primary slots or inferring their rank from points', () => {
+    const main = character({ wow_profession_1: 'Alchemy', wow_profession_2: 'Mining', wow_skills: [
+      { name: 'Fishing', category: 'secondary', rank: null, current: 300, max: 300 },
+      { name: 'Cooking', category: 'secondary', rank: 'expert', current: 175, max: 225 },
+      { name: 'Swords', category: 'weapon', rank: null, current: 300, max: 300 },
+    ] });
+    const alt = character({ id: 'alt', is_main: false, wow_skills: [
+      { name: 'Fishing', category: 'secondary', rank: 'artisan', current: 225, max: 300 },
+    ] });
+    const coverage = getProfessionCoverage('wowforever', [main, alt]);
+    const fishing = coverage.find(card => card.id === 'Fishing')!;
+    expect(fishing.characters.map(entry => entry.character.id)).toEqual(['alt', 'main']);
+    expect(fishing.characters[1].wowRank).toBeNull();
+    expect(fishing.characters[1].wowSkill).toEqual(main.wow_skills![0]);
+    expect(coverage.find(card => card.id === 'Alchemy')?.characters).toHaveLength(1);
+    expect(coverage.find(card => card.id === 'Mining')?.characters).toHaveLength(1);
+    expect(coverage.some(card => card.id === 'Swords')).toBe(false);
+    expect(getProfessionCoverage('wowforever', [main, alt], 'alt').find(card => card.id === 'Fishing')?.characters).toHaveLength(1);
+    expect(getProfessionCoverage('aoc', [main]).some(card => card.id === 'Fishing')).toBe(false);
   });
 
   it('uses all 22 Ashes professions and preserves existing ranks', () => {

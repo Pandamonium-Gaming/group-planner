@@ -317,6 +317,35 @@
     "novice": "Beginner",
     "linkToMain": "Koppelen aan hoofdpersonage"
   },
+  "wowSkills": {
+    "title": "Vaardigheden",
+    "secondaryTitle": "Secundaire beroepen",
+    "otherTitle": "Overige vaardigheden",
+    "help": "Selecteer de vaardigheden die je wilt vastleggen. Ze gebruiken geen plaatsen voor primaire beroepen. Leg de aangeleerde rang apart vast en laat onbekende waarden leeg.",
+    "otherHelp": "Voeg klasse-, wapen-, verdedigings- of rijvaardigheden toe met hun namen in het spel. Er worden geen klassebeperkingen of rangen aangenomen.",
+    "cooking": "Koken",
+    "firstAid": "Eerste hulp",
+    "fishing": "Vissen",
+    "rank": "Aangeleerde rang",
+    "current": "Huidige vaardigheid",
+    "max": "Maximale vaardigheid",
+    "progress": "Huidige / maximale vaardigheid",
+    "unknown": "?",
+    "name": "Naam van de vaardigheid",
+    "category": "Vaardigheidscategorie",
+    "entry": "Vaardigheid {number}",
+    "add": "Andere vaardigheid toevoegen",
+    "remove": "Vaardigheid verwijderen",
+    "noneRecorded": "Geen vaardigheden vastgelegd.",
+    "invalid": "Controleer namen, categorieën en rangen. Namen moeten uniek zijn en mogen geen primaire beroepen zijn. Waarden moeten niet-negatieve gehele getallen zijn en de huidige vaardigheid mag niet hoger zijn dan het maximum.",
+    "categories": {
+      "secondary": "Secundair beroep",
+      "class": "Klassevaardigheid",
+      "weapon": "Wapenvaardigheid",
+      "defence": "Verdedigingsvaardigheid",
+      "riding": "Rijvaardigheid"
+    }
+  },
   "wowForever": {
     "invalidEventType": "Kies een evenementtype dat beschikbaar is voor dit spel.",
     "legacyEventType": "Dit bestaande evenement gebruikt een oud type. Het blijft behouden tenzij je een nieuw type kiest.",

@@ -37,6 +37,8 @@ import {
   WOW_FOREVER_RACES,
 } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
+import { isValidWowSkills, type WowSkill } from '@/games/wowforever/config/skills';
+import { WowSkillEditor } from './WowSkillEditor';
 
 export interface CharacterFormData {
   name: string;
@@ -58,6 +60,7 @@ export interface CharacterFormData {
   wow_profession_2?: string | null;
   wow_profession_1_rank?: WowForeverProfessionRank | null;
   wow_profession_2_rank?: WowForeverProfessionRank | null;
+  wow_skills?: WowSkill[];
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -112,6 +115,7 @@ export function CharacterForm({
     wow_profession_2: initialData?.wow_profession_2 || null,
     wow_profession_1_rank: initialData?.wow_profession_1_rank || null,
     wow_profession_2_rank: initialData?.wow_profession_2_rank || null,
+    wow_skills: initialData?.wow_skills || [],
     subscriber_tier: (initialData as any)?.subscriber_tier || null,
     subscriber_since: (initialData as any)?.subscriber_since || null,
     subscriber_ships_month: (initialData as any)?.subscriber_ships_month || null,
@@ -151,7 +155,14 @@ export function CharacterForm({
       return;
     }
 
+    const wowSkills = (formData.wow_skills || []).map(skill => ({
+      ...skill, name: skill.name.trim(), rank: skill.rank?.trim() || null,
+    }));
     if (isWowForever) {
+      if (!isValidWowSkills(wowSkills)) {
+        setError(t('wowSkills.invalid'));
+        return;
+      }
       if (!formData.wow_race || !formData.wow_class || !formData.wow_main_spec) {
         setError(t('wowForever.requiredFieldsError'));
         return;
@@ -181,7 +192,7 @@ export function CharacterForm({
     setError(null);
     
     try {
-      await onSubmit(formData);
+      await onSubmit(isWowForever ? { ...formData, wow_skills: wowSkills } : formData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save character');
     } finally {
@@ -712,6 +723,8 @@ export function CharacterForm({
                   )}
                 </div>
               </div>
+              <WowSkillEditor skills={formData.wow_skills || []}
+                onChange={wow_skills => setFormData({ ...formData, wow_skills })} />
             </div>
           )}
 
