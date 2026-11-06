@@ -11,6 +11,13 @@ import { RANK_COLORS, RANK_NAMES, type CharacterWithProfessions } from '@/lib/ty
 import { getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 
+const WOW_PROFESSION_RANK_COLORS = {
+  apprentice: RANK_COLORS[1],
+  journeyman: RANK_COLORS[2],
+  expert: RANK_COLORS[3],
+  artisan: RANK_COLORS[4],
+};
+
 export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
   characters: CharacterWithProfessions[];
   gameSlug: string;
@@ -78,28 +85,53 @@ export function ProfessionOverview({ characters, gameSlug, groupSlug }: {
                     const faction = gameSlug === 'wowforever'
                       ? getWowForeverFaction(character.wow_race || '', character.wow_class || '', character.wow_faction)
                       : null;
+                    const rankLabel = gameSlug === 'wowforever'
+                      ? t(wowRank ? `wowForever.professionRanks.${wowRank}` : 'wowForever.rankNotRecorded')
+                      : rank ? t(`character.${RANK_NAMES[rank].toLowerCase()}`) : null;
+                    const rankColors = gameSlug === 'wowforever'
+                      ? wowRank ? WOW_PROFESSION_RANK_COLORS[wowRank] : null
+                      : rank ? RANK_COLORS[rank] : null;
                     return (
-                      <li key={character.id} className="flex items-center gap-2 p-3">
-                        {gameSlug === 'wowforever' && character.wow_class && <WowClassIcon classId={character.wow_class} />}
-                        {faction && <WowFactionIcon faction={faction} />}
-                        <Link href={`/${groupSlug}/${gameSlug}/characters`}
-                          className="min-w-0 flex-1 truncate text-sm text-slate-200 hover:text-indigo-300" title={character.name}>
-                          {character.name}
-                        </Link>
-                        <GuildRankBadge characterId={character.id} />
-                        <span className="max-w-24 truncate text-xs text-slate-400" title={t('character.owner')}>
-                          {character.user_id
-                            ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
-                            : t('character.unclaimed')}
-                        </span>
-                        {rank && <span className={`text-xs ${RANK_COLORS[rank].text}`}>{t(`character.${RANK_NAMES[rank].toLowerCase()}`)}</span>}
-                        {gameSlug === 'wowforever' && <span className="text-xs text-indigo-200">
-                          {t(wowRank ? `wowForever.professionRanks.${wowRank}` : 'wowForever.rankNotRecorded')}
-                        </span>}
-                        <span className={`rounded px-2 py-0.5 text-xs ${character.is_main
-                          ? 'bg-amber-400/10 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
-                          {t(`professionOverview.${character.is_main ? 'mainLabel' : 'altLabel'}`)}
-                        </span>
+                      <li key={character.id} className="flex items-start gap-3 p-3">
+                        {gameSlug === 'wowforever' && (character.wow_class || faction) && (
+                          <div className="flex shrink-0 gap-1.5">
+                            {character.wow_class && <WowClassIcon classId={character.wow_class} />}
+                            {faction && <WowFactionIcon faction={faction} />}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <Link href={`/${groupSlug}/${gameSlug}/characters`}
+                              className="min-w-0 flex-1 text-sm font-medium text-slate-200 [overflow-wrap:anywhere] hover:text-indigo-300"
+                              title={character.name}>
+                              {character.name}
+                            </Link>
+                            <span className={`shrink-0 rounded px-2 py-0.5 text-xs ${character.is_main
+                              ? 'bg-amber-400/10 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
+                              {t(`professionOverview.${character.is_main ? 'mainLabel' : 'altLabel'}`)}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="min-w-0 max-w-full text-xs text-slate-400 [overflow-wrap:anywhere]"
+                              title={t('character.owner')}>
+                              <span className="sr-only">{t('character.owner')}: </span>
+                              {character.user_id
+                                ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
+                                : t('character.unclaimed')}
+                            </span>
+                            <GuildRankBadge characterId={character.id} />
+                            {rankLabel && (
+                              <span title={`${t(profession.labelKey)}: ${rankLabel}`}
+                                className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${
+                                  rankColors ? `${rankColors.text} ${rankColors.border} ${rankColors.bg}`
+                                    : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                                }`}>
+                                <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+                                {rankLabel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </li>
                     );
                   })}

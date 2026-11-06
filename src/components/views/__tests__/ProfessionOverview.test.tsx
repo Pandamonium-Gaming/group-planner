@@ -42,6 +42,29 @@ describe('profession and faction UI', () => {
     expect(screen.queryByText(/225|300/)).not.toBeInTheDocument();
   });
 
+  it('shows full character and owner names alongside coloured profession badges in rank order', () => {
+    const rankedCharacters: CharacterWithProfessions[] = [
+      { ...main, id: 'unrecorded', name: 'Unrecorded Crafter' },
+      { ...main, id: 'apprentice', name: 'Apprentice Crafter', wow_profession_1_rank: 'apprentice' },
+      { ...main, id: 'journeyman', name: 'Journeyman Crafter', wow_profession_1_rank: 'journeyman' },
+      { ...main, id: 'expert', name: 'Expert Crafter', wow_profession_1_rank: 'expert' },
+      { ...main, id: 'artisan', name: 'An Extremely Long Artisan Character Name', is_main: false,
+        wow_profession_1_rank: 'artisan', owner: { display_name: 'An Extremely Long Owner Display Name', discord_username: null } },
+    ];
+    render(<ProfessionOverview characters={rankedCharacters} gameSlug="wowforever" groupSlug="guild" />);
+    const card = within(screen.getAllByRole('article')[0]);
+    expect(card.getAllByRole('link').map(link => link.textContent)).toEqual([
+      'An Extremely Long Artisan Character Name', 'Expert Crafter', 'Journeyman Crafter',
+      'Apprentice Crafter', 'Unrecorded Crafter',
+    ]);
+    expect(card.getByText('An Extremely Long Owner Display Name')).toBeInTheDocument();
+    expect(card.getByText('wowForever.professionRanks.apprentice')).toHaveClass('text-green-400', 'border-green-500');
+    expect(card.getByText('wowForever.professionRanks.journeyman')).toHaveClass('text-blue-400', 'border-blue-500');
+    expect(card.getByText('wowForever.professionRanks.expert')).toHaveClass('text-purple-400', 'border-purple-500');
+    expect(card.getByText('wowForever.professionRanks.artisan')).toHaveClass('text-orange-400', 'border-orange-500');
+    expect(card.getByText('wowForever.rankNotRecorded')).toHaveClass('text-slate-400');
+  });
+
   it('saves ranks independently and clears old ranks when changing professions', async () => {
     const submit = jest.fn().mockResolvedValue(undefined);
     render(<CharacterForm initialData={{ name: 'Aster', wow_race: 'Human', wow_class: 'mage', wow_main_spec: 'Fire',
