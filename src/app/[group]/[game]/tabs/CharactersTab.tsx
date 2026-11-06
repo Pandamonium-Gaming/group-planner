@@ -1,6 +1,7 @@
 "use client";
+import React, { useEffect, useMemo, useRef } from 'react';
 import { AddCharacterButton } from "@/components/characters/AddCharacterButton";
-import { CharacterFiltersBar, filterCharacters, CharacterFilters } from "@/components/characters/CharacterFilters";
+import { CharacterFiltersBar, filterCharacters, CharacterFilters, DEFAULT_FILTERS } from "@/components/characters/CharacterFilters";
 import { CharacterCard } from "@/components/characters/MemberCard";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGroupMembership } from '@/hooks/useGroupMembership';
@@ -43,6 +44,46 @@ export function CharactersTab({
   const { t } = useLanguage();
   const clanMembership = useGroupMembership(groupId, user?.id || null);
   const userRole = clanMembership.membership?.role || 'pending';
+  const visibleCharacters = useMemo(() => filterCharacters(characters, characterFilters), [characters, characterFilters]);
+  const scrolledHash = useRef('');
+
+  // Cards may mount after the router has already processed the URL fragment.
+  useEffect(() => {
+    const scrollToCharacter = () => {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#character-')) {
+        scrolledHash.current = '';
+        return;
+      }
+      if (scrolledHash.current === hash) return;
+      const character = characters.find(entry => `#character-${entry.id}` === hash);
+      if (!character) return;
+      if (!visibleCharacters.some(entry => entry.id === character.id)) {
+        setCharacterFilters({
+          ...DEFAULT_FILTERS,
+          minLevel: Math.min(DEFAULT_FILTERS.minLevel, character.level),
+          maxLevel: Math.max(DEFAULT_FILTERS.maxLevel, character.level),
+        });
+        return;
+      }
+      const card = document.getElementById(`character-${character.id}`);
+      if (card) {
+        card.scrollIntoView({ block: 'start' });
+        scrolledHash.current = hash;
+      }
+    };
+    const onNavigate = () => {
+      scrolledHash.current = '';
+      scrollToCharacter();
+    };
+    scrollToCharacter();
+    window.addEventListener('hashchange', onNavigate);
+    window.addEventListener('popstate', onNavigate);
+    return () => {
+      window.removeEventListener('hashchange', onNavigate);
+      window.removeEventListener('popstate', onNavigate);
+    };
+  }, [characters, visibleCharacters, setCharacterFilters]);
 
   // Helper to check if user can edit a specific character
   const getUserCanEditCharacter = (character: CharacterWithProfessions): boolean => {
@@ -110,16 +151,16 @@ export function CharactersTab({
           filters={characterFilters}
           onChange={setCharacterFilters}
           characterCount={characters.length}
-          filteredCount={filterCharacters(characters, characterFilters).length}
+          filteredCount={visibleCharacters.length}
           gameSlug={gameSlug}
         />
       )}
       {characters.length === 0 ? (
         <div className="text-slate-400 text-center py-8">{t('clan.noCharacters')}</div>
-      ) : filterCharacters(characters, characterFilters).length === 0 ? (
+      ) : visibleCharacters.length === 0 ? (
         <div className="text-slate-400 text-center py-8">{t('clan.noCharactersMatch')}</div>
       ) : (
-        filterCharacters(characters, characterFilters).map((character) => {
+        visibleCharacters.map((character) => {
           // Check if user can edit this character
           const canEdit = getUserCanEditCharacter(character) && !isGameArchived;
           const canDelete = getUserCanDeleteCharacter(character) && !isGameArchived;

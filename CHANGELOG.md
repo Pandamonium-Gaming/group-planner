@@ -68,6 +68,7 @@
 
 ### Fixed
 
+* Character links in the Professions and Classes lists now scroll to the selected character card after loading, revealing it if existing filters would hide it.
 * Failed or invalid authentication session checks now show a retry screen instead of treating players as logged out. Session responses explicitly disable caching, and Discord event and announcement links use the shared site URL, falling back to the configured authentication hostname before a deployment hostname.
 * Removed the non-functional home link from the global authentication error screen; retry remains available.
 * Made each guild-bank resource inventory update and audit entry atomic, so a failed audit insert cannot leave a deposit or withdrawal partially committed.

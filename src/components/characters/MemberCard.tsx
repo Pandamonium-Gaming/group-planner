@@ -137,7 +137,8 @@ export function CharacterCard({
 
   return (
     <div
-      className={`bg-slate-900/80 backdrop-blur-sm rounded-lg border ${borderColor} ${glowEffect} transition-all duration-300 hover:border-slate-600`}
+      id={`character-${character.id}`}
+      className={`scroll-mt-4 bg-slate-900/80 backdrop-blur-sm rounded-lg border ${borderColor} ${glowEffect} transition-all duration-300 hover:border-slate-600`}
     >
       {/* Header - clickable to expand/collapse */}
       <div 

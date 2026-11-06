@@ -46,7 +46,7 @@ it.each([['en-GB', en], ['es', es], ['nl', nl]] as const)(
     expect(screen.getByText(locale.classOverview.characters.replace('{{count}}', '2'))).toBeInTheDocument();
     expect(screen.getAllByText(`1 (${new Intl.NumberFormat(language, { style: 'percent' }).format(0.5)})`,
       { normalizer: text => text })).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'Aster' })).toHaveAttribute('href', '/guild/wowforever/characters');
+    expect(screen.getByRole('link', { name: 'Aster' })).toHaveAttribute('href', '/guild/wowforever/characters#character-main');
     expect(screen.getByText('Fire')).toBeInTheDocument();
     expect(screen.getAllByText('Owner')).toHaveLength(2);
     expect(screen.getAllByRole('img', { name: 'Alliance' })).toHaveLength(2);
