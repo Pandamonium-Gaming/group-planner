@@ -11,6 +11,7 @@ const character: CharacterWithProfessions = {
   id: 'main', group_id: 'group', user_id: 'user', name: 'Aster', race: null,
   primary_archetype: null, secondary_archetype: null, level: 1, is_main: true,
   created_at: '', professions: [], game_slug: 'wowforever', wow_profession_1: 'Alchemy',
+  wow_skills: [{ name: 'First Aid', category: 'secondary', rank: 'expert', current: 180, max: 225 }],
 };
 
 describe('profession summary localization', () => {
@@ -25,10 +26,12 @@ describe('profession summary localization', () => {
       gameSlug="wowforever" groupSlug="guild" /></LanguageProvider>);
     const contributors = locale.professionOverview.contributors.replace('{{count}}', '2');
     await waitFor(() => expect(screen.getByText(contributors)).toBeInTheDocument());
-    expect(screen.getByText(locale.professionOverview.covered.replace('{{covered}}', '2').replace('{{total}}', '9')))
+    expect(screen.getByText(locale.professionOverview.covered.replace('{{covered}}', '3').replace('{{total}}', '12')))
       .toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(locale.professionOverview.filter), { target: { value: 'main' } });
     expect(screen.getByText(locale.professionOverview.contributors.replace('{{count}}', '1'))).toBeInTheDocument();
+    expect(screen.getByText(locale.professionOverview.covered.replace('{{covered}}', '2').replace('{{total}}', '12')))
+      .toBeInTheDocument();
     expect(screen.queryByText(/\{count\}/)).not.toBeInTheDocument();
   });
 });

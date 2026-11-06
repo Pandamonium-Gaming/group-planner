@@ -7,6 +7,7 @@ import { getClassById, ROR_CLASSES, ROR_ROLE_CONFIG } from '@/games/returnofreck
 import { getGameConfig } from '@/config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { WOW_FOREVER_CLASSES, WOW_FOREVER_PROFESSIONS } from '@/games/wowforever/config';
+import { WOW_SECONDARY_SKILLS, type WowSkill } from '@/games/wowforever/config/skills';
 import { getProfessionLabelKey } from '@/lib/professionCoverage';
 
 interface GameRoleOption {
@@ -160,7 +161,7 @@ export function CharacterFiltersBar({
               <fieldset className="min-w-0 rounded-lg border border-slate-700 p-3">
                 <legend className="px-1 text-xs text-slate-400">{t('professionOverview.title')}</legend>
                 <div className="grid grid-cols-2 gap-2">
-                  {WOW_FOREVER_PROFESSIONS.map(profession => (
+                  {[...WOW_FOREVER_PROFESSIONS, ...WOW_SECONDARY_SKILLS].map(profession => (
                     <label key={profession} className="flex min-w-0 items-start gap-2 text-sm text-slate-300">
                       <input type="checkbox" className="mt-1 shrink-0" checked={(filters.wowProfessions || []).includes(profession)}
                         onChange={event => onChange({ ...filters, wowProfessions: event.target.checked
@@ -400,6 +401,7 @@ export function filterCharacters<T extends {
   wow_class?: string | null;
   wow_profession_1?: string | null;
   wow_profession_2?: string | null;
+  wow_skills?: WowSkill[];
   rank?: string | null;
 }>(
   characters: T[],
@@ -420,7 +422,8 @@ export function filterCharacters<T extends {
   return characters.filter(char => {
     if (filters.wowClasses?.length && !filters.wowClasses.includes(char.wow_class || '')) return false;
     if (filters.wowProfessions?.length && !filters.wowProfessions.some(profession =>
-      profession === char.wow_profession_1 || profession === char.wow_profession_2)) return false;
+      profession === char.wow_profession_1 || profession === char.wow_profession_2 ||
+      char.wow_skills?.some(skill => skill.category === 'secondary' && skill.name === profession))) return false;
     // Search filter - include character if:
     // 1. Name matches search, OR
     // 2. Has user_id and that user_id had a character that matched search

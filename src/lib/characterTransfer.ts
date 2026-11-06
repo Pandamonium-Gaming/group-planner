@@ -1,4 +1,5 @@
 import { isValidWowForeverSelection } from '@/games/wowforever/config';
+import { isValidWowSkills, type WowSkill } from '@/games/wowforever/config/skills';
 import { RACES, ARCHETYPES } from '@/lib/characters';
 import { PROFESSIONS } from '@/lib/professions';
 import { ROR_CLASSES, ROR_FACTIONS } from '@/games/returnofreckooning/config';
@@ -13,13 +14,14 @@ export const TRANSFER_FIELDS = [
   'race', 'primary_archetype', 'secondary_archetype', 'ror_faction', 'ror_class',
   'wow_race', 'wow_faction', 'wow_class', 'wow_main_spec', 'wow_secondary_spec',
   'wow_profession_1', 'wow_profession_2', 'wow_profession_1_rank', 'wow_profession_2_rank',
+  'wow_skills',
   'subscriber_tier', 'subscriber_since', 'subscriber_ships_month',
 ] as const;
 
 export interface TransferCharacter {
   id: string;
   owner: { discord_id: string | null; label: string | null };
-  data: Record<string, string | number | boolean | string[] | null>;
+  data: Record<string, string | number | boolean | string[] | WowSkill[] | null>;
   professions: Array<{ profession: string; rank: number; artisan_level: number; quality_score: number }>;
   ships: Array<{ ship_id: string; ownership_type: string; notes: string | null }>;
 }
@@ -83,6 +85,16 @@ export function validateCharacterTransfer(input: unknown, gameSlug: string): Cha
     }
     const data: TransferCharacter['data'] = {};
     for (const field of TRANSFER_FIELDS) {
+      if (field === 'wow_skills') {
+        // Older exports omit skills; keep omission so importing them preserves existing skill data.
+        if (Object.hasOwn(rawData, field)) {
+          if (!isValidWowSkills(rawData[field]) || (gameSlug !== 'wowforever' && rawData[field].length)) {
+            throw new Error('Invalid WoW skill data');
+          }
+          data[field] = rawData[field];
+        }
+        continue;
+      }
       const value = rawData[field] ?? null;
       if (field === 'level') data[field] = integer(value, 1, 100);
       else if (field === 'is_main') {
@@ -165,7 +177,7 @@ export function createCharacterTransfer(gameSlug: string, rows: Array<Record<str
         owner: { discord_id: owner.discord_id || row.discord_id || null,
           label: owner.display_name || owner.discord_username || null },
         data: Object.fromEntries(TRANSFER_FIELDS.map(field => [field,
-          row[field] ?? (field === 'level' ? 1 : field === 'is_main' ? false : null)])),
+          row[field] ?? (field === 'level' ? 1 : field === 'is_main' ? false : field === 'wow_skills' ? [] : null)])),
         professions: row.member_professions || [], ships: row.character_ships || [],
       };
     }),

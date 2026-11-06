@@ -1,5 +1,6 @@
 // TypeScript types for the AoC Group Planner
 import type { WowForeverProfessionRank } from '@/games/wowforever/config';
+import type { WowSkill } from '@/games/wowforever/config/skills';
 
 // Profession tier types
 export type ProfessionTier = 'gathering' | 'processing' | 'crafting';
@@ -123,6 +124,7 @@ export interface Character {
   wow_profession_2?: string | null;
   wow_profession_1_rank?: WowForeverProfessionRank | null;
   wow_profession_2_rank?: WowForeverProfessionRank | null;
+  wow_skills?: WowSkill[];
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;

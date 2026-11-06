@@ -26,6 +26,20 @@ it('rejects wrong game, duplicate IDs, unsupported fields and invalid ranks', ()
   expect(() => createCharacterTransfer('wowforever', [{ ...row, name: '\u0000' }])).toThrow();
 });
 
+it('round-trips skills, rejects invalid values and preserves omission in older exports', () => {
+  const skills = [
+    { name: 'First Aid', category: 'secondary', rank: 'expert', current: 180, max: 225 },
+    { name: 'Lockpicking', category: 'class', rank: null, current: 150, max: 200 },
+  ];
+  const exported = createCharacterTransfer('wowforever', [{ ...row, wow_skills: skills }]);
+  expect(exported.characters[0].data.wow_skills).toEqual(skills);
+  expect(validateCharacterTransfer(exported, 'wowforever')).toEqual(exported);
+  delete exported.characters[0].data.wow_skills;
+  expect(validateCharacterTransfer(exported, 'wowforever').characters[0].data).not.toHaveProperty('wow_skills');
+  expect(() => createCharacterTransfer('wowforever', [{ ...row, wow_skills: [{ ...skills[0], current: 226 }] }])).toThrow('Invalid WoW skill data');
+  expect(() => createCharacterTransfer('aoc', [{ ...row, wow_skills: skills }])).toThrow('Invalid WoW skill data');
+});
+
 it('round-trips Ashes profession ranks and Star Citizen ship ownership and timestamp fields', () => {
   const ashes = createCharacterTransfer('aoc', [{ ...row, member_professions: [
     { profession: 'mining', rank: 4, artisan_level: 50, quality_score: 1000 },

@@ -1,4 +1,5 @@
 import { POST } from '../route';
+import type { Character } from '@/lib/types';
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -31,11 +32,7 @@ type GroupMemberRow = {
   user_id: string;
 };
 
-type CharacterRow = {
-  id: string;
-  user_id: string | null;
-  group_id: string;
-};
+type CharacterRow = Pick<Character, 'id' | 'user_id' | 'group_id'> & Partial<Character>;
 
 type UpdateRecord = {
   table: 'group_members' | 'members';
@@ -47,6 +44,7 @@ type MockState = {
   selectMembershipQueue: GroupMemberRow[];
   selectCharacterQueue: CharacterRow[];
   updates: UpdateRecord[];
+  inserts: Array<Record<string, unknown>>;
   insertResult: { data: unknown; error: { message: string } | null };
 };
 
@@ -54,6 +52,7 @@ const mockState: MockState = {
   selectMembershipQueue: [],
   selectCharacterQueue: [],
   updates: [],
+  inserts: [],
   insertResult: { data: null, error: null },
 };
 
@@ -116,9 +115,10 @@ function createMockAdminClient() {
 
       if (table === 'members') {
         return {
-          insert: jest.fn(() => ({
-            select: () => ({ single: async () => mockState.insertResult }),
-          })),
+          insert: jest.fn((payload: Record<string, unknown>) => {
+            mockState.inserts.push(payload);
+            return { select: () => ({ single: async () => mockState.insertResult }) };
+          }),
           select: jest.fn(() => createMembersSelectQuery()),
           update: jest.fn((payload: Record<string, unknown>) => {
             const record: UpdateRecord = {
@@ -157,6 +157,7 @@ describe('POST /api/group/members', () => {
     mockState.selectMembershipQueue = [];
     mockState.selectCharacterQueue = [];
     mockState.updates = [];
+    mockState.inserts = [];
     mockState.insertResult = { data: null, error: null };
 
     auth.mockResolvedValue({
@@ -166,6 +167,54 @@ describe('POST /api/group/members', () => {
     });
 
     createClient.mockImplementation(() => createMockAdminClient());
+  });
+
+  it('persists WoW secondary and other skills on create and partial update, but not other games', async () => {
+    const skills = [
+      { name: 'Cooking', category: 'secondary', rank: 'expert', current: 180, max: 225 },
+      { name: 'Lockpicking', category: 'class', rank: null, current: 0, max: 150 },
+    ];
+    const character = { name: 'Aster', wow_race: 'Human', wow_class: 'mage', wow_main_spec: 'Fire',
+      wow_profession_1: 'Alchemy', wow_profession_2: 'Mining', wow_skills: skills };
+    mockState.selectMembershipQueue = [{ role: 'member', user_id: 'actor-user-id' }];
+    mockState.insertResult = { data: { id: 'character-1' }, error: null };
+    const created = await POST(makeRequest({
+      action: 'create_character', group_id: 'group-1', game_slug: 'wowforever', character,
+    }) as Request);
+    expect(created.status).toBe(200);
+    expect(mockState.inserts[0]).toEqual(expect.objectContaining({
+      wow_profession_1: 'Alchemy', wow_profession_2: 'Mining', wow_skills: skills,
+    }));
+    mockState.selectMembershipQueue = [{ role: 'member', user_id: 'actor-user-id' }];
+    mockState.selectCharacterQueue = [{ ...character, id: 'character-1', group_id: 'group-1',
+      user_id: 'actor-user-id', game_slug: 'wowforever', wow_skills: [] }];
+    const updated = await POST(makeRequest({
+      action: 'update_character', group_id: 'group-1', character_id: 'character-1', changes: { wow_skills: skills },
+    }) as Request);
+    expect(updated.status).toBe(200);
+    expect(mockState.updates[0].payload).toEqual({ wow_skills: skills });
+    mockState.selectMembershipQueue = [{ role: 'member', user_id: 'actor-user-id' }];
+    await POST(makeRequest({
+      action: 'create_character', group_id: 'group-1', game_slug: 'aoc', character,
+    }) as Request);
+    expect(mockState.inserts[1]).not.toHaveProperty('wow_skills');
+  });
+
+  it.each(['create_character', 'update_character'])('rejects invalid skill data before writes for %s', async action => {
+    mockState.selectMembershipQueue = [{ role: 'member', user_id: 'actor-user-id' }];
+    mockState.selectCharacterQueue = [{
+      id: 'character-1', group_id: 'group-1', user_id: 'actor-user-id', game_slug: 'wowforever',
+      wow_race: 'Human', wow_class: 'mage', wow_main_spec: 'Fire',
+    }];
+    const data = { name: 'Aster', is_main: true, wow_race: 'Human', wow_class: 'mage', wow_main_spec: 'Fire',
+      wow_skills: [{ name: 'Fishing', category: 'secondary', rank: 'artisan', current: 301, max: 300 }] };
+    const response = await POST(makeRequest({
+      action, group_id: 'group-1', game_slug: 'wowforever', character_id: 'character-1', character: data, changes: data,
+    }) as Request);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Invalid WoW skill data' });
+    expect(mockState.updates).toEqual([]);
+    expect(mockState.inserts).toEqual([]);
   });
 
   it('returns 409 game_not_enabled when the game was removed from the group', async () => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Clan, CharacterWithProfessions, MemberProfession, RankLevel, Race, Archetype } from '@/lib/types';
 import { resetChangedWowProfessionRanks } from '@/games/wowforever/config';
+import { isValidWowSkills } from '@/games/wowforever/config/skills';
 import { canEditCharacter, canDeleteCharacter, canOfficerManageUser } from '@/lib/character-permissions';
 import { GroupRole } from '@/lib/permissions';
 import { syncSubscriberShips, updateSubscriberTier } from '@/lib/subscriberShips';
@@ -33,6 +34,7 @@ export interface CharacterData {
   wow_profession_2?: string | null;
   wow_profession_1_rank?: CharacterWithProfessions['wow_profession_1_rank'];
   wow_profession_2_rank?: CharacterWithProfessions['wow_profession_2_rank'];
+  wow_skills?: CharacterWithProfessions['wow_skills'];
   subscriber_tier?: 'centurion' | 'imperator' | null;
   subscriber_since?: string | null;
   subscriber_ships_month?: string | null;
@@ -304,6 +306,9 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
 
     const currentUserId = await resolveCurrentUserId();
     const targetGameSlug = gameSlug || 'aoc';
+    if (targetGameSlug === 'wowforever' && Object.hasOwn(data, 'wow_skills') && !isValidWowSkills(data.wow_skills)) {
+      throw new Error('Invalid WoW skill data');
+    }
     const targetUserId = data.user_id !== undefined ? data.user_id : (currentUserId || null);
     let insertedData: Array<{ id: string }> | null = null;
 
@@ -445,6 +450,7 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
         'wow_profession_2',
         'wow_profession_1_rank',
         'wow_profession_2_rank',
+        'wow_skills',
       ].forEach((field) => {
         if (field in data) payload[field] = data[field] ?? null;
       });
@@ -479,6 +485,11 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
     }
 
     const userRole = await resolveCurrentGroupRole(group.id, currentUserId);
+    const effectiveGame = character.game_slug || gameSlug ||
+      ('game_slug' in data && typeof data.game_slug === 'string' ? data.game_slug : '') || 'aoc';
+    if (effectiveGame === 'wowforever' && Object.hasOwn(data, 'wow_skills') && !isValidWowSkills(data.wow_skills)) {
+      throw new Error('Invalid WoW skill data');
+    }
 
     // Check if user can edit this character
     if (!canEditCharacter(userRole, character.user_id, currentUserId)) {
@@ -527,9 +538,6 @@ export function useGroupData(groupSlug: string, gameSlug?: string): UseGroupData
       }
     }
 
-    const characterGame = (character as any)?.game_slug as string | undefined;
-    const dataGame = updateData.game_slug as string | undefined;
-    const effectiveGame = characterGame || gameSlug || dataGame || 'aoc';
     const memberData = buildMemberUpdate(effectiveGame === 'wowforever'
       ? resetChangedWowProfessionRanks(updateData, character) : updateData, effectiveGame);
 
