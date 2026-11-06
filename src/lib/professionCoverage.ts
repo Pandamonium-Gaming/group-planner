@@ -1,5 +1,5 @@
 import { PROFESSIONS, getProfessionIcon } from '@/lib/professions';
-import { WOW_FOREVER_PROFESSIONS, type WowForeverProfessionRank } from '@/games/wowforever/config';
+import { WOW_FOREVER_PROFESSIONS, WOW_FOREVER_PROFESSION_RANKS, type WowForeverProfessionRank } from '@/games/wowforever/config';
 import type { CharacterWithProfessions, RankLevel } from '@/lib/types';
 
 export type ProfessionCharacterFilter = 'all' | 'main' | 'alt';
@@ -39,8 +39,12 @@ export function getProfessionCoverage(
       }
       const selected = character.professions.find(entry => entry.profession === profession.id);
       return selected ? [{ character, rank: selected.rank }] : [];
-    }).sort((a, b) => Number(b.character.is_main) - Number(a.character.is_main) ||
-      a.character.name.localeCompare(b.character.name)),
+    }).sort((a, b) => {
+      const rankA = a.rank ?? (a.wowRank ? WOW_FOREVER_PROFESSION_RANKS.indexOf(a.wowRank) + 1 : 0);
+      const rankB = b.rank ?? (b.wowRank ? WOW_FOREVER_PROFESSION_RANKS.indexOf(b.wowRank) + 1 : 0);
+      return rankB - rankA || Number(b.character.is_main) - Number(a.character.is_main) ||
+        a.character.name.localeCompare(b.character.name);
+    }),
   }));
 }
 

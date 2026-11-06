@@ -45,6 +45,37 @@ describe('profession coverage', () => {
     expect(getProfessionCoverage('aoc', [], 'alt').every(card => card.characters.length === 0)).toBe(true);
   });
 
+  it('orders WoW crafters by this profession rank, then main status and name, with unrecorded ranks last', () => {
+    const crafter = (id: string, is_main: boolean, wow_profession_1_rank?: CharacterWithProfessions['wow_profession_1_rank']) =>
+      character({ id, name: id, is_main, game_slug: 'wowforever', wow_profession_1: 'Alchemy', wow_profession_1_rank });
+    const cards = getProfessionCoverage('wowforever', [
+      crafter('unrecorded-main', true),
+      crafter('journeyman-main', true, 'journeyman'),
+      crafter('expert-zeta', true, 'expert'),
+      crafter('artisan-alt', false, 'artisan'),
+      crafter('unrecorded-alt', false, null),
+      crafter('apprentice-main', true, 'apprentice'),
+      crafter('expert-alt', false, 'expert'),
+      { ...crafter('expert-alpha', true, 'artisan'), wow_profession_1: 'Tailoring',
+        wow_profession_2: 'Alchemy', wow_profession_2_rank: 'expert' },
+    ]);
+    expect(cards.find(card => card.id === 'Alchemy')?.characters.map(entry => entry.character.id)).toEqual([
+      'artisan-alt', 'expert-alpha', 'expert-zeta', 'expert-alt', 'journeyman-main',
+      'apprentice-main', 'unrecorded-main', 'unrecorded-alt',
+    ]);
+  });
+
+  it('also lists the highest Ashes profession ranks before lower-ranked mains', () => {
+    const novice = character({ id: 'novice', professions: [{
+      id: 'novice-profession', member_id: 'novice', profession: 'mining', rank: 1, artisan_level: 1, quality_score: 0,
+    }] });
+    const grandmaster = character({ id: 'grandmaster', is_main: false, professions: [{
+      id: 'grandmaster-profession', member_id: 'grandmaster', profession: 'mining', rank: 4, artisan_level: 50, quality_score: 0,
+    }] });
+    expect(getProfessionCoverage('aoc', [novice, grandmaster]).find(card => card.id === 'mining')
+      ?.characters.map(entry => entry.character.id)).toEqual(['grandmaster', 'novice']);
+  });
+
   it('only exposes the tab on games with tracked professions', () => {
     for (const game of Object.values(GAMES)) {
       expect(GAME_TAB_ALLOWLIST[game.id].includes('professions')).toBe(!!game.features.professions);
