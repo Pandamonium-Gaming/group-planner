@@ -347,6 +347,9 @@
     }
   },
   "wowForever": {
+    "eventRoles": {
+      "healer": "Healer"
+    },
     "invalidEventType": "Choose an event type available for this game.",
     "legacyEventType": "This existing event uses a legacy type. It is retained unless you choose a new type.",
     "eventTypes": {

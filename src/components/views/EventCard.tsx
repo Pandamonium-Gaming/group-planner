@@ -17,7 +17,9 @@ import {
   RsvpStatus, 
   EventRole,
   getEventTypeForGame,
-  EVENT_ROLES,
+  EVENT_ROLE_FIELDS,
+  getEventRolesForGame,
+  getEventRoleForGame,
   RSVP_STATUSES,
   formatEventTime,
   formatTime,
@@ -127,6 +129,7 @@ export function EventCard({
   const isPast = isEventPast(event.starts_at);
   const isNow = isEventNow(event.starts_at, event.ends_at);
   const userRsvp = event.user_rsvp;
+  const userRole = getEventRoleForGame(userRsvp?.role ?? null, event.game_slug);
   
   // Check if user can edit or delete events
   const { loading } = usePermissions(groupId);
@@ -134,6 +137,12 @@ export function EventCard({
   const canDeleteEvent = hasPermission('events_delete_any') || (hasPermission('events_delete_own') && event.created_by === userId);
 
   const totalAttending = event.rsvp_counts.attending + event.rsvp_counts.maybe;
+  const isWow = event.game_slug === 'wowforever';
+  const eventRoles = getEventRolesForGame(event.game_slug);
+  const showRoleComposition = isWow || Object.keys(eventRoles).some(key => {
+    const fields = EVENT_ROLE_FIELDS[key as EventRole];
+    return event[fields.min] > 0 || event[fields.max] != null;
+  }) || (event.allow_combined_dps && event.combined_dps_max != null);
 
   // Copy event link to clipboard
   const copyEventLink = () => {
@@ -288,12 +297,11 @@ export function EventCard({
           {!isPublicView && <EventClassRoster event={event} />}
 
           {/* Role Requirements & Roster */}
-          {(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 
-            event.ranged_dps_min > 0 || event.melee_dps_min > 0) && (
+          {showRoleComposition && (
             <div className="space-y-3">
               <h4 className="text-sm font-medium text-white">Role Composition</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(EVENT_ROLES).map(([roleKey, roleConfig]) => {
+                {Object.entries(eventRoles).map(([roleKey, roleConfig]) => {
                   const role = roleKey as EventRole;
                   
                   // Skip individual DPS roles if combined
@@ -301,24 +309,10 @@ export function EventCard({
                     return null;
                   }
                   
-                  // Map role keys to database field names
-                  const minFieldMap: Record<EventRole, keyof EventWithRsvps> = {
-                    tank: 'tanks_min',
-                    cleric: 'clerics_min',
-                    bard: 'bards_min',
-                    ranged_dps: 'ranged_dps_min',
-                    melee_dps: 'melee_dps_min'
-                  };
-                  const maxFieldMap: Record<EventRole, keyof EventWithRsvps> = {
-                    tank: 'tanks_max',
-                    cleric: 'clerics_max',
-                    bard: 'bards_max',
-                    ranged_dps: 'ranged_dps_max',
-                    melee_dps: 'melee_dps_max'
-                  };
-                  const minimum = event[minFieldMap[role]] as number;
-                  const maximum = event[maxFieldMap[role]] as number | null;
-                  if (minimum === 0 && !maximum) return null;
+                  const fields = EVENT_ROLE_FIELDS[role];
+                  const minimum = event[fields.min];
+                  const maximum = event[fields.max];
+                  if (!isWow && minimum === 0 && maximum == null) return null;
                   
                   const roleCounts = event.role_counts?.[role] || { attending: 0, maybe: 0 };
                   const attending = roleCounts.attending;
@@ -329,13 +323,14 @@ export function EventCard({
                   
                   // Get RSVPs for this role (both member and guest)
                   const roleRsvps = event.rsvps?.filter(rsvp => 
-                    rsvp.role === role && 
+                    getEventRoleForGame(rsvp.role, event.game_slug) === role &&
                     (rsvp.status === 'attending' || rsvp.status === 'maybe')
                   ) || [];
                   
                   // Get guest RSVPs for this role
                   const roleGuestRsvps = event.guest_rsvps?.filter(guest => 
-                    guest.role === role
+                    getEventRoleForGame(guest.role, event.game_slug) === role &&
+                    (guest.status === 'attending' || guest.status === 'maybe')
                   ) || [];
                   
                   // Format the count display
@@ -361,8 +356,8 @@ export function EventCard({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{roleConfig.icon}</span>
-                          <span className={`text-sm font-medium ${roleConfig.color}`}>
-                            {roleConfig.name}
+                          <span className="text-sm font-medium" style={{ color: roleConfig.color }}>
+                            {roleConfig.nameKey ? t(roleConfig.nameKey) : roleConfig.name}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -415,7 +410,9 @@ export function EventCard({
                               key={`guest-${idx}`}
                               className="flex items-center gap-1.5 text-slate-400 italic"
                             >
-                              <Check size={12} className="text-blue-400" />
+                              {guest.status === 'maybe'
+                                ? <HelpCircle size={12} className="text-yellow-400" />
+                                : <Check size={12} className="text-blue-400" />}
                               <span className="truncate">
                                 {guest.guest_name}
                                 <span className="text-slate-500 text-xs ml-1">(guest)</span>
@@ -461,7 +458,7 @@ export function EventCard({
                 })}
                 
                 {/* Combined DPS card if enabled */}
-                {event.allow_combined_dps && (event.ranged_dps_min > 0 || event.melee_dps_min > 0 || event.ranged_dps_max || event.melee_dps_max) && (
+                {event.allow_combined_dps && (isWow || event.ranged_dps_min > 0 || event.melee_dps_min > 0 || event.combined_dps_max != null) && (
                   (() => {
                     const combinedMin = (event.ranged_dps_min || 0) + (event.melee_dps_min || 0);
                     const combinedMax = event.combined_dps_max;
@@ -483,7 +480,8 @@ export function EventCard({
                     
                     // Get combined guest RSVPs
                     const combinedGuestRsvps = (event.guest_rsvps || []).filter(guest =>
-                      guest.role === 'ranged_dps' || guest.role === 'melee_dps'
+                      (guest.role === 'ranged_dps' || guest.role === 'melee_dps') &&
+                      (guest.status === 'attending' || guest.status === 'maybe')
                     );
                     
                     let countDisplay;
@@ -568,7 +566,9 @@ export function EventCard({
                                 key={`combined-guest-${idx}`}
                                 className="flex items-center gap-1.5 text-slate-400 italic"
                               >
-                                <Check size={12} className="text-blue-400" />
+                                {guest.status === 'maybe'
+                                  ? <HelpCircle size={12} className="text-yellow-400" />
+                                  : <Check size={12} className="text-blue-400" />}
                                 <span className="text-xs text-slate-500">{guest.role === 'ranged_dps' ? '(Ranged)' : '(Melee)'}</span>
                                 <span className="truncate">
                                   {guest.guest_name}
@@ -625,6 +625,7 @@ export function EventCard({
               {event.is_public && !userId && (
                 <AnonymousGuestForm 
                   eventId={event.id}
+                  gameSlug={event.game_slug}
                   onSuccess={() => {
                     // Could refresh the event here
                   }}
@@ -712,38 +713,30 @@ export function EventCard({
               )}
               
               {/* Role selector - show if any roles are needed */}
-              {(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 
-                event.ranged_dps_min > 0 || event.melee_dps_min > 0) && (
+              {showRoleComposition && (
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">
                     RSVP with role <span className="text-red-400">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(EVENT_ROLES).map(([roleKey, roleConfig]) => {
+                    {Object.entries(eventRoles).map(([roleKey, roleConfig]) => {
                       const role = roleKey as EventRole;
-                      const minFieldMap: Record<EventRole, keyof EventWithRsvps> = {
-                        tank: 'tanks_min',
-                        cleric: 'clerics_min',
-                        bard: 'bards_min',
-                        ranged_dps: 'ranged_dps_min',
-                        melee_dps: 'melee_dps_min'
-                      };
-                      const maxFieldMap: Record<EventRole, keyof EventWithRsvps> = {
-                        tank: 'tanks_max',
-                        cleric: 'clerics_max',
-                        bard: 'bards_max',
-                        ranged_dps: 'ranged_dps_max',
-                        melee_dps: 'melee_dps_max'
-                      };
-                      const minimum = event[minFieldMap[role]] as number;
-                      const maximum = event[maxFieldMap[role]] as number | null;
-                      if (minimum === 0 && !maximum) return null;
+                      const fields = EVENT_ROLE_FIELDS[role];
+                      const minimum = event[fields.min];
+                      const isCombinedDps = event.allow_combined_dps && (role === 'ranged_dps' || role === 'melee_dps');
+                      const maximum = isCombinedDps ? event.combined_dps_max : event[fields.max];
+                      if (!isWow && !isCombinedDps && minimum === 0 && maximum == null) return null;
                       
                       // Check if this role is full
                       const roleCounts = event.role_counts?.[role] || { attending: 0, maybe: 0 };
-                      const total = roleCounts.attending + roleCounts.maybe;
+                      const total = isCombinedDps
+                        ? event.role_counts.ranged_dps.attending + event.role_counts.ranged_dps.maybe +
+                          event.role_counts.melee_dps.attending + event.role_counts.melee_dps.maybe
+                        : roleCounts.attending + roleCounts.maybe;
                       const isRoleFull = maximum !== null && total >= maximum;
-                      const userInThisRole = userRsvp?.role === role && (userRsvp.status === 'attending' || userRsvp.status === 'maybe');
+                      const userInThisRole = (userRole === role ||
+                        (isCombinedDps && (userRole === 'ranged_dps' || userRole === 'melee_dps'))) &&
+                        (userRsvp?.status === 'attending' || userRsvp?.status === 'maybe');
                       
                       const isSelected = selectedRole === role;
                       
@@ -777,7 +770,7 @@ export function EventCard({
                           } : undefined}
                         >
                           <span>{roleConfig.icon}</span>
-                          <span>{roleConfig.name}</span>
+                          <span>{roleConfig.nameKey ? t(roleConfig.nameKey) : roleConfig.name}</span>
                           {isRoleFull && !userInThisRole && <span className="text-xs ml-1">(Full)</span>}
                           {isSelected && <Check size={14} className="ml-1" />}
                         </button>
@@ -790,15 +783,13 @@ export function EventCard({
               {/* General RSVP options */}
               <div>
                 <label className="block text-xs text-slate-400 mb-2">
-                  {(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 
-                    event.ranged_dps_min > 0 || event.melee_dps_min > 0)
+                  {showRoleComposition
                     ? 'Or respond:'
                     : 'RSVP:'}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {/* Only show attending without role if no roles are needed */}
-                  {!(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 
-                    event.ranged_dps_min > 0 || event.melee_dps_min > 0) && (
+                  {!showRoleComposition && (
                     <button
                       onClick={(e) => { 
                         e.stopPropagation(); 
@@ -821,8 +812,7 @@ export function EventCard({
                   )}
                   
                   {/* Show attending with role button if roles are needed and a role is selected */}
-                  {(event.tanks_min > 0 || event.clerics_min > 0 || event.bards_min > 0 || 
-                    event.ranged_dps_min > 0 || event.melee_dps_min > 0) && selectedRole && (
+                  {showRoleComposition && selectedRole && (
                     <button
                       onClick={(e) => { 
                         e.stopPropagation(); 

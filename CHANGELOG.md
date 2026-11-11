@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added WoW Forever event role breakdowns and minimum/maximum requirements for Tank, Healer, Ranged DPS and Melee DPS, with optional combined DPS limits. Member and guest sign-ups and Discord notifications use Healer instead of separate Cleric and Bard roles; existing event storage is reused without a migration. Older WoW Cleric/Bard sign-ups count as healers, and guest role counts now respect Attending/Maybe/Declined consistently.
 * Added independent WoW Cooking, First Aid and Fishing tracking, plus an extensible list of class, weapon, defence and riding skills. Each records its trained rank and current/maximum skill without inferring rank from points. Secondary professions appear in coverage and character filters; all skills appear on character cards and round-trip through JSON transfers. Apply migration `027_wow_character_skills.sql` before deploying; older imports preserve existing skills.
 * Added money deposits and withdrawals to the Group Bank, with Gold / Silver / Copper inputs, balances and history for WoW Forever. Migration `026_wow_bank_currency.sql` converts existing WoW whole-gold balances and transactions to integer copper without changing Ashes units; money transfers now update the balance and audit history atomically.
 * Included migration `025_atomic_bank_resource_transactions.sql` from main, providing atomic guild-bank resource transactions and the matching migration-history entry.

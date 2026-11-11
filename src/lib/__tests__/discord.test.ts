@@ -1,4 +1,5 @@
-import { sendDiscordWebhook } from '../discord';
+import { notifyNewEvent, sendDiscordWebhook } from '../discord';
+import type { Event } from '../events';
 import { postEventNotification, webhookHeaders } from '../webhookClient';
 
 jest.mock('../webhookClient', () => ({
@@ -49,4 +50,21 @@ it('keeps webhook tests on the authenticated proxy with their group context', as
     method: 'POST', headers: { 'Content-Type': 'application/json' },
   }));
   expect(JSON.parse(fetchMock.mock.calls[0][1].body).context).toEqual(context);
+});
+
+it.each(['wowforever', 'aoc'])('formats %s healer and combined DPS requirements in Discord', async game => {
+  const send = jest.fn().mockResolvedValue({ success: true });
+  await notifyNewEvent('', {
+    id: 'event', group_id: 'group', game_slug: game, event_type: 'raid', title: 'Raid',
+    starts_at: '2027-01-01T20:00:00Z', tanks_min: 0, tanks_max: null,
+    clerics_min: 2, clerics_max: 3, bards_min: 1, bards_max: 1,
+    ranged_dps_min: 0, ranged_dps_max: null, melee_dps_min: 0, melee_dps_max: null,
+    allow_combined_dps: true, combined_dps_max: 5,
+  } as Event, 'Guild', 'guild', null, send);
+  const requirements = send.mock.calls[0][1].embeds[0].fields
+    .find((field: { name: string }) => field.name.includes('Role Requirements')).value;
+  expect(requirements).toContain(game === 'wowforever' ? '2-3 Healers' : '2-3 Clerics');
+  expect(requirements).toContain('Max 5 DPS (Ranged + Melee)');
+  if (game === 'wowforever') expect(requirements).not.toMatch(/Cleric|Bard/);
+  else expect(requirements).toContain('1-1 Bard');
 });

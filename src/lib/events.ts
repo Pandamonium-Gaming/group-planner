@@ -114,6 +114,7 @@ export type EventRole = 'tank' | 'cleric' | 'bard' | 'ranged_dps' | 'melee_dps';
 // Role display config
 export const EVENT_ROLES: Record<EventRole, {
   name: string;
+  nameKey?: string;
   icon: string;
   color: string;
 }> = {
@@ -123,6 +124,51 @@ export const EVENT_ROLES: Record<EventRole, {
   ranged_dps: { name: 'Ranged DPS', icon: '🏹', color: '#ef4444' },
   melee_dps: { name: 'Melee DPS', icon: '⚔️', color: '#f97316' },
 };
+
+export const EVENT_ROLE_FIELDS = {
+  tank: { min: 'tanks_min', max: 'tanks_max' },
+  cleric: { min: 'clerics_min', max: 'clerics_max' },
+  bard: { min: 'bards_min', max: 'bards_max' },
+  ranged_dps: { min: 'ranged_dps_min', max: 'ranged_dps_max' },
+  melee_dps: { min: 'melee_dps_min', max: 'melee_dps_max' },
+} as const;
+
+export function getEventRolesForGame(gameSlug = 'aoc'): Partial<typeof EVENT_ROLES> {
+  if (gameSlug !== 'wowforever') return EVENT_ROLES;
+
+  // Keep the existing cleric RSVP/requirement fields as WoW's single healer slot.
+  return {
+    tank: EVENT_ROLES.tank,
+    cleric: { ...EVENT_ROLES.cleric, name: 'Healer', nameKey: 'wowForever.eventRoles.healer' },
+    ranged_dps: EVENT_ROLES.ranged_dps,
+    melee_dps: EVENT_ROLES.melee_dps,
+  };
+}
+
+export function getEventRoleForGame(role: EventRole | null, gameSlug?: string): EventRole | null {
+  return gameSlug === 'wowforever' && role === 'bard' ? 'cleric' : role;
+}
+
+export function countEventRoles(
+  rsvps: readonly Pick<EventRsvp, 'role' | 'status'>[],
+  guests: readonly Pick<GuestEventRsvp, 'role' | 'status'>[],
+  gameSlug?: string
+): EventWithRsvps['role_counts'] {
+  const counts: EventWithRsvps['role_counts'] = {
+    tank: { attending: 0, maybe: 0 },
+    cleric: { attending: 0, maybe: 0 },
+    bard: { attending: 0, maybe: 0 },
+    ranged_dps: { attending: 0, maybe: 0 },
+    melee_dps: { attending: 0, maybe: 0 },
+  };
+  for (const signup of [...rsvps, ...guests]) {
+    const role = getEventRoleForGame(signup.role, gameSlug);
+    if (role && (signup.status === 'attending' || signup.status === 'maybe')) {
+      counts[role][signup.status]++;
+    }
+  }
+  return counts;
+}
 
 // Database types
 export interface Event {

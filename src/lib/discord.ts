@@ -206,10 +206,13 @@ export async function notifyNewEvent(
   };
   
   const tankReq = formatRoleRequirement(event.tanks_min, event.tanks_max, '🛡️', event.tanks_min > 1 || (event.tanks_max && event.tanks_max > 1) ? 'Tanks' : 'Tank');
-  const clericReq = formatRoleRequirement(event.clerics_min, event.clerics_max, '✨', event.clerics_min > 1 || (event.clerics_max && event.clerics_max > 1) ? 'Clerics' : 'Cleric');
-  const bardReq = formatRoleRequirement(event.bards_min, event.bards_max, '🎵', event.bards_min > 1 || (event.bards_max && event.bards_max > 1) ? 'Bards' : 'Bard');
-  const rangedReq = formatRoleRequirement(event.ranged_dps_min, event.ranged_dps_max, '🏹', 'Ranged DPS');
-  const meleeReq = formatRoleRequirement(event.melee_dps_min, event.melee_dps_max, '⚔️', 'Melee DPS');
+  const healerName = event.game_slug === 'wowforever' ? 'Healer' : 'Cleric';
+  const clericReq = formatRoleRequirement(event.clerics_min, event.clerics_max, '✨', event.clerics_min > 1 || (event.clerics_max && event.clerics_max > 1) ? `${healerName}s` : healerName);
+  const bardReq = event.game_slug === 'wowforever' ? null : formatRoleRequirement(event.bards_min, event.bards_max, '🎵', event.bards_min > 1 || (event.bards_max && event.bards_max > 1) ? 'Bards' : 'Bard');
+  const rangedReq = event.allow_combined_dps
+    ? formatRoleRequirement(event.ranged_dps_min + event.melee_dps_min, event.combined_dps_max, '🏹', 'DPS (Ranged + Melee)')
+    : formatRoleRequirement(event.ranged_dps_min, event.ranged_dps_max, '🏹', 'Ranged DPS');
+  const meleeReq = event.allow_combined_dps ? null : formatRoleRequirement(event.melee_dps_min, event.melee_dps_max, '⚔️', 'Melee DPS');
   
   if (tankReq) roleRequirements.push(tankReq);
   if (clericReq) roleRequirements.push(clericReq);

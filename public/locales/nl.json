@@ -347,6 +347,9 @@
     }
   },
   "wowForever": {
+    "eventRoles": {
+      "healer": "Genezer"
+    },
     "invalidEventType": "Kies een evenementtype dat beschikbaar is voor dit spel.",
     "legacyEventType": "Dit bestaande evenement gebruikt een oud type. Het blijft behouden tenzij je een nieuw type kiest.",
     "eventTypes": {
