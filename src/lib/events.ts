@@ -163,7 +163,8 @@ export function countEventRoles(
   };
   for (const signup of [...rsvps, ...guests]) {
     const role = getEventRoleForGame(signup.role, gameSlug);
-    if (role && (signup.status === 'attending' || signup.status === 'maybe')) {
+    if (role && Object.prototype.hasOwnProperty.call(counts, role) &&
+      (signup.status === 'attending' || signup.status === 'maybe')) {
       counts[role][signup.status]++;
     }
   }

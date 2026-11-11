@@ -38,3 +38,9 @@ it('combines legacy WoW Cleric and Bard signups as healers, including guests by 
   expect(counts.bard).toEqual({ attending: 0, maybe: 0 });
   expect(countEventRoles([], [{ role: 'bard', status: 'attending' }], 'aoc').bard.attending).toBe(1);
 });
+
+it('ignores guest roles that are not in the role-count map', () => {
+  const guests = [{ role: 'healer', status: 'attending' }] as never[];
+  expect(() => countEventRoles([], guests, 'wowforever')).not.toThrow();
+  expect(countEventRoles([], guests, 'wowforever').cleric.attending).toBe(0);
+});

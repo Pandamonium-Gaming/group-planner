@@ -156,6 +156,7 @@ export function EventCard({
   const userCountsTowardCapacity = userRsvp && (userRsvp.status === 'attending' || userRsvp.status === 'maybe');
   const effectiveAttending = userCountsTowardCapacity ? totalAttending - 1 : totalAttending;
   const isFull = event.max_attendees ? effectiveAttending >= event.max_attendees : false;
+  const isAtCapacity = isFull && !userCountsTowardCapacity;
 
   return (
     <div
@@ -746,7 +747,7 @@ export function EventCard({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!isRoleFull || userInThisRole) {
+                            if (!isAtCapacity && (!isRoleFull || userInThisRole)) {
                               if (isSelected) {
                                 // Deselect the role
                                 setSelectedRole(null);
@@ -757,9 +758,9 @@ export function EventCard({
                               }
                             }
                           }}
-                          disabled={isRoleFull && !userInThisRole}
+                          disabled={isAtCapacity || (isRoleFull && !userInThisRole)}
                           className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            isRoleFull && !userInThisRole ? 'opacity-50 cursor-not-allowed bg-slate-900 text-slate-500' :
+                            isAtCapacity || (isRoleFull && !userInThisRole) ? 'opacity-50 cursor-not-allowed bg-slate-900 text-slate-500' :
                             isSelected
                               ? 'ring-2 ring-offset-2 ring-offset-slate-900 cursor-pointer'
                               : 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer'
@@ -818,18 +819,19 @@ export function EventCard({
                         e.stopPropagation(); 
                         handleRsvpClick('attending', selectedRole);
                       }}
-                      disabled={isRsvpLoading}
+                      disabled={isAtCapacity || isRsvpLoading}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                         userRsvp?.status === 'attending' && userRsvp?.role === selectedRole
                           ? 'ring-2 ring-offset-2 ring-offset-slate-900 text-green-400'
                           : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                      } ${isRsvpLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      } ${isAtCapacity || isRsvpLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                       style={userRsvp?.status === 'attending' && userRsvp?.role === selectedRole ? { 
                         backgroundColor: '#22c55e30'
                       } : undefined}
                     >
                       <Check size={14} />
                       {isRsvpLoading ? 'Updating...' : 'Attending'}
+                      {isAtCapacity && ' (Full)'}
                     </button>
                   )}
                   

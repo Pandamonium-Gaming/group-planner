@@ -87,6 +87,30 @@ it('treats a zero maximum as closed but lets an existing healer keep their place
   expect(screen.getByRole('button', { name: /wowForever.eventRoles.healer/ })).toBeEnabled();
 });
 
+it('enforces event capacity for role signups and selected-role Attending but allows existing attendees to change roles', async () => {
+  const atCapacity = { ...event, max_attendees: 5, rsvp_counts: { attending: 5, maybe: 0, declined: 0 } };
+  const { rerender } = render(<EventCard {...props} event={atCapacity} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeDisabled();
+  expect(props.onRsvp).not.toHaveBeenCalled();
+
+  rerender(<EventCard {...props} event={{ ...atCapacity, rsvp_counts: { attending: 4, maybe: 0, declined: 0 } }} />);
+  fireEvent.click(screen.getByRole('button', { name: '🛡️ Tank' }));
+  await waitFor(() => expect(props.onRsvp).toHaveBeenCalledWith('attending', 'tank', undefined, undefined));
+
+  rerender(<EventCard {...props} event={atCapacity} />);
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Attending (Full)' })).toBeDisabled();
+
+  rerender(<EventCard {...props} event={{
+    ...atCapacity,
+    user_rsvp: { id: 'rsvp', event_id: event.id, user_id: props.userId, character_id: null,
+      role: 'tank', status: 'attending', note: null, responded_at: event.created_at },
+  }} />);
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Attending' })).toBeEnabled();
+});
+
 it('enforces a shared DPS maximum even when no minimum or individual maximum is set', () => {
   const combined = { ...event, allow_combined_dps: true, combined_dps_max: 2,
     role_counts: { ...event.role_counts, ranged_dps: { attending: 1, maybe: 0 }, melee_dps: { attending: 0, maybe: 1 } } };
