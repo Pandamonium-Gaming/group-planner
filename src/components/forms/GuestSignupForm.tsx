@@ -1,19 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Users, X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { submitGuestRsvp } from '@/lib/actions/guest-rsvp';
-import { EventRole, EVENT_ROLES } from '@/lib/events';
+import { EventRole, getEventRolesForGame } from '@/lib/events';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface GuestSignupFormProps {
   eventId: string;
+  gameSlug?: string;
   alliedClanId: string;
   onSuccess: () => void;
 }
 
-export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignupFormProps) {
+export function GuestSignupForm({ eventId, gameSlug, alliedClanId, onSuccess }: GuestSignupFormProps) {
   const { success, error } = useToast();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -109,7 +112,7 @@ export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignu
             Role *
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {Object.entries(EVENT_ROLES).map(([roleKey, roleConfig]) => (
+            {Object.entries(getEventRolesForGame(gameSlug)).map(([roleKey, roleConfig]) => (
               <button
                 key={roleKey}
                 type="button"
@@ -126,7 +129,7 @@ export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignu
                 } : undefined}
               >
                 <span className="text-lg">{roleConfig.icon}</span>
-                <span>{roleConfig.name}</span>
+                <span>{roleConfig.nameKey ? t(roleConfig.nameKey) : roleConfig.name}</span>
               </button>
             ))}
           </div>
@@ -154,4 +157,3 @@ export function GuestSignupForm({ eventId, alliedClanId, onSuccess }: GuestSignu
     </div>
   );
 }
-

@@ -71,7 +71,7 @@ describe('useEvents Hook - Phase 2', () => {
           { id: 'rsvp-1', user_id: 'user-1', status: 'attending', role: 'tank' },
           { id: 'rsvp-2', user_id: 'user-2', status: 'maybe', role: 'cleric' },
         ],
-        guest_event_rsvps: [{ id: 'guest-1', role: 'tank' }],
+        guest_event_rsvps: [{ id: 'guest-1', role: 'tank', status: 'attending' }],
       },
     ];
 
@@ -101,6 +101,30 @@ describe('useEvents Hook - Phase 2', () => {
     expect(event.role_counts.tank.attending).toBe(2);
     expect(event.role_counts.cleric.maybe).toBe(1);
     expect(event.user_rsvp?.user_id).toBe('user-1');
+  });
+
+  it.each(['v1', 'v2'] as const)('counts WoW healer guests by status under %s', async stack => {
+    const data = [{
+      id: 'wow-event', game_slug: 'wowforever',
+      event_rsvps: [{ user_id: 'user-1', role: 'bard', status: 'maybe' }],
+      guest_event_rsvps: [
+        { role: 'cleric', status: 'attending' },
+        { role: 'bard', status: 'maybe' },
+        { role: 'cleric', status: 'declined' },
+      ],
+    }];
+    jest.mocked(getClientAuthStack).mockReturnValue(stack);
+    mockSupabase.from
+      .mockReturnValueOnce(buildEventsQuery(data))
+      .mockReturnValueOnce(buildAnnouncementsQuery([]));
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true, json: async () => ({ events: data, announcements: [] }),
+    });
+    const { result } = renderHook(() => useEvents('group-123', 'user-1', 'wowforever'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.events[0].role_counts.cleric).toEqual({ attending: 1, maybe: 2 });
+    expect(result.current.events[0].role_counts.bard).toEqual({ attending: 0, maybe: 0 });
+    expect(result.current.events[0].rsvp_counts).toEqual({ attending: 1, maybe: 2, declined: 1 });
   });
 
   it.each([

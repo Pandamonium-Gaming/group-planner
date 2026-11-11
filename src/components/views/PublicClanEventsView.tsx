@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
-import { EventWithRsvps } from '@/lib/events';
+import { EventRsvp, EventWithRsvps, GuestEventRsvp, countEventRoles } from '@/lib/events';
 import { EventCard } from '@/components/views/EventCard';
 import { Calendar, ChevronLeft, Users } from 'lucide-react';
 
@@ -45,49 +45,18 @@ export function PublicClanEventsView({ groupId, groupName, groupSlug }: PublicCl
 
       // Compute rsvp_counts and role_counts for each event
       const eventsWithCounts = (data || []).map(event => {
-        const rsvps = event.event_rsvps || [];
-        const guestRsvps = event.guest_event_rsvps || [];
+        const rsvps: EventRsvp[] = event.event_rsvps || [];
+        const guestRsvps: GuestEventRsvp[] = event.guest_event_rsvps || [];
         return {
           ...event,
           rsvps,
           guest_rsvps: guestRsvps,
           rsvp_counts: {
-            attending: rsvps.filter((r: any) => r.status === 'attending').length,
-            maybe: rsvps.filter((r: any) => r.status === 'maybe').length,
-            declined: rsvps.filter((r: any) => r.status === 'declined').length,
+            attending: rsvps.filter(r => r.status === 'attending').length + guestRsvps.filter(g => g.status === 'attending').length,
+            maybe: rsvps.filter(r => r.status === 'maybe').length + guestRsvps.filter(g => g.status === 'maybe').length,
+            declined: rsvps.filter(r => r.status === 'declined').length + guestRsvps.filter(g => g.status === 'declined').length,
           },
-          role_counts: {
-            tank: {
-              attending: (rsvps.filter((r: any) => r.role === 'tank' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'tank' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'tank' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'tank' && g.status === 'maybe').length),
-            },
-            cleric: {
-              attending: (rsvps.filter((r: any) => r.role === 'cleric' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'cleric' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'cleric' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'cleric' && g.status === 'maybe').length),
-            },
-            bard: {
-              attending: (rsvps.filter((r: any) => r.role === 'bard' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'bard' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'bard' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'bard' && g.status === 'maybe').length),
-            },
-            ranged_dps: {
-              attending: (rsvps.filter((r: any) => r.role === 'ranged_dps' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'ranged_dps' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'ranged_dps' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'ranged_dps' && g.status === 'maybe').length),
-            },
-            melee_dps: {
-              attending: (rsvps.filter((r: any) => r.role === 'melee_dps' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'melee_dps' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'melee_dps' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'melee_dps' && g.status === 'maybe').length),
-            },
-          }
+          role_counts: countEventRoles(rsvps, guestRsvps, event.game_slug),
         };
       });
 
@@ -181,4 +150,3 @@ export function PublicClanEventsView({ groupId, groupName, groupSlug }: PublicCl
     </div>
   );
 }
-

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar } from 'lucide-react';
-import { Event, EventType, EventRole, EVENT_ROLES, utcToLocal, getEventTypesForGame, getCanonicalEventType, isEventTypeAllowedForGame } from '@/lib/events';
+import { Event, EventType, EventRole, EVENT_ROLE_FIELDS, getEventRolesForGame, utcToLocal, getEventTypesForGame, getCanonicalEventType, isEventTypeAllowedForGame } from '@/lib/events';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EventFormData {
@@ -332,30 +332,16 @@ export function EventForm({
             />
           </div>
 
-          {/* Role Requirements - AoC Only */}
-          {gameSlug === 'aoc' && (
+          {/* Role Requirements */}
+          {(gameSlug === 'aoc' || gameSlug === 'wowforever') && (
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Role Requirements <span className="text-slate-500">(min / max per role)</span>
             </label>
             <div className="space-y-3">
-              {Object.entries(EVENT_ROLES).map(([roleKey, roleConfig]) => {
-                const minFieldMap = {
-                  tank: 'tanks_min',
-                  cleric: 'clerics_min',
-                  bard: 'bards_min',
-                  ranged_dps: 'ranged_dps_min',
-                  melee_dps: 'melee_dps_min'
-                } as const;
-                const maxFieldMap = {
-                  tank: 'tanks_max',
-                  cleric: 'clerics_max',
-                  bard: 'bards_max',
-                  ranged_dps: 'ranged_dps_max',
-                  melee_dps: 'melee_dps_max'
-                } as const;
-                const minFieldName = minFieldMap[roleKey as EventRole];
-                const maxFieldName = maxFieldMap[roleKey as EventRole];
+              {Object.entries(getEventRolesForGame(gameSlug)).map(([roleKey, roleConfig]) => {
+                const { min: minFieldName, max: maxFieldName } = EVENT_ROLE_FIELDS[roleKey as EventRole];
+                const roleName = roleConfig.nameKey ? t(roleConfig.nameKey) : roleConfig.name;
 
                 // Skip DPS fields if combined DPS is enabled
                 if (formData.allow_combined_dps && (roleKey === 'ranged_dps' || roleKey === 'melee_dps')) {
@@ -366,8 +352,8 @@ export function EventForm({
                   <div key={roleKey} className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-32">
                       <span className="text-lg">{roleConfig.icon}</span>
-                      <span className={`text-sm ${roleConfig.color}`}>
-                        {roleConfig.name}
+                      <span className="text-sm" style={{ color: roleConfig.color }}>
+                        {roleName}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 flex-1">
@@ -378,7 +364,7 @@ export function EventForm({
                           min="0"
                           max="40"
                           value={formData[minFieldName]}
-                          aria-label={`${roleConfig.name} minimum`}
+                          aria-label={`${roleName} minimum`}
                           onChange={(e) => setFormData({ 
                             ...formData, 
                             [minFieldName]: e.target.value 
@@ -394,7 +380,7 @@ export function EventForm({
                           min="0"
                           max="40"
                           value={formData[maxFieldName]}
-                          aria-label={`${roleConfig.name} maximum`}
+                          aria-label={`${roleName} maximum`}
                           onChange={(e) => setFormData({ 
                             ...formData, 
                             [maxFieldName]: e.target.value 

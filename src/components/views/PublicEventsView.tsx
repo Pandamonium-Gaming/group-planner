@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Calendar, Users } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Event, EventRsvp, GuestEventRsvp, EventWithRsvps } from '@/lib/events';
+import { Event, EventRsvp, GuestEventRsvp, EventWithRsvps, countEventRoles } from '@/lib/events';
 import { EventCard } from '@/components/views/EventCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -51,42 +51,11 @@ export function PublicEventsView() {
           rsvps,
           guest_rsvps: guestRsvps,
           rsvp_counts: {
-            attending: rsvps.filter((r: any) => r.status === 'attending').length,
-            maybe: rsvps.filter((r: any) => r.status === 'maybe').length,
-            declined: rsvps.filter((r: any) => r.status === 'declined').length,
+            attending: rsvps.filter(r => r.status === 'attending').length + guestRsvps.filter(g => g.status === 'attending').length,
+            maybe: rsvps.filter(r => r.status === 'maybe').length + guestRsvps.filter(g => g.status === 'maybe').length,
+            declined: rsvps.filter(r => r.status === 'declined').length + guestRsvps.filter(g => g.status === 'declined').length,
           },
-          role_counts: {
-            tank: {
-              attending: (rsvps.filter((r: any) => r.role === 'tank' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'tank' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'tank' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'tank' && g.status === 'maybe').length),
-            },
-            cleric: {
-              attending: (rsvps.filter((r: any) => r.role === 'cleric' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'cleric' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'cleric' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'cleric' && g.status === 'maybe').length),
-            },
-            bard: {
-              attending: (rsvps.filter((r: any) => r.role === 'bard' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'bard' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'bard' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'bard' && g.status === 'maybe').length),
-            },
-            ranged_dps: {
-              attending: (rsvps.filter((r: any) => r.role === 'ranged_dps' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'ranged_dps' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'ranged_dps' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'ranged_dps' && g.status === 'maybe').length),
-            },
-            melee_dps: {
-              attending: (rsvps.filter((r: any) => r.role === 'melee_dps' && r.status === 'attending').length +
-                guestRsvps.filter((g: any) => g.role === 'melee_dps' && g.status === 'attending').length),
-              maybe: (rsvps.filter((r: any) => r.role === 'melee_dps' && r.status === 'maybe').length +
-                guestRsvps.filter((g: any) => g.role === 'melee_dps' && g.status === 'maybe').length),
-            },
-          }
+          role_counts: countEventRoles(rsvps, guestRsvps, event.game_slug),
         };
       });
 

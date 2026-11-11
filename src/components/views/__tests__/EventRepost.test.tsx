@@ -1,7 +1,7 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { EventCard } from '../EventCard';
-import type { EventWithRsvps } from '@/lib/events';
+import { countEventRoles, type EventWithRsvps } from '@/lib/events';
 import { postEventNotification } from '@/lib/webhookClient';
 
 jest.mock('@/lib/webhookClient', () => ({ postEventNotification: jest.fn() }));
@@ -51,6 +51,98 @@ it.each([false, true])('shows expanded class composition only for member views (
   if (isPublicView) expect(screen.queryByRole('region', { name: 'eventRoster.title' })).not.toBeInTheDocument();
   else expect(screen.getByRole('region', { name: 'eventRoster.title' })).toBeInTheDocument();
 });
+
+it('shows all four WoW roles without requirements and signs up as a healer', async () => {
+  render(<EventCard {...props} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByText('Role Composition')).toBeInTheDocument();
+  expect(screen.queryByText('Cleric')).not.toBeInTheDocument();
+  expect(screen.queryByText('Bard')).not.toBeInTheDocument();
+  for (const role of ['Tank', 'wowForever.eventRoles.healer', 'Ranged DPS', 'Melee DPS']) {
+    expect(screen.getByRole('button', { name: new RegExp(role) })).toBeEnabled();
+  }
+  fireEvent.click(screen.getByRole('button', { name: /wowForever.eventRoles.healer/ }));
+  await waitFor(() => expect(props.onRsvp).toHaveBeenCalledWith('attending', 'cleric', undefined, undefined));
+});
+
+it.each([false, true])('shows max-only composition and disables a full healer role (public=%s)', isPublicView => {
+  render(<EventCard {...props} isPublicView={isPublicView} event={{
+    ...event, clerics_max: 2,
+    role_counts: { ...event.role_counts, cleric: { attending: 1, maybe: 1 } },
+  }} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByText('2/2')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /wowForever.eventRoles.healer.*Full/ })).toBeDisabled();
+});
+
+it('treats a zero maximum as closed but lets an existing healer keep their place', () => {
+  const { rerender } = render(<EventCard {...props} event={{ ...event, clerics_max: 0 }} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByRole('button', { name: /wowForever.eventRoles.healer.*Full/ })).toBeDisabled();
+  rerender(<EventCard {...props} event={{
+    ...event, clerics_max: 1, role_counts: { ...event.role_counts, cleric: { attending: 0, maybe: 1 } },
+    user_rsvp: { id: 'rsvp', event_id: event.id, user_id: props.userId, character_id: null,
+      role: 'cleric', status: 'maybe', note: null, responded_at: event.created_at },
+  }} />);
+  expect(screen.getByRole('button', { name: /wowForever.eventRoles.healer/ })).toBeEnabled();
+});
+
+it('enforces event capacity for role signups and selected-role Attending but allows existing attendees to change roles', async () => {
+  const atCapacity = { ...event, max_attendees: 5, rsvp_counts: { attending: 5, maybe: 0, declined: 0 } };
+  const { rerender } = render(<EventCard {...props} event={atCapacity} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeDisabled();
+  expect(props.onRsvp).not.toHaveBeenCalled();
+
+  rerender(<EventCard {...props} event={{ ...atCapacity, rsvp_counts: { attending: 4, maybe: 0, declined: 0 } }} />);
+  fireEvent.click(screen.getByRole('button', { name: '🛡️ Tank' }));
+  await waitFor(() => expect(props.onRsvp).toHaveBeenCalledWith('attending', 'tank', undefined, undefined));
+
+  rerender(<EventCard {...props} event={atCapacity} />);
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Attending (Full)' })).toBeDisabled();
+
+  rerender(<EventCard {...props} event={{
+    ...atCapacity,
+    user_rsvp: { id: 'rsvp', event_id: event.id, user_id: props.userId, character_id: null,
+      role: 'tank', status: 'attending', note: null, responded_at: event.created_at },
+  }} />);
+  expect(screen.getByRole('button', { name: '🛡️ Tank' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Attending' })).toBeEnabled();
+});
+
+it('enforces a shared DPS maximum even when no minimum or individual maximum is set', () => {
+  const combined = { ...event, allow_combined_dps: true, combined_dps_max: 2,
+    role_counts: { ...event.role_counts, ranged_dps: { attending: 1, maybe: 0 }, melee_dps: { attending: 0, maybe: 1 } } };
+  const { rerender } = render(<EventCard {...props} event={combined} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  expect(screen.getByText('DPS (Combined)')).toBeInTheDocument();
+  expect(screen.getByText('2/2')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Ranged DPS.*Full/ })).toBeDisabled();
+  expect(screen.getByRole('button', { name: /Melee DPS.*Full/ })).toBeDisabled();
+  rerender(<EventCard {...props} event={{ ...combined,
+    user_rsvp: { id: 'rsvp', event_id: event.id, user_id: props.userId, character_id: null,
+      role: 'ranged_dps', status: 'attending', note: null, responded_at: event.created_at },
+  }} />);
+  expect(screen.getByRole('button', { name: /Melee DPS/ })).toBeEnabled();
+});
+
+it('lists older WoW Bard guests under Healer and excludes declined guests from the roster', () => {
+  const guests: NonNullable<EventWithRsvps['guest_rsvps']> = [
+    { id: 'guest-1', event_id: event.id, allied_group_id: null, guest_name: 'Legacy Bard',
+      class_id: null, role: 'bard', status: 'maybe', created_at: event.created_at, updated_at: event.updated_at },
+    { id: 'guest-2', event_id: event.id, allied_group_id: null, guest_name: 'Declined Healer',
+      class_id: null, role: 'cleric', status: 'declined', created_at: event.created_at, updated_at: event.updated_at },
+  ];
+  render(<EventCard {...props} event={{ ...event, guest_rsvps: guests,
+    role_counts: countEventRoles([], guests, 'wowforever') }} />);
+  fireEvent.click(screen.getByText('Guild raid'));
+  const composition = within(screen.getByText('Role Composition').parentElement!);
+  expect(composition.getByText('Legacy Bard')).toBeInTheDocument();
+  expect(composition.queryByText('Declined Healer')).not.toBeInTheDocument();
+  expect(composition.getByText('wowForever.eventRoles.healer')).toBeInTheDocument();
+});
+
 it.each(['public', 'cancelled', 'other-owner', 'no-permission'])('hides repost for %s events or viewers', mode => {
   if (mode === 'no-permission') mockPermissions = [];
   render(<EventCard {...props} isPublicView={mode === 'public'}

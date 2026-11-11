@@ -347,6 +347,9 @@
     }
   },
   "wowForever": {
+    "eventRoles": {
+      "healer": "Sanador"
+    },
     "invalidEventType": "Elige un tipo de evento disponible para este juego.",
     "legacyEventType": "Este evento usa un tipo antiguo. Se conserva a menos que elijas otro tipo.",
     "eventTypes": {

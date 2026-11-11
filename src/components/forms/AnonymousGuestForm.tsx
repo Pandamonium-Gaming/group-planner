@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Users, X } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { submitAnonymousGuestRsvp } from '@/lib/actions/anonymous-guest-rsvp';
-import { EventRole, EVENT_ROLES } from '@/lib/events';
+import { EventRole, getEventRolesForGame } from '@/lib/events';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AnonymousGuestFormProps {
   eventId: string;
+  gameSlug?: string;
   onSuccess: () => void;
 }
 
-export function AnonymousGuestForm({ eventId, onSuccess }: AnonymousGuestFormProps) {
+export function AnonymousGuestForm({ eventId, gameSlug, onSuccess }: AnonymousGuestFormProps) {
   const { success, error } = useToast();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -135,7 +138,7 @@ export function AnonymousGuestForm({ eventId, onSuccess }: AnonymousGuestFormPro
             Role <span className="text-red-400" aria-label="required">*</span>
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {Object.entries(EVENT_ROLES).map(([roleKey, roleConfig]) => (
+            {Object.entries(getEventRolesForGame(gameSlug)).map(([roleKey, roleConfig]) => (
               <button
                 key={roleKey}
                 type="button"
@@ -156,7 +159,7 @@ export function AnonymousGuestForm({ eventId, onSuccess }: AnonymousGuestFormPro
                 }
               >
                 <span className="text-lg">{roleConfig.icon}</span>
-                <span>{roleConfig.name}</span>
+                <span>{roleConfig.nameKey ? t(roleConfig.nameKey) : roleConfig.name}</span>
               </button>
             ))}
           </div>
@@ -184,4 +187,3 @@ export function AnonymousGuestForm({ eventId, onSuccess }: AnonymousGuestFormPro
     </div>
   );
 }
-

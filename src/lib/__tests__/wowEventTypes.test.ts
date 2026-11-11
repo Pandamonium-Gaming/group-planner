@@ -1,4 +1,4 @@
-import { EVENT_TYPES, getEventTypesForGame, getEventTypeForGame, isEventTypeAllowedForGame } from '../events';
+import { EVENT_TYPES, countEventRoles, getEventTypesForGame, getEventTypeForGame, isEventTypeAllowedForGame } from '../events';
 
 it('offers the requested WoW choices, retaining Other and removing all farming and Siege choices', () => {
   expect(Object.keys(getEventTypesForGame('wowforever'))).toEqual([
@@ -22,4 +22,25 @@ it('preserves other games and readable legacy events', () => {
   expect(isEventTypeAllowedForGame('farming_other', 'wowforever', 'farming_gear')).toBe(false);
   expect(isEventTypeAllowedForGame('unknown', 'wowforever', 'unknown')).toBe(false);
   expect(isEventTypeAllowedForGame('arena_pvp', 'aoc')).toBe(false);
+});
+
+it('combines legacy WoW Cleric and Bard signups as healers, including guests by status', () => {
+  const counts = countEventRoles([
+    { role: 'cleric', status: 'attending' },
+    { role: 'bard', status: 'maybe' },
+    { role: null, status: 'attending' },
+  ], [
+    { role: 'bard', status: 'attending' },
+    { role: 'cleric', status: 'maybe' },
+    { role: 'cleric', status: 'declined' },
+  ], 'wowforever');
+  expect(counts.cleric).toEqual({ attending: 2, maybe: 2 });
+  expect(counts.bard).toEqual({ attending: 0, maybe: 0 });
+  expect(countEventRoles([], [{ role: 'bard', status: 'attending' }], 'aoc').bard.attending).toBe(1);
+});
+
+it('ignores guest roles that are not in the role-count map', () => {
+  const guests = [{ role: 'healer', status: 'attending' }] as never[];
+  expect(() => countEventRoles([], guests, 'wowforever')).not.toThrow();
+  expect(countEventRoles([], guests, 'wowforever').cleric.attending).toBe(0);
 });
