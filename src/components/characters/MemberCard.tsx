@@ -16,7 +16,7 @@ import { getConfiguredGameRanks, resolveConfiguredRankLabel } from '@/lib/gameRa
 import { getWowForeverClass, getWowForeverFaction } from '@/games/wowforever/config';
 import { WowClassIcon, WowFactionIcon } from '@/components/game-specific/WowCharacterIcons';
 import { GuildRankBadge } from './GuildRankBadge';
-import { WowSkillDisplay } from './WowSkillDisplay';
+import { getWowSkillRankColors, WowSkillDisplay, WowTrainingRow } from './WowSkillDisplay';
 
 interface CharacterCardProps {
   character: CharacterWithProfessions;
@@ -48,6 +48,12 @@ export function CharacterCard({
   const [editName, setEditName] = useState(character.name);
   const [isDeleting, setIsDeleting] = useState(false);
   const { t } = useLanguage();
+  const isWowForever = gameSlug === 'wowforever';
+  const metadataTextSize = isWowForever ? 'text-sm' : 'text-xs';
+  const wowProfessions = [
+    { name: character.wow_profession_1, rank: character.wow_profession_1_rank, label: t('wowForever.firstProfession') },
+    { name: character.wow_profession_2, rank: character.wow_profession_2_rank, label: t('wowForever.secondProfession') },
+  ];
 
   const warnings = checkRankLimits(character.professions);
   const summary = getRankSummary(character.professions);
@@ -184,21 +190,21 @@ export function CharacterCard({
               </div>
             ) : (
               <div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isWowForever ? 'flex-wrap' : ''}`}>
                   {character.is_main && (
                     <span role="img" aria-label={t('character.mainCharacter')} title={t('character.mainCharacter')}>
                       <Star size={14} className="text-amber-400 fill-amber-400" aria-hidden="true" />
                     </span>
                   )}
-                  <h3 className="text-white font-semibold truncate">{character.name}</h3>
-                  <GuildRankBadge characterId={character.id} />
-                  <span className="truncate text-xs text-slate-400" title={t('character.owner')}>
+                  <h3 className={`text-white font-semibold truncate ${isWowForever ? 'text-lg' : ''}`}>{character.name}</h3>
+                  <GuildRankBadge characterId={character.id} size={isWowForever ? 'md' : 'sm'} />
+                  <span className={`truncate ${metadataTextSize} text-slate-400`} title={t('character.owner')}>
                     {character.user_id
                       ? character.owner?.display_name || character.owner?.discord_username || t('character.ownerUnknown')
                       : t('character.unclaimed')}
                   </span>
                   {character.level > 1 && (
-                    <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
+                    <span className={`${metadataTextSize} ${isWowForever ? 'text-slate-400' : 'text-slate-500'} bg-slate-800 px-1.5 py-0.5 rounded`}>
                       Lv.{character.level}
                     </span>
                   )}
@@ -248,36 +254,45 @@ export function CharacterCard({
                   </div>
                 )}
                 {gameSlug === 'wowforever' && (
-                  <div className="mt-0.5 text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-1 text-base">
+                    <div className="flex flex-wrap items-center gap-2">
                       {wowClass && <WowClassIcon classId={wowClass.id} />}
                       {wowFaction && <WowFactionIcon faction={wowFaction} />}
                       {character.wow_race && <span className="text-slate-400">{character.wow_race}</span>}
                       {character.wow_race && wowClass && <span className="text-slate-600">•</span>}
                       {wowClass && <span className="text-slate-300">{wowClass.name}</span>}
-                      {wowFaction && <span className="text-slate-500">({wowFaction})</span>}
+                      {wowFaction && <span className="text-slate-400">({wowFaction})</span>}
                     </div>
                     {(character.wow_main_spec || character.wow_secondary_spec) && (
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-base font-medium text-slate-200 mt-1">
                         {[character.wow_main_spec, character.wow_secondary_spec].filter(Boolean).join(' / ')}
                       </div>
                     )}
                     {(character.wow_profession_1 || character.wow_profession_2) && (
-                      <div className="text-xs text-slate-500 mt-1">
-                        {[character.wow_profession_1, character.wow_profession_2].filter(Boolean).join(' · ')}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium mt-1">
+                        {wowProfessions.filter(profession => profession.name).map((profession, index) => (
+                          <React.Fragment key={profession.label}>
+                            {index > 0 && <span aria-hidden="true" className="text-slate-500">·</span>}
+                            <span className={getWowSkillRankColors(profession.rank)?.text || 'text-slate-400'}
+                              title={`${profession.label}: ${t(profession.rank
+                                ? `wowForever.professionRanks.${profession.rank}` : 'wowForever.rankNotRecorded')}`}>
+                              {profession.name}
+                            </span>
+                          </React.Fragment>
+                        ))}
                       </div>
                     )}
                   </div>
                 )}
                 {/* Main/Alt relationship */}
                 {mainCharacterName && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                  <div className={`flex items-center gap-1 mt-1 ${metadataTextSize} ${isWowForever ? 'flex-wrap text-slate-400' : 'text-slate-500'}`}>
                     <span>Alt of</span>
                     <span className="text-amber-400">{mainCharacterName}</span>
                   </div>
                 )}
                 {altCharacters.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                  <div className={`flex items-center gap-1 mt-1 ${metadataTextSize} ${isWowForever ? 'flex-wrap text-slate-400' : 'text-slate-500'}`}>
                     <span>Alts:</span>
                     <span className="text-slate-400">{altCharacters.map(alt => alt.name).join(', ')}</span>
                   </div>
@@ -398,29 +413,26 @@ export function CharacterCard({
       )}
 
       {isExpanded && gameSlug === 'wowforever' && (
-        <div className="border-t border-slate-800 p-4 space-y-2 text-sm">
-          <div className="text-slate-300">
-            <span className="text-slate-500">{t('wowForever.mainSpec')}:</span>{' '}
-            {character.wow_main_spec || '—'}
-          </div>
-          <div className="text-slate-300">
-            <span className="text-slate-500">{t('wowForever.secondarySpec')}:</span>{' '}
-            {character.wow_secondary_spec || '—'}
-          </div>
-          <div className="text-slate-300">
-            <span className="text-slate-500">{t('wowForever.firstProfession')}:</span>{' '}
-            {character.wow_profession_1 || '—'}
-            {character.wow_profession_1 && <span className="ml-2 text-xs text-indigo-200">
-              {t(character.wow_profession_1_rank ? `wowForever.professionRanks.${character.wow_profession_1_rank}` : 'wowForever.rankNotRecorded')}
-            </span>}
-          </div>
-          <div className="text-slate-300">
-            <span className="text-slate-500">{t('wowForever.secondProfession')}:</span>{' '}
-            {character.wow_profession_2 || '—'}
-            {character.wow_profession_2 && <span className="ml-2 text-xs text-indigo-200">
-              {t(character.wow_profession_2_rank ? `wowForever.professionRanks.${character.wow_profession_2_rank}` : 'wowForever.rankNotRecorded')}
-            </span>}
-          </div>
+        <div className="border-t border-slate-800 p-4 space-y-4">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+              <dt className="text-sm text-slate-400">{t('wowForever.mainSpec')}</dt>
+              <dd className="mt-1 text-lg font-semibold text-slate-200 [overflow-wrap:anywhere]">{character.wow_main_spec || '—'}</dd>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+              <dt className="text-sm text-slate-400">{t('wowForever.secondarySpec')}</dt>
+              <dd className="mt-1 text-lg font-semibold text-slate-200 [overflow-wrap:anywhere]">{character.wow_secondary_spec || '—'}</dd>
+            </div>
+          </dl>
+          <section aria-label={t('character.professions')} className="space-y-3 border-t border-slate-800 pt-4">
+            <h4 className="text-base font-semibold text-slate-200">{t('character.professions')}</h4>
+            <ul className="space-y-2">
+              {wowProfessions.map(profession => (
+                <WowTrainingRow key={profession.label} name={profession.name || '—'} detail={profession.label}
+                  rank={profession.name ? profession.rank ?? null : undefined} />
+              ))}
+            </ul>
+          </section>
           <WowSkillDisplay skills={character.wow_skills || []} />
         </div>
       )}

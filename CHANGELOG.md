@@ -56,6 +56,7 @@
 
 ### Changed
 
+* Made WoW character cards easier to read with larger specs and supporting text, rank-coloured collapsed profession names, and matching expanded rows and rank badges for primary professions and skills.
 * Improved profession coverage cards with wrapping character names and owner details, separate status and rank badges, and coloured profession ranks. Coverage now lists the highest trained profession ranks first, with mains and names breaking ties and unrecorded WoW ranks last.
 * Show guild rank once in each character card header rather than repeating the badge in its main/alt relationship lines.
 * Removed the home-page remove button for games; games are now archived and permanently deleted from Game Management.
