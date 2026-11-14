@@ -136,6 +136,7 @@ it.each(['main', 'alt'] as const)('shows rank once on a %s card without repeatin
   );
   expect(screen.getByRole('heading', { name: character.name })).toBeInTheDocument();
   expect(screen.getAllByLabelText('Guild rank: Captain')).toHaveLength(1);
+  expect(screen.getByLabelText('Guild rank: Captain')).toHaveClass('text-sm');
   if (kind === 'main') {
     expect(screen.getByText('Alts:').parentElement).toHaveTextContent('Moonfall, Stardust');
   } else {

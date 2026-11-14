@@ -178,6 +178,62 @@ describe('profession and faction UI', () => {
     expect(screen.queryByText('Lockpicking')).not.toBeInTheDocument();
   });
 
+  it('uses matching readable rows and rank badges for primary professions and skills', () => {
+    render(<CharacterCard character={{ ...main, wow_main_spec: 'Fire', wow_secondary_spec: 'Frost',
+      wow_profession_1_rank: 'expert', wow_profession_2: 'Mining', wow_profession_2_rank: 'journeyman',
+      wow_skills: [{ name: 'Cooking', category: 'secondary', rank: 'apprentice', current: 25, max: 75 }] }}
+      gameSlug="wowforever" onUpdate={jest.fn()} onDelete={jest.fn()} onSetProfessionRank={jest.fn()} readOnly />);
+    expect(screen.getByText('Fire / Frost')).toHaveClass('text-base', 'font-medium');
+    expect(screen.getByRole('heading', { name: 'Aster' }).parentElement).toHaveClass('flex-wrap');
+    fireEvent.click(screen.getByText('Aster'));
+    expect(screen.getByText('Fire')).toHaveClass('text-lg');
+    expect(screen.getByText('Frost')).toHaveClass('text-lg');
+    const professions = within(screen.getByRole('region', { name: 'character.professions' }));
+    const skills = within(screen.getByRole('region', { name: 'wowSkills.title' }));
+    const primaryRows = professions.getAllByRole('listitem');
+    const skillRow = skills.getByRole('listitem');
+    for (const row of primaryRows) expect(row.className).toBe(skillRow.className);
+    expect(professions.getByText('Alchemy')).toHaveClass('text-base', 'font-medium');
+    expect(skills.getByText('wowSkills.cooking')).toHaveClass('text-base', 'font-medium');
+    expect(professions.getByText('wowForever.professionRanks.expert')).toHaveClass('text-purple-400', 'text-sm');
+    expect(professions.getByText('wowForever.professionRanks.journeyman')).toHaveClass('text-blue-400', 'text-sm');
+    expect(skills.getByText('wowForever.professionRanks.apprentice')).toHaveClass('text-green-400', 'text-sm');
+    expect(skills.getByText('25 / 75')).toHaveClass('text-sm');
+    expect(professions.queryByText(/\d+ \/ \d+|\? \/ \?/)).not.toBeInTheDocument();
+  });
+
+  it('colours collapsed professions by their own trained ranks and leaves unrecorded ranks neutral', () => {
+    const actions = { onUpdate: jest.fn(), onDelete: jest.fn(), onSetProfessionRank: jest.fn() };
+    const { rerender } = render(<CharacterCard character={{ ...main, wow_profession_1_rank: 'expert',
+      wow_profession_2: 'Mining', wow_profession_2_rank: 'journeyman' }}
+      {...actions} gameSlug="wowforever" readOnly />);
+    expect(screen.getByText('Alchemy')).toHaveClass('text-purple-400');
+    expect(screen.getByText('Alchemy')).toHaveAttribute('title', 'wowForever.firstProfession: wowForever.professionRanks.expert');
+    expect(screen.getByText('Mining')).toHaveClass('text-blue-400');
+    rerender(<CharacterCard character={{ ...main, wow_profession_1_rank: 'artisan',
+      wow_profession_2: 'Mining', wow_profession_2_rank: 'apprentice' }}
+      {...actions} gameSlug="wowforever" readOnly />);
+    expect(screen.getByText('Alchemy')).toHaveClass('text-orange-400');
+    expect(screen.getByText('Mining')).toHaveClass('text-green-400');
+    rerender(<CharacterCard character={{ ...main, wow_profession_1_rank: null }}
+      {...actions} gameSlug="wowforever" readOnly />);
+    expect(screen.getByText('Alchemy')).toHaveClass('text-slate-400');
+    expect(screen.getByText('Alchemy')).toHaveAttribute('title', 'wowForever.firstProfession: wowForever.rankNotRecorded');
+    expect(screen.queryByText('Mining')).not.toBeInTheDocument();
+  });
+
+  it('keeps missing primary professions separate from unrecorded ranks without showing skill points', () => {
+    render(<CharacterCard character={main} gameSlug="wowforever"
+      onUpdate={jest.fn()} onDelete={jest.fn()} onSetProfessionRank={jest.fn()} readOnly />);
+    fireEvent.click(screen.getByText('Aster'));
+    const professions = within(screen.getByRole('region', { name: 'character.professions' }));
+    const rows = professions.getAllByRole('listitem');
+    expect(within(rows[0]).getByText('wowForever.rankNotRecorded')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('—')).toBeInTheDocument();
+    expect(within(rows[1]).queryByText('wowForever.rankNotRecorded')).not.toBeInTheDocument();
+    expect(screen.getByText('wowSkills.noneRecorded')).toBeInTheDocument();
+  });
+
   it('saves a chosen faction for unrestricted Skyborne and resets it for fixed classes', async () => {
     const submit = jest.fn().mockResolvedValue(undefined);
     render(<CharacterForm initialData={{ name: 'Briar', wow_race: 'Skyborne', wow_class: 'warrior', wow_main_spec: 'Arms' }}
